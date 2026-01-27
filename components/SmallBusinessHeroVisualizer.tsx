@@ -16,8 +16,8 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         let frameId: number;
         let time = 0;
 
-        // --- 3D PARTICLE ENGINE ---
-        const PARTICLE_COUNT = 400; // Reduced from 800
+        // --- 3D PARTICLE ENGINE (Restored High Fidelity) ---
+        const PARTICLE_COUNT = 800; // Restored from 400
         const CAM_Z = 800;
         const CX = w * 0.5;
         const CY = h * 0.5;
@@ -64,7 +64,7 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
             const x = (idx % dim);
             const y = Math.floor((idx / dim) % dim);
             const z = Math.floor(idx / (dim * dim));
-            const spacing = 45; // Adjusted for lower count
+            const spacing = 40; // Tighter spacing for higher density
             const offset = (dim * spacing) / 2;
             return {
                 x: x * spacing - offset,
@@ -149,7 +149,6 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
                 const scale = CAM_Z / (CAM_Z + z);
                 
                 if (scale > 0) {
-                    // Populate sorting array directly
                     sortedParticles[validCount] = {
                         x: CX + x * scale,
                         y: CY + y * scale,
@@ -162,9 +161,7 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
                 }
             }
 
-            // Quick Sort (only valid items)
-            // Using a simpler approach: just draw. Transparency artifacts are minimal here.
-            // But if we want depth fog, sorting helps.
+            // Quick Sort (Restored sorting for depth correctness)
             const renderList = sortedParticles.slice(0, validCount).sort((a, b) => b.z - a.z);
 
             for(let i=0; i<renderList.length; i++) {
@@ -184,20 +181,18 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
             }
             ctx.globalAlpha = 1;
 
-            // Connecting Lines (Only for structured phases)
+            // Connecting Lines (Higher density check)
             if (phase !== 0) {
                 ctx.strokeStyle = phase === 2 ? 'rgba(34, 211, 238, 0.15)' : 'rgba(139, 92, 246, 0.1)';
                 ctx.lineWidth = 0.5;
                 
-                // Optimized connection loop
-                for(let i=0; i<renderList.length; i+=3) { // Skip some particles
+                // More aggressive connection loop
+                for(let i=0; i<renderList.length; i+=2) { 
                     const p1 = renderList[i];
-                    // Only check next few sorted neighbors (approximation of proximity)
-                    for(let j=1; j<3; j++) {
+                    for(let j=1; j<4; j++) {
                         if (i+j >= renderList.length) break;
                         const p2 = renderList[i+j];
-                        
-                        const dist = Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y); // Manhattan dist for speed
+                        const dist = Math.sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2);
                         if (dist < 40 * p1.scale) {
                             ctx.beginPath();
                             ctx.moveTo(p1.x, p1.y);

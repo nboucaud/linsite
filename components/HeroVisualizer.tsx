@@ -31,7 +31,6 @@ export const HeroVisualizer: React.FC = () => {
         let meshOpacity = 0; 
 
         // --- GEOMETRY ---
-        // Pre-allocate to avoid GC
         const SHEET_SIZE = 150; 
         
         // Base structures
@@ -56,7 +55,6 @@ export const HeroVisualizer: React.FC = () => {
         let planeRot = { x: 0, y: 0, z: 0 };
 
         // --- PARTICLES ---
-        // Use a fixed size pool or carefully managed array
         interface Particle {
             x: number; y: number; z: number;
             vx: number; vy: number; vz: number;
@@ -66,7 +64,7 @@ export const HeroVisualizer: React.FC = () => {
             active: boolean;
         }
         
-        const MAX_PARTICLES = 100;
+        const MAX_PARTICLES = 200; // Restored from 100
         const particles: Particle[] = [];
         // Init pool
         for(let i=0; i<MAX_PARTICLES; i++) {
@@ -103,17 +101,10 @@ export const HeroVisualizer: React.FC = () => {
             targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
 
             // Pre-calc rotation matrices
-            const cosY = Math.cos(targetRotX); // Swapped based on mouse mapping logic
+            const cosY = Math.cos(targetRotX); 
             const sinY = Math.sin(targetRotX);
-            const cosX = Math.cos(targetRotY); // Swapped
+            const cosX = Math.cos(targetRotY); 
             const sinX = Math.sin(targetRotY);
-
-            const cosPRx = Math.cos(planeRot.x);
-            const sinPRx = Math.sin(planeRot.x);
-            const cosPRy = Math.cos(planeRot.y);
-            const sinPRy = Math.sin(planeRot.y);
-            const cosPRz = Math.cos(planeRot.z);
-            const sinPRz = Math.sin(planeRot.z);
 
             // --- PHASE LOGIC ---
             if (phase === 0) { // COALESCE
@@ -190,7 +181,7 @@ export const HeroVisualizer: React.FC = () => {
                 phase = 0;
             }
 
-            // --- TRANSFORM & PROJECT (Optimized) ---
+            // --- TRANSFORM & PROJECT ---
             for(let i=0; i<9; i++) {
                 const v = currentVerts[i];
                 let x = v.x + planePos.x;

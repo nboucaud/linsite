@@ -23,24 +23,24 @@ export const IndustrialsHeroVisualizer: React.FC = () => {
         interface Point { x: number, y: number, z: number }
         const parts: { points: Point[], rotationSpeed: number, color: string, type: string }[] = [];
 
-        // CASING (Optimized)
+        // CASING (High Density)
         const casingPoints: Point[] = [];
-        // Increased step from 30 to 50 for Z, 0.2 to 0.4 for angle
-        for (let z = -250; z <= 250; z += 50) {
+        // Restored step to 30 (from 50) and angle to 0.2 (from 0.4) for smoother rings
+        for (let z = -250; z <= 250; z += 30) {
             const r = (130 + Math.sin(z * 0.008) * 15) * MODEL_SCALE;
-            for (let a = 0; a < Math.PI * 2; a += 0.4) {
+            for (let a = 0; a < Math.PI * 2; a += 0.2) {
                 casingPoints.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: z });
             }
         }
         parts.push({ points: casingPoints, rotationSpeed: 0.001, color: 'rgba(255, 255, 255, 0.2)', type: 'casing' });
 
-        // ROTORS
+        // ROTORS (High Detail)
         for (let i = 0; i < 6; i++) {
             const z = -200 + i * 80;
             const pts: Point[] = [];
             const rOuter = 115 * MODEL_SCALE;
-            // Reduced blade count complexity
-            const bladeCount = 8 + (i%2)*4;
+            // Increased blade count base to 12
+            const bladeCount = 12 + (i%2)*4;
             for (let b = 0; b < bladeCount; b++) {
                 const angle = (Math.PI * 2 / bladeCount) * b;
                 pts.push({ x: Math.cos(angle) * 40 * MODEL_SCALE, y: Math.sin(angle) * 40 * MODEL_SCALE, z });
@@ -57,7 +57,6 @@ export const IndustrialsHeroVisualizer: React.FC = () => {
             const camRotY = time * 0.2;
             const camRotX = Math.sin(time * 0.25) * 0.15;
             
-            // Pre-calculate camera rotation matrix values
             const cosCY = Math.cos(camRotY), sinCY = Math.sin(camRotY);
             const cosCX = Math.cos(camRotX), sinCX = Math.sin(camRotX);
 
@@ -68,7 +67,6 @@ export const IndustrialsHeroVisualizer: React.FC = () => {
                 
                 ctx.beginPath();
                 
-                // Optimized loop
                 const pts = part.points;
                 const len = pts.length;
                 
@@ -77,7 +75,6 @@ export const IndustrialsHeroVisualizer: React.FC = () => {
                     let x = p.x, y = p.y, z = p.z;
 
                     if (part.type === 'rotor') {
-                        // Apply rotor spin
                         const nx = x * cosR - y * sinR;
                         const ny = x * sinR + y * cosR;
                         x = nx; y = ny;

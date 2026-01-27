@@ -17,10 +17,10 @@ export const LogisticsHeroVisualizer: React.FC = () => {
         
         const PHASE_DURATION = 900; 
         
-        // --- 1. INDUCTION (Packages) ---
+        // --- 1. INDUCTION (Packages) - Increased Count ---
         interface PackageBox { x: number, y: number, w: number, h: number, speed: number, type: 'standard' | 'priority' | 'hazardous' }
         const packages: PackageBox[] = [];
-        for(let i=0; i<100; i++) {
+        for(let i=0; i<200; i++) { // Restored to 200
             packages.push({
                 x: Math.random() * w * 1.5,
                 y: Math.random() * h,
@@ -31,10 +31,10 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             });
         }
 
-        // --- 2. NETWORK (Globe) ---
+        // --- 2. NETWORK (Globe) - High Density ---
         interface GlobePoint { x: number, y: number, z: number, r: number }
         const globePoints: GlobePoint[] = [];
-        const count = 600;
+        const count = 1200; // Restored to 1200
         const r = 250;
         const phi = Math.PI * (3 - Math.sqrt(5));
         for(let i=0; i<count; i++) {
@@ -46,10 +46,10 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             globePoints.push({ x: x*r, y: y*r, z: z*r, r: Math.random() > 0.95 ? 3 : 1.5 });
         }
 
-        // --- 3. SORTATION (Radial) ---
+        // --- 3. SORTATION (Radial) - High Density ---
         interface SortParticle { r: number, angle: number, speed: number, color: string }
         const sortParticles: SortParticle[] = [];
-        for(let i=0; i<150; i++) {
+        for(let i=0; i<300; i++) { // Restored to 300
             sortParticles.push({
                 r: Math.random() * 50,
                 angle: Math.random() * Math.PI * 2,
@@ -62,7 +62,6 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             frame++;
             const cycle = frame % (PHASE_DURATION * 3);
             let activePhase = 0;
-            let opacity = 1;
             
             if (cycle < PHASE_DURATION) activePhase = 0;
             else if (cycle < PHASE_DURATION * 2) activePhase = 1;

@@ -15,7 +15,7 @@ export const HealthcareHeroVisualizer: React.FC = () => {
         let time = 0;
         let frameId: number;
 
-        const BASE_PAIRS = 30;
+        const BASE_PAIRS = 50; // Restored from 30
         const ROTATION_SPEED = 0.015;
 
         const render = () => {
