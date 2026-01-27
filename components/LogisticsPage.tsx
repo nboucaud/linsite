@@ -23,7 +23,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string }> = ({ type, label, caption }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -45,20 +45,29 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                {/* Animated Grid Background */}
-                <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" 
-                     style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
-                />
+                
+                {src ? (
+                    <>
+                        <img 
+                            src={src} 
+                            alt={label}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                )}
                 
                 {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-cyan-400/20 blur-sm animate-[scan_3s_linear_infinite]" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-cyan-400/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
 
-                <div className="z-10 flex flex-col items-center text-white/30 group-hover:text-cyan-400/50 transition-colors">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-4 group-hover:border-cyan-400/30 transition-colors">
+                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-cyan-400 transition-colors drop-shadow-md">
+                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-cyan-400/50 transition-colors">
                         <ImageIcon size={48} strokeWidth={1} />
                     </div>
-                    <div className="text-xs font-mono uppercase tracking-widest">{label}</div>
-                    <div className="text-[10px] opacity-50 mt-1 border border-white/10 px-2 py-0.5 rounded">{type.toUpperCase()} IMAGE</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()} IMAGE</div>
                 </div>
             </div>
             {caption && (
@@ -752,7 +761,12 @@ export const LogisticsPage: React.FC = () => {
                                     </section>
                                     
                                     {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder type="wide" label="Network Overview" caption="Visualizing the breakdown in traditional linear logistics models." />
+                                    <ImagePlaceholder 
+                                        type="wide" 
+                                        label="Network Overview" 
+                                        caption="Visualizing the breakdown in traditional linear logistics models." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_holographic_city_simulation.jpg" 
+                                    />
 
                                     {/* SECTION 2: INTERVENTION */}
                                     <section>
@@ -765,8 +779,18 @@ export const LogisticsPage: React.FC = () => {
 
                                     {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder type="portrait" label="Node Analysis" caption="Detailed view of a single failure point." />
-                                        <ImagePlaceholder type="portrait" label="Flow Correction" caption="Automated rerouting protocol in action." />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Node Analysis" 
+                                            caption="Detailed view of a single failure point." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_warehouse_logistics_inventory_check.jpg" 
+                                        />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Flow Correction" 
+                                            caption="Automated rerouting protocol in action." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corrugated_steel_industrial_logistics_massive_gantry_cranes_modular_geometry.jpg" 
+                                        />
                                     </div>
 
                                     {/* SECTION 3: APPROACH */}
@@ -779,7 +803,12 @@ export const LogisticsPage: React.FC = () => {
                                     </section>
 
                                     {/* FINAL VISUAL */}
-                                    <ImagePlaceholder type="square" label="System Harmony" caption="The target state: Synchronized movement across the entire value chain." />
+                                    <ImagePlaceholder 
+                                        type="square" 
+                                        label="System Harmony" 
+                                        caption="The target state: Synchronized movement across the entire value chain." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_raw_timber_pallets_orthogonal_grid_structure_logistical_efficiency_diffuse_indoor_illumination.jpg" 
+                                    />
                                 </div>
                             </div>
                         </div>

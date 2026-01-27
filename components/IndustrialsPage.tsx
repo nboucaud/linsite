@@ -23,7 +23,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string }> = ({ type, label, caption }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -45,17 +45,29 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+                
+                {src ? (
+                    <>
+                        <img 
+                            src={src} 
+                            alt={label}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+                )}
                 
                 {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/20 blur-sm animate-[scan_3s_linear_infinite]" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
 
-                <div className="z-10 flex flex-col items-center text-white/30 group-hover:text-amber-500/50 transition-colors">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-4 group-hover:border-amber-500/30 transition-colors">
+                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-amber-500 transition-colors drop-shadow-md">
+                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-amber-500/50 transition-colors">
                         <ImageIcon size={48} strokeWidth={1} />
                     </div>
-                    <div className="text-xs font-mono uppercase tracking-widest">{label}</div>
-                    <div className="text-[10px] opacity-50 mt-1 border border-white/10 px-2 py-0.5 rounded">{type.toUpperCase()}</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()} IMAGE</div>
                 </div>
             </div>
             {caption && (
@@ -660,7 +672,12 @@ export const IndustrialsPage: React.FC = () => {
                                     </section>
                                     
                                     {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder type="wide" label="Site Schematic" caption="Identifying zones of high variance." />
+                                    <ImagePlaceholder 
+                                        type="wide" 
+                                        label="Site Schematic" 
+                                        caption="Identifying zones of high variance." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_steel_lattice_weathered_metal_low_angle_natural_daylight_mechanical_geometry.jpg"
+                                    />
 
                                     {/* SECTION 2: INTERVENTION */}
                                     <section>
@@ -673,8 +690,18 @@ export const IndustrialsPage: React.FC = () => {
 
                                     {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder type="portrait" label="Asset Sensor" caption="Real-time telemetry feed." />
-                                        <ImagePlaceholder type="portrait" label="Maintenance Log" caption="Predictive maintenance schedule." />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Asset Sensor" 
+                                            caption="Real-time telemetry feed." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_complex_volumetric_steam_concrete_cooling_tower_steel_piping_utilitarian_geometry_natural_daylight.jpg"
+                                        />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Maintenance Log" 
+                                            caption="Predictive maintenance schedule." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_laser_projection_industrial_polymer_forged_steel_technical_inspection_nocturnal_maintenance.jpg"
+                                        />
                                     </div>
 
                                     {/* SECTION 3: APPROACH */}
@@ -687,7 +714,12 @@ export const IndustrialsPage: React.FC = () => {
                                     </section>
 
                                     {/* FINAL VISUAL */}
-                                    <ImagePlaceholder type="square" label="Control Room" caption="Centralized oversight for distributed assets." />
+                                    <ImagePlaceholder 
+                                        type="square" 
+                                        label="Control Room" 
+                                        caption="Centralized oversight for distributed assets." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_bins_diffuse_overhead_illumination_orthogonal_storage_grid_complex_mechanical_assemblies_collaborative_technical_learning.jpg"
+                                    />
                                 </div>
                             </div>
                         </div>

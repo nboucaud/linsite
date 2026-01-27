@@ -41,11 +41,13 @@ const ClientNetworkVisualizer: React.FC = () => {
         let frameId: number;
 
         // --- GLOBE CONFIG ---
-        const GLOBE_RADIUS = h * 0.35;
-        const DOT_COUNT = 400;
-        const CONNECTION_DIST = 50;
+        const GLOBE_RADIUS = Math.min(w, h) * 0.35;
+        const DOT_COUNT = 300; 
+        const CONNECTION_DIST = 60;
         
         interface Point3D { x: number, y: number, z: number; type: 'client' | 'hub' }
+        interface ProjectedPoint { x: number, y: number, z: number; scale: number; type: 'client' | 'hub' }
+
         const points: Point3D[] = [];
         const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
 
@@ -61,87 +63,99 @@ const ClientNetworkVisualizer: React.FC = () => {
                 x: x * GLOBE_RADIUS, 
                 y: y * GLOBE_RADIUS, 
                 z: z * GLOBE_RADIUS,
-                type: Math.random() > 0.95 ? 'hub' : 'client'
+                type: Math.random() > 0.94 ? 'hub' : 'client' // ~6% hubs
             });
         }
 
+        // Buffer
+        const projected: ProjectedPoint[] = new Array(DOT_COUNT).fill(null).map(() => ({ x: 0, y: 0, z: 0, scale: 0, type: 'client' }));
+
         const render = () => {
-            time += 0.005;
+            time += 0.003; 
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
             const cx = w / 2;
             const cy = h / 2;
 
-            // Rotation Logic
-            const targetRotX = mouseRef.current.y * 0.5;
-            const targetRotY = mouseRef.current.x * 0.5 + time;
+            const targetRotX = mouseRef.current.y * 0.3;
+            const targetRotY = mouseRef.current.x * 0.3 + time;
 
-            // Project Points
-            const projected = points.map(p => {
-                // Rotate Y
-                let x1 = p.x * Math.cos(targetRotY) - p.z * Math.sin(targetRotY);
-                let z1 = p.z * Math.cos(targetRotY) + p.x * Math.sin(targetRotY);
-                
-                // Rotate X
-                let y1 = p.y * Math.cos(targetRotX) - z1 * Math.sin(targetRotX);
-                let z2 = z1 * Math.cos(targetRotX) + p.y * Math.sin(targetRotX);
+            const cosY = Math.cos(targetRotY);
+            const sinY = Math.sin(targetRotY);
+            const cosX = Math.cos(targetRotX);
+            const sinX = Math.sin(targetRotX);
 
-                const scale = 1000 / (1000 - z2); 
-                return {
-                    x: x1 * scale + cx,
-                    y: y1 * scale + cy,
-                    z: z2,
-                    scale,
-                    type: p.type
-                };
-            });
+            // Project
+            for(let i=0; i<DOT_COUNT; i++) {
+                const p = points[i];
+                let x1 = p.x * cosY - p.z * sinY;
+                let z1 = p.z * cosY + p.x * sinY;
+                let y1 = p.y * cosX - z1 * sinX;
+                let z2 = z1 * cosX + p.y * sinX;
 
-            // Draw Connections (Background)
+                const scale = 800 / (800 - z2); 
+                projected[i].x = x1 * scale + cx;
+                projected[i].y = y1 * scale + cy;
+                projected[i].z = z2;
+                projected[i].scale = scale;
+                projected[i].type = p.type;
+            }
+
+            // Connections
             ctx.lineWidth = 0.5;
-            projected.forEach((p1, i) => {
-                if (p1.z < 0) return; // Only front facing connections usually better for performance, but let's do all for depth
-                
-                // Only connect hubs to nearby points
+            for(let i=0; i<DOT_COUNT; i++) {
+                const p1 = projected[i];
+                if (p1.z < -100) continue; 
+
                 if (p1.type === 'hub') {
-                    projected.forEach((p2, j) => {
-                        if (i === j) return;
-                        const dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                        if (dist < CONNECTION_DIST * p1.scale) {
-                            const alpha = (1 - dist / (CONNECTION_DIST * p1.scale)) * 0.5;
+                    for(let j=0; j<DOT_COUNT; j++) {
+                        if (i === j) continue;
+                        const p2 = projected[j];
+                        if (p2.z < -100) continue;
+
+                        const dx = p1.x - p2.x;
+                        const dy = p1.y - p2.y;
+                        const distSq = dx*dx + dy*dy;
+                        const maxDist = CONNECTION_DIST * p1.scale;
+                        
+                        if (distSq < maxDist * maxDist) {
+                            const dist = Math.sqrt(distSq);
+                            const alpha = (1 - dist / maxDist) * 0.4;
                             ctx.strokeStyle = `rgba(105, 183, 178, ${alpha})`;
                             ctx.beginPath();
                             ctx.moveTo(p1.x, p1.y);
                             ctx.lineTo(p2.x, p2.y);
                             ctx.stroke();
                         }
-                    });
+                    }
                 }
-            });
+            }
 
-            // Draw Dots
-            projected.forEach(p => {
+            // Dots
+            for(let i=0; i<DOT_COUNT; i++) {
+                const p = projected[i];
+                if (p.z < -200) continue; 
+
                 const alpha = Math.max(0.1, (p.z + GLOBE_RADIUS) / (GLOBE_RADIUS * 2));
                 
                 if (p.type === 'hub') {
                     ctx.fillStyle = '#fff';
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 10 * p.scale;
                     ctx.shadowColor = '#69B7B2';
-                    const size = 3 * p.scale;
+                    const size = 2.5 * p.scale;
                     ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
                     
-                    // Pulse ring
                     ctx.strokeStyle = `rgba(105, 183, 178, ${0.5 + Math.sin(time * 5) * 0.5})`;
                     ctx.beginPath(); ctx.arc(p.x, p.y, size * 2, 0, Math.PI*2); ctx.stroke();
                 } else {
                     ctx.fillStyle = `rgba(105, 183, 178, ${alpha})`;
-                    const size = 1.5 * p.scale;
+                    const size = 1.2 * p.scale;
                     ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
                 }
-            });
+            }
 
-            // Draw "Atmosphere" Glow
             const grad = ctx.createRadialGradient(cx, cy, GLOBE_RADIUS * 0.8, cx, cy, GLOBE_RADIUS * 1.2);
             grad.addColorStop(0, 'rgba(105, 183, 178, 0.0)');
             grad.addColorStop(1, 'rgba(105, 183, 178, 0.05)');
@@ -169,8 +183,6 @@ const ClientNetworkVisualizer: React.FC = () => {
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-80" />;
 };
-
-// --- DATA ---
 
 const INDUSTRIES = [
     {
@@ -255,18 +267,13 @@ const PARTNER_CODES = [
     "SHELL_ASSET_INT", "PFIZER_COMP_TRK", "JP_MORGAN_RISK"
 ];
 
-// --- COMPONENTS ---
-
 const PhilosophyCard: React.FC<{ item: typeof PHILOSOPHY[0] }> = ({ item }) => (
     <div className="relative group p-8 rounded-3xl bg-[#0c0c0e] border border-white/5 hover:border-white/10 transition-all duration-500 overflow-hidden hover:-translate-y-2">
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        
-        {/* Glow Effect */}
         <div 
             className="absolute -right-12 -top-12 w-40 h-40 bg-[var(--card-color)] blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 rounded-full"
             style={{ '--card-color': item.color } as React.CSSProperties}
         />
-
         <div className="relative z-10">
             <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white/50 group-hover:text-white group-hover:scale-110 transition-all duration-300 mb-6 border border-white/5 group-hover:bg-[var(--card-color)] group-hover:border-transparent shadow-lg" style={{ '--card-color': item.color } as React.CSSProperties}>
                 <item.icon size={24} strokeWidth={1.5} />
@@ -300,7 +307,6 @@ export const OurClientsPage: React.FC = () => {
 
     return (
         <div className="relative min-h-screen bg-[#020202] text-white pt-24 font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
-            
             <style>
                 {`
                 @keyframes marquee {
@@ -313,9 +319,7 @@ export const OurClientsPage: React.FC = () => {
                 `}
             </style>
 
-            {/* --- HERO SECTION --- */}
             <div className="relative h-[90vh] min-h-[700px] flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10">
-                {/* 3D Visualizer */}
                 <div className="absolute inset-0 z-0">
                     <ClientNetworkVisualizer />
                 </div>
@@ -353,7 +357,6 @@ export const OurClientsPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* HUD Elements */}
                 <div className="absolute bottom-12 left-12 hidden md:block text-left z-20">
                     <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-1">Active Nodes</div>
                     <div className="text-2xl font-mono text-[#69B7B2] font-bold">8,492</div>
@@ -364,10 +367,8 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- MARQUEE --- */}
             <MarqueeRow />
 
-            {/* --- METRICS SECTION --- */}
             <section className="py-24 bg-[#050505] border-b border-white/5">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -384,7 +385,6 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- PHILOSOPHY GRID (Manifesto) --- */}
             <section id="manifesto" className="py-32 bg-[#020202] relative">
                 <div className="absolute top-0 right-0 p-64 bg-[#69B7B2]/5 blur-[120px] rounded-full pointer-events-none" />
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -405,7 +405,6 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- INDUSTRY PORTAL --- */}
             <section className="py-32 bg-[#08080a] border-t border-white/5">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
@@ -432,16 +431,12 @@ export const OurClientsPage: React.FC = () => {
                                 onMouseLeave={() => setHoveredIndustry(null)}
                                 className="group relative h-96 bg-[#0c0c0e] border border-white/10 rounded-3xl overflow-hidden cursor-pointer hover:border-white/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col"
                             >
-                                {/* Background Glow & Scanline */}
                                 <div 
                                     className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none mix-blend-screen"
-                                    style={{ 
-                                        background: `radial-gradient(circle at top left, ${ind.color}, transparent 70%)` 
-                                    }} 
+                                    style={{ background: `radial-gradient(circle at top left, ${ind.color}, transparent 70%)` }} 
                                 />
                                 <div className="absolute inset-x-0 h-px bg-white/20 top-0 opacity-0 group-hover:opacity-100 group-hover:animate-scan transition-opacity pointer-events-none blur-[1px]" />
                                 
-                                {/* Content */}
                                 <div className="relative z-10 p-10 h-full flex flex-col justify-between">
                                     <div className="flex justify-between items-start">
                                         <div 
@@ -481,7 +476,6 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- CTA --- */}
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
                 <div className="max-w-3xl mx-auto px-6">
                     <div className="w-20 h-20 mx-auto bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-8 animate-pulse">

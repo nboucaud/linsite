@@ -22,7 +22,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string }> = ({ type, label, caption }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -44,17 +44,29 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                
+                {src ? (
+                    <>
+                        <img 
+                            src={src} 
+                            alt={label}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                )}
                 
                 {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/20 blur-sm animate-[scan_3s_linear_infinite]" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
 
-                <div className="z-10 flex flex-col items-center text-white/30 group-hover:text-emerald-500/50 transition-colors">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-4 group-hover:border-emerald-500/30 transition-colors">
+                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-emerald-500 transition-colors drop-shadow-md">
+                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-emerald-500/50 transition-colors">
                         <ImageIcon size={48} strokeWidth={1} />
                     </div>
-                    <div className="text-xs font-mono uppercase tracking-widest">{label}</div>
-                    <div className="text-[10px] opacity-50 mt-1 border border-white/10 px-2 py-0.5 rounded">{type.toUpperCase()}</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()} IMAGE</div>
                 </div>
             </div>
             {caption && (
@@ -585,7 +597,7 @@ const StatCard: React.FC<{ stat: typeof STATS[0], index: number }> = ({ stat, in
                 }}
             />
 
-            {/* Background Grid */}
+            {/* Background Grid Pattern */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none" 
                  style={{ 
                      backgroundImage: `linear-gradient(${stat.color} 1px, transparent 1px), linear-gradient(90deg, ${stat.color} 1px, transparent 1px)`, 
@@ -756,194 +768,4 @@ export const NaturalResourcesPage: React.FC = () => {
                                 Operations defined by physical constraints, long time horizons, and irreversible decisions.
                             </p>
                             <div className="flex flex-col md:flex-row gap-4">
-                                <button onClick={() => document.getElementById('strategic-domains')?.scrollIntoView({behavior: 'smooth'})} className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold uppercase tracking-widest text-xs rounded transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                                    View Sector Strategy
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* --- CONTEXT --- */}
-                    <section className="py-32 bg-[#050505] border-b border-white/5 relative">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center">
-                            <h2 className="text-3xl md:text-4xl font-serif text-white mb-8">The Hard Reality</h2>
-                            <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
-                                Natural resources encompass industries grounded in physical environments—land, water, minerals, and energy. Unlike digital sectors, decisions here carry consequences that persist for decades. Assets are immobile. Infrastructure is bespoke. Mistakes compound. As these systems become interconnected through grid coupling and automation, operational complexity has outpaced organizational visibility. Progress requires better decision-making inside real physical limits.
-                            </p>
-                        </div>
-                    </section>
-
-                    {/* --- STATS --- */}
-                    <section className="py-24 bg-[#08080a] border-b border-white/5">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {STATS.map((stat, i) => (
-                                    <StatCard key={i} stat={stat} index={i} />
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* --- PILLARS --- */}
-                    <section id="strategic-domains" className="py-24 bg-[#020202] scroll-mt-24">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="mb-20 text-center">
-                                <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
-                                <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
-                            </div>
-
-                            <div className="grid md:grid-cols-4 gap-6">
-                                {PILLARS.map((pillar) => (
-                                    <TiltPillarCard 
-                                        key={pillar.id}
-                                        pillar={pillar}
-                                        onClick={() => handleExpand(pillar.id)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* --- ECOSYSTEM --- */}
-                    <section className="py-24 border-t border-white/5 bg-[#050505]">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center">
-                            <p className="text-xs font-mono uppercase tracking-widest text-white/30 mb-12">Deployment Ecosystem</p>
-                            <div className="relative w-full overflow-hidden">
-                                <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#050505] to-transparent z-10" />
-                                <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#050505] to-transparent z-10" />
-                                <div className="flex w-max animate-marquee">
-                                    {[...ECOSYSTEM, ...ECOSYSTEM].map((tech, i) => (
-                                        <div key={i} className="mx-8 text-white/40 font-serif text-xl hover:text-emerald-500 transition-colors cursor-default whitespace-nowrap">
-                                            {tech}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* --- NEW CROSS-NAVIGATION FOOTER --- */}
-                    <IndustryNavigationFooter currentId="resources" />
-                </>
-            )}
-
-            {/* --- DETAIL MODAL --- */}
-            {activePillar && (
-                <div 
-                    ref={modalRef} 
-                    onScroll={handleScroll}
-                    className="fixed inset-0 z-[100] bg-[#020202] overflow-y-auto animate-in fade-in duration-300 custom-scrollbar"
-                >
-                    {/* Progress Bar */}
-                    <div className="fixed top-0 left-0 h-1 bg-emerald-500 z-[120] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
-
-                    <div className="min-h-screen flex flex-col relative">
-                        
-                        {/* Immersive Background */}
-                        <div className="fixed inset-0 z-0">
-                            <ResourceBackground mode={activePillar.visualMode} color={activePillar.color} />
-                            <div className="absolute inset-0 bg-gradient-to-b from-[#020202] via-[#020202]/80 to-[#020202]" />
-                        </div>
-
-                        {/* Header */}
-                        <div className="fixed top-0 left-0 right-0 h-24 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/10 z-[110] flex items-center px-8 md:px-12 justify-between">
-                            <div className="flex items-center gap-6">
-                                <button onClick={handleClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors">
-                                    <X size={20} />
-                                </button>
-                                <div className="h-8 w-px bg-white/10" />
-                                <div className="flex items-center gap-3">
-                                    {React.createElement(activePillar.icon, { size: 18, color: activePillar.color })}
-                                    <h2 className="text-lg font-serif text-white hidden md:block">{activePillar.title}</h2>
-                                </div>
-                            </div>
-
-                            <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest hidden md:block">
-                                Reading Progress: {Math.round(scrollProgress * 100)}%
-                            </div>
-                        </div>
-
-                        {/* NEW EDITORIAL LAYOUT */}
-                        <div className="relative z-10 pt-32 pb-32 w-full flex justify-center">
-                            <div className="max-w-[1600px] w-full px-6 md:px-20">
-                                
-                                {/* Article Header */}
-                                <div className="mb-24 text-center">
-                                    <div className="inline-flex items-center gap-2 mb-6 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest animate-in slide-in-from-top-4 duration-700">
-                                        <Mountain size={12} />
-                                        <span>Strategic Domain</span>
-                                    </div>
-                                    <h1 className="text-5xl md:text-8xl font-serif text-white mb-8 leading-[1.1] tracking-tight animate-in zoom-in-95 duration-700 delay-100">
-                                        {activePillar.title}
-                                    </h1>
-                                    <p className="text-xl md:text-3xl text-white/60 leading-relaxed font-light max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                                        {activePillar.shortDesc}
-                                    </p>
-                                </div>
-
-                                {/* Main Content Column */}
-                                <div className="max-w-4xl mx-auto space-y-32">
-                                    
-                                    {/* SECTION 1: PROBLEM */}
-                                    <section className="animate-in slide-in-from-bottom-8 duration-1000 delay-300">
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-px bg-red-500/50" />
-                                            <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">The Problem</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.problem} />
-                                    </section>
-                                    
-                                    {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder type="wide" label="Site Schematic" caption="Identifying zones of high variance." />
-
-                                    {/* SECTION 2: INTERVENTION */}
-                                    <section>
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-px bg-amber-400/50" />
-                                            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest">The Intervention</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.intervene} />
-                                    </section>
-
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder type="portrait" label="Asset Sensor" caption="Real-time telemetry feed." />
-                                        <ImagePlaceholder type="portrait" label="Maintenance Log" caption="Predictive maintenance schedule." />
-                                    </div>
-
-                                    {/* SECTION 3: APPROACH */}
-                                    <section>
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-px bg-amber-500/50" />
-                                            <h3 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Our Approach</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.approach} />
-                                    </section>
-
-                                    {/* FINAL VISUAL */}
-                                    <ImagePlaceholder type="square" label="Control Room" caption="Centralized oversight for distributed assets." />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Back To Top FAB */}
-                        <button 
-                            onClick={scrollToTop}
-                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                        >
-                            <ChevronUp size={24} />
-                        </button>
-
-                        {/* Footer Close */}
-                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[110] bg-gradient-to-t from-black to-transparent">
-                            <button onClick={handleClose} className="pointer-events-auto px-8 py-3 bg-white hover:bg-emerald-400 text-black font-bold uppercase tracking-widest text-xs rounded-full shadow-lg transition-colors">
-                                Close Module
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+                                <button onClick={() => document.getElementById('strategic-domains')?.scrollIntoView({behavior: 'smooth'})} className="

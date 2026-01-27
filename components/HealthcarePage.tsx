@@ -22,7 +22,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string }> = ({ type, label, caption }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -44,17 +44,29 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                
+                {src ? (
+                    <>
+                        <img 
+                            src={src} 
+                            alt={label}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                )}
                 
                 {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-teal-400/20 blur-sm animate-[scan_3s_linear_infinite]" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-teal-400/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
 
-                <div className="z-10 flex flex-col items-center text-white/30 group-hover:text-teal-400/50 transition-colors">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-4 group-hover:border-teal-400/30 transition-colors">
+                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-teal-400 transition-colors drop-shadow-md">
+                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-teal-400/50 transition-colors">
                         <ImageIcon size={48} strokeWidth={1} />
                     </div>
-                    <div className="text-xs font-mono uppercase tracking-widest">{label}</div>
-                    <div className="text-[10px] opacity-50 mt-1 border border-white/10 px-2 py-0.5 rounded">{type.toUpperCase()}</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()}</div>
                 </div>
             </div>
             {caption && (
@@ -691,7 +703,6 @@ const DomainCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar, on
 };
 
 export const HealthcarePage: React.FC = () => {
-    // ... (State logic unchanged)
     const [expandedPillarId, setExpandedPillarId] = useState<string | null>(null);
     const activePillar = PILLARS.find(p => p.id === expandedPillarId);
 
@@ -922,7 +933,12 @@ export const HealthcarePage: React.FC = () => {
                                     </section>
                                     
                                     {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder type="wide" label="Workflow Analysis" caption="The gap between clinical intent and operational execution." />
+                                    <ImagePlaceholder 
+                                        type="wide" 
+                                        label="Workflow Analysis" 
+                                        caption="The gap between clinical intent and operational execution." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_brushed_steel_diffused_cyan_tinted_lighting_rectilinear_geometry_sterile_industrial_vibe.jpg" 
+                                    />
 
                                     {/* SECTION 2: INTERVENTION */}
                                     <section>
@@ -935,8 +951,18 @@ export const HealthcarePage: React.FC = () => {
 
                                     {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder type="portrait" label="Compliance Log" caption="Audit trail integrity check." />
-                                        <ImagePlaceholder type="portrait" label="Patient Flow" caption="Throughput optimization metrics." />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Compliance Log" 
+                                            caption="Audit trail integrity check." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_digital_phosphor_cyan_glow_orthogonal_grid_cybernetic_void_luminescent_pixels.jpg"
+                                        />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Patient Flow" 
+                                            caption="Throughput optimization metrics." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_cybernetic_noir_data_constellation_chromatic_aberration_linear_trajectories_diffuse_glow_numeric_overlays.jpg"
+                                        />
                                     </div>
 
                                     {/* SECTION 3: APPROACH */}
@@ -949,7 +975,12 @@ export const HealthcarePage: React.FC = () => {
                                     </section>
 
                                     {/* FINAL VISUAL */}
-                                    <ImagePlaceholder type="square" label="Command Center" caption="Real-time visibility across the care continuum." />
+                                    <ImagePlaceholder 
+                                        type="square" 
+                                        label="Command Center" 
+                                        caption="Real-time visibility across the care continuum." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_ceramic_polished_marble_warm_diffused_glow_low_profile_minimalism_serene_domesticity.jpg"
+                                    />
                                 </div>
                             </div>
                         </div>

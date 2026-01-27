@@ -26,7 +26,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string }> = ({ type, label, caption }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -48,17 +48,29 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                
+                {src ? (
+                    <>
+                        <img 
+                            src={src} 
+                            alt={label}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                )}
                 
                 {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-purple-400/20 blur-sm animate-[scan_3s_linear_infinite]" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-purple-400/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
 
-                <div className="z-10 flex flex-col items-center text-white/30 group-hover:text-purple-400/50 transition-colors">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-4 group-hover:border-purple-400/30 transition-colors">
+                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-purple-400 transition-colors drop-shadow-md">
+                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-purple-400/50 transition-colors">
                         <ImageIcon size={48} strokeWidth={1} />
                     </div>
-                    <div className="text-xs font-mono uppercase tracking-widest">{label}</div>
-                    <div className="text-[10px] opacity-50 mt-1 border border-white/10 px-2 py-0.5 rounded">{type.toUpperCase()}</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()}</div>
                 </div>
             </div>
             {caption && (
@@ -142,7 +154,7 @@ const PILLARS = [
         content: {
             problem: "In lean organizations, operational decisions rarely happen in isolation. Hiring, budgeting, delivery, and growth planning often move simultaneously, with limited separation between strategic intent and daily execution. As a result, leaders are asked to make consequential decisions quickly, often without the benefit of consolidated views or long planning cycles.\n\nThe challenge is not a lack of effort or insight, but the **difficulty of maintaining alignment as the organization grows.** As teams expand and responsibilities diversify, assumptions that once lived in a founder’s head become harder to communicate consistently. Forecasts, priorities, and resource decisions can drift out of sync, even when everyone is working toward the same goals.\n\nOver time, this creates friction, not because strategy is missing, but because it is distributed across tools, conversations, and individuals. The problem is sustaining clarity and coordination without slowing the organization’s natural pace.",
             intervene: "The moment intervention matters most is when decisions start compounding faster than alignment. In growing organizations, it becomes increasingly difficult to see how individual choices, like hiring, pricing, capacity, delivery, interact across the business in real time.\n\nIntervention focuses on **restoring a shared operating picture.** This means clarifying how forecasts, priorities, and constraints connect across functions, so decisions reinforce each other instead of competing for attention. The emphasis is on coordination and augmentation across teams. Creating enough structure to support scale without disrupting momentum.\n\nThis work intervenes at the level of decision context: ensuring leaders have visibility into tradeoffs before they become commitments, and that teams are operating from the same assumptions as the organization grows.",
-            approach: "We always want to slow down the noise for our clients, without slowing down business operations. In fast-moving organizations, clarity is often buried under urgency. The work here is about **creating space for better decisions while preserving momentum.**\n\nSupport focuses on helping leaders see how operational choices connect—where constraints are forming, where capacity is tightening, and where decisions made today will echo tomorrow. This is done by strengthening shared understanding across functions, not by introducing rigid planning layers. The intent is to make coordination easier, not heavier. Support shows up as clearer framing, better timing, and fewer surprises as the organization grows and adapts."
+            approach: "We always want to slow down the noise for our clients, without slowing down business operations. In fast-moving organizations, clarity is often buried under urgency. The work here is about **creating space for better decisions while preserving momentum.**\n\nSupport focuses on helping leaders see how leaders see how operational choices connect—where constraints are forming, where capacity is tightening, and where decisions made today will echo tomorrow. This is done by strengthening shared understanding across functions, not by introducing rigid planning layers. The intent is to make coordination easier, not heavier. Support shows up as clearer framing, better timing, and fewer surprises as the organization grows and adapts."
         }
     },
     {
@@ -505,7 +517,12 @@ export const SmallBusinessPage: React.FC = () => {
                                     </section>
                                     
                                     {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder type="wide" label="Current State" caption="Mapping the inefficiencies of decentralized decision making." />
+                                    <ImagePlaceholder 
+                                        type="wide" 
+                                        label="Current State" 
+                                        caption="Mapping the inefficiencies of decentralized decision making." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_wireframe_city_blueprint.jpg" 
+                                    />
 
                                     {/* SECTION 2: INTERVENTION */}
                                     <section>
@@ -518,8 +535,18 @@ export const SmallBusinessPage: React.FC = () => {
 
                                     {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder type="portrait" label="Signal Analysis" caption="Detecting pattern variance." />
-                                        <ImagePlaceholder type="portrait" label="Action Loop" caption="Automated response trigger." />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Signal Analysis" 
+                                            caption="Detecting pattern variance." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corporate_modernism_brushed_aluminum_polished_glass_diffuse_daylight_rectilinear_architecture.jpg" 
+                                        />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Action Loop" 
+                                            caption="Automated response trigger." 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_modular_grid_technical_learning.jpg" 
+                                        />
                                     </div>
 
                                     {/* SECTION 3: APPROACH */}
@@ -532,7 +559,12 @@ export const SmallBusinessPage: React.FC = () => {
                                     </section>
 
                                     {/* FINAL VISUAL */}
-                                    <ImagePlaceholder type="square" label="Unified View" caption="The consolidated operational dashboard." />
+                                    <ImagePlaceholder 
+                                        type="square" 
+                                        label="Unified View" 
+                                        caption="The consolidated operational dashboard." 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_striped_textile_polished_acetate_soft_diffused_illumination_contemplative_professionalism.jpg" 
+                                    />
                                 </div>
                             </div>
                         </div>
