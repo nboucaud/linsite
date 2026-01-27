@@ -30,8 +30,8 @@ export const ResourcesHeroVisualizer: React.FC = () => {
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
-            // 2. Draw "Strata" Lines (Restored High Density)
-            const lines = 55; // Restored from 35
+            // 2. Draw "Strata" Lines (Optimized)
+            const lines = 35; // Reduced from 55
             const step = h / lines;
             const scanX = (w/2) + Math.sin(time * 0.5) * (w * 0.4);
 
@@ -44,15 +44,15 @@ export const ResourcesHeroVisualizer: React.FC = () => {
                 const alpha = normI * 0.6 + 0.1;
                 const hue = 160 + (1-normI) * 60; 
                 
-                // Restored Step: 3px (was 8px)
-                for (let x = 0; x <= w; x += 3) {
+                // Optimized Step: 8px instead of 3px
+                for (let x = 0; x <= w; x += 8) {
                     const worldX = x + scroll;
                     const worldZ = i * 50; 
 
-                    // Complex Terrain Math
+                    // Simplified Terrain Math
                     let elevation = Math.sin(worldX * 0.002 + worldZ * 0.001) * 40;
                     
-                    // Complex ridges
+                    // Reduced complexity ridges
                     const ridge1 = Math.pow(1 - Math.abs(Math.sin(worldX * 0.006 + time * 0.2)), 3);
                     elevation -= ridge1 * 50; 
 
@@ -69,9 +69,11 @@ export const ResourcesHeroVisualizer: React.FC = () => {
                     else ctx.lineTo(x, finalY);
                 }
 
+                // Simplified Gradient Logic
                 ctx.strokeStyle = `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`;
                 ctx.lineWidth = 1 + normI;
                 
+                // Only create gradient if near scan line
                 if (scanX > -150 && scanX < w + 150) {
                     const grad = ctx.createLinearGradient(scanX - 100, 0, scanX + 100, 0);
                     grad.addColorStop(0, `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`);
@@ -83,8 +85,8 @@ export const ResourcesHeroVisualizer: React.FC = () => {
                 ctx.stroke();
             }
 
-            // 3. Draw Resources & Extraction (Restored Count)
-            const dotCount = 15; // Restored from 6
+            // 3. Draw Resources & Extraction (Simplified)
+            const dotCount = 6; // Reduced from 8
             for(let j=0; j<dotCount; j++) {
                 const nodeColor = NODE_COLORS[j % NODE_COLORS.length];
                 const virtualX = (j * (w / dotCount) + scroll * 0.5) % (w + 200) - 100;
@@ -97,7 +99,7 @@ export const ResourcesHeroVisualizer: React.FC = () => {
                 const distToScan = Math.abs(virtualX - scanX);
                 
                 // Trigger Extraction
-                if (distToScan < 30 && Math.random() > 0.99) { 
+                if (distToScan < 30 && Math.random() > 0.99) { // Lower prob
                     const tooClose = extractions.some(e => Math.abs(e.x - virtualX) < 40);
                     if (!tooClose) {
                         extractions.push({ 
@@ -111,7 +113,7 @@ export const ResourcesHeroVisualizer: React.FC = () => {
                 if (distToScan < 100) {
                     ctx.fillStyle = '#fff';
                     ctx.shadowColor = nodeColor;
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 10; // Lower blur
                     ctx.beginPath(); ctx.arc(virtualX, dy, 3, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
                 }

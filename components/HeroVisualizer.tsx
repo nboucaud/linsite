@@ -31,6 +31,7 @@ export const HeroVisualizer: React.FC = () => {
         let meshOpacity = 0; 
 
         // --- GEOMETRY ---
+        // Pre-allocate to avoid GC
         const SHEET_SIZE = 150; 
         
         // Base structures
@@ -55,6 +56,7 @@ export const HeroVisualizer: React.FC = () => {
         let planeRot = { x: 0, y: 0, z: 0 };
 
         // --- PARTICLES ---
+        // Use a fixed size pool or carefully managed array
         interface Particle {
             x: number; y: number; z: number;
             vx: number; vy: number; vz: number;
@@ -64,7 +66,7 @@ export const HeroVisualizer: React.FC = () => {
             active: boolean;
         }
         
-        const MAX_PARTICLES = 200; // Restored from 100
+        const MAX_PARTICLES = 100;
         const particles: Particle[] = [];
         // Init pool
         for(let i=0; i<MAX_PARTICLES; i++) {
@@ -83,10 +85,9 @@ export const HeroVisualizer: React.FC = () => {
             p.x = ox + (Math.random()-0.5) * spread;
             p.y = oy + (Math.random()-0.5) * spread;
             p.z = oz + (Math.random()-0.5) * spread;
-            // Increased initial velocities by ~35%
-            p.vx = (Math.random()-0.5) * (type === 'ember' ? 6.75 : 2.7);
-            p.vy = (Math.random()-0.5) * (type === 'ember' ? 6.75 : 2.7);
-            p.vz = type === 'trail' ? 13.5 : (Math.random()-0.5) * 6.75;
+            p.vx = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
+            p.vy = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
+            p.vz = type === 'trail' ? 10 : (Math.random()-0.5) * 5;
             p.life = 1.0;
             p.color = type === 'data' ? '#69B7B2' : type === 'ember' ? '#f59e0b' : '#ffffff';
             p.type = type;
@@ -94,7 +95,7 @@ export const HeroVisualizer: React.FC = () => {
 
         // --- MAIN LOOP ---
         const render = () => {
-            globalTime += 0.022; // Speed up global time (+35%)
+            globalTime += 0.016;
             ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
             ctx.fillRect(0, 0, width, height);
 
@@ -102,14 +103,21 @@ export const HeroVisualizer: React.FC = () => {
             targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
 
             // Pre-calc rotation matrices
-            const cosY = Math.cos(targetRotX); 
+            const cosY = Math.cos(targetRotX); // Swapped based on mouse mapping logic
             const sinY = Math.sin(targetRotX);
-            const cosX = Math.cos(targetRotY); 
+            const cosX = Math.cos(targetRotY); // Swapped
             const sinX = Math.sin(targetRotY);
+
+            const cosPRx = Math.cos(planeRot.x);
+            const sinPRx = Math.sin(planeRot.x);
+            const cosPRy = Math.cos(planeRot.y);
+            const sinPRy = Math.sin(planeRot.y);
+            const cosPRz = Math.cos(planeRot.z);
+            const sinPRz = Math.sin(planeRot.z);
 
             // --- PHASE LOGIC ---
             if (phase === 0) { // COALESCE
-                phaseTimer += 0.008; // Speed up phase 0 (+35%)
+                phaseTimer += 0.006;
                 meshOpacity = Math.min(1, phaseTimer);
                 const t = Math.min(1, phaseTimer / 2.0);
                 const ease = 1 - Math.pow(1 - t, 4); 
@@ -129,7 +137,7 @@ export const HeroVisualizer: React.FC = () => {
                 if (phaseTimer > 2.5) { phase = 1; phaseTimer = 0; meshOpacity = 1; }
             }
             else if (phase === 1) { // FOLD
-                phaseTimer += 0.016; // Speed up phase 1 (+35%)
+                phaseTimer += 0.012;
                 const t = Math.min(1, phaseTimer);
                 const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
@@ -150,13 +158,12 @@ export const HeroVisualizer: React.FC = () => {
                     phase = 2; phaseTimer = 0;
                     const angle = (Math.random() - 0.5) * 2.5;
                     const lift = (Math.random() - 0.5) * 1.0;
-                    // Speed up initial launch velocity (+35%)
-                    planeVel = { x: Math.sin(angle) * 10.8, y: Math.sin(lift) * 8.1, z: 24.3 };
+                    planeVel = { x: Math.sin(angle) * 8, y: Math.sin(lift) * 6, z: 18 };
                 }
             }
             else if (phase === 2) { // FLIGHT
-                phaseTimer += 0.022; // Speed up phase 2 (+35%)
-                planeVel.z += 1.15; // Speed up acceleration (+35%)
+                phaseTimer += 0.016;
+                planeVel.z += 0.85;
                 planePos.x += planeVel.x;
                 planePos.y += planeVel.y;
                 planePos.z += planeVel.z;
@@ -183,7 +190,7 @@ export const HeroVisualizer: React.FC = () => {
                 phase = 0;
             }
 
-            // --- TRANSFORM & PROJECT ---
+            // --- TRANSFORM & PROJECT (Optimized) ---
             for(let i=0; i<9; i++) {
                 const v = currentVerts[i];
                 let x = v.x + planePos.x;
@@ -278,7 +285,7 @@ export const HeroVisualizer: React.FC = () => {
                 if (!p.active) continue;
 
                 p.x += p.vx; p.y += p.vy; p.z += p.vz;
-                p.life -= 0.027; // Speed up particle decay (+35%)
+                p.life -= 0.02;
 
                 if (p.life <= 0 || p.z > 2000) {
                     p.active = false;
