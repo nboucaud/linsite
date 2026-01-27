@@ -47,31 +47,20 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     
     return (
         <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-            <div className={`w-full ${aspect} bg-[#0c0c0e] border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group`}>
-                
+            <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
                 {src ? (
                     <>
                         <img 
                             src={src} 
                             alt={label}
-                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/50 to-transparent" />
+                        {/* Shine Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
                 ) : (
-                    <div className="absolute inset-0 opacity-10 transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 )}
-                
-                {/* Scanline */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-purple-400/20 blur-sm animate-[scan_3s_linear_infinite] pointer-events-none" />
-
-                <div className="z-10 flex flex-col items-center text-white/50 group-hover:text-purple-400 transition-colors drop-shadow-md">
-                    <div className="p-6 rounded-full border border-white/10 bg-black/40 backdrop-blur-md mb-4 group-hover:border-purple-400/50 transition-colors">
-                        <ImageIcon size={48} strokeWidth={1} />
-                    </div>
-                    <div className="text-xs font-mono uppercase tracking-widest font-bold bg-black/50 px-2 rounded">{label}</div>
-                    <div className="text-[10px] opacity-70 mt-1 border border-white/10 px-2 py-0.5 rounded bg-black/30">{type.toUpperCase()}</div>
-                </div>
             </div>
             {caption && (
                 <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-purple-500/30 pl-4">
