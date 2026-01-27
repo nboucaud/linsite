@@ -288,20 +288,175 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
         let time = 0;
         let animationFrameId: number;
 
-        // ... (Drawing functions kept intact for brevity, but ensuring safety) ...
-        const drawShield = () => { /* ... */ };
-        const drawPulse = () => { /* ... */ };
-        const drawFlow = () => { /* ... */ };
-        const drawNetwork = () => { /* ... */ };
+        // --- SHIELD (Hex Grid) ---
+        const drawShield = () => {
+            const hexSize = 60;
+            const rows = Math.ceil(h / (hexSize * 1.5)) + 2;
+            const cols = Math.ceil(w / (hexSize * Math.sqrt(3))) + 2;
+            
+            for(let r=0; r<rows; r++) {
+                for(let c=0; c<cols; c++) {
+                    const xOffset = (r % 2) * (hexSize * Math.sqrt(3) / 2);
+                    const x = c * hexSize * Math.sqrt(3) + xOffset - 50;
+                    const y = r * hexSize * 1.5 - 50;
+                    
+                    const dx = x - mouseRef.current.x;
+                    const dy = y - mouseRef.current.y;
+                    const mouseDist = Math.sqrt(dx*dx + dy*dy);
+                    const interaction = Math.max(0, 1 - mouseDist / 400);
+
+                    const cx = w/2; const cy = h/2;
+                    const dist = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+                    const wave = Math.sin(dist * 0.005 - time * 1.5) * 0.5 + 0.5;
+                    
+                    if (wave > 0.85 || Math.random() > 0.998 || interaction > 0.1) {
+                        ctx.strokeStyle = color;
+                        ctx.globalAlpha = (wave - 0.85) * 3 * 0.4 + (interaction * 0.4);
+                        ctx.lineWidth = 1 + interaction;
+                        
+                        if (interaction > 0.1) {
+                            ctx.shadowBlur = 20 * interaction;
+                            ctx.shadowColor = color;
+                        } else {
+                            ctx.shadowBlur = 0;
+                        }
+
+                        ctx.beginPath();
+                        for (let i = 0; i < 6; i++) {
+                            const angle = Math.PI / 3 * i + Math.PI / 6;
+                            const hx = x + Math.cos(angle) * (hexSize * (1 - interaction * 0.2));
+                            const hy = y + Math.sin(angle) * (hexSize * (1 - interaction * 0.2));
+                            if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                        
+                        if (interaction > 0.5) {
+                            ctx.fillStyle = color;
+                            ctx.globalAlpha = interaction * 0.1;
+                            ctx.fill();
+                        }
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+        };
+
+        const drawPulse = () => {
+            const count = 40;
+            for(let i=0; i<count; i++) {
+                let x = (i * w/count + time * 150) % (w + 400) - 200;
+                
+                const dy = (h/2) - mouseRef.current.y;
+                const distY = Math.abs((h/2) - mouseRef.current.y);
+                const repel = Math.max(0, 1 - distY / 300) * 100 * (dy > 0 ? 1 : -1);
+
+                const amplitude = h * 0.15;
+                const y = h/2 + Math.sin(x * 0.01 + time * 3) * amplitude * Math.sin(time + i) - repel;
+                
+                const speed = (i % 5) + 1;
+                const len = 100 * speed;
+                
+                ctx.strokeStyle = color;
+                ctx.globalAlpha = 0.05 + (Math.sin(x/w * Math.PI) * 0.2);
+                ctx.lineWidth = 2 + (Math.sin(time * 5 + i) + 1);
+                
+                if (i % 5 === 0) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - len, y);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        };
+
+        const drawFlow = () => {
+            const layers = 10;
+            for(let i=0; i<layers; i++) {
+                const gradient = ctx.createLinearGradient(0, 0, w, 0);
+                gradient.addColorStop(0, 'transparent');
+                gradient.addColorStop(0.5, color);
+                gradient.addColorStop(1, 'transparent');
+                ctx.strokeStyle = gradient;
+
+                ctx.beginPath();
+                for(let x=0; x<=w; x+=20) {
+                    const dx = x - mouseRef.current.x;
+                    const dist = Math.sqrt(dx*dx);
+                    const pull = Math.max(0, 1 - dist / 500) * (mouseRef.current.y - h/2) * 0.5;
+
+                    const y = h/2 + 
+                        Math.sin(x * 0.003 + time * 0.5 + i) * 100 + 
+                        Math.sin(x * 0.01 - time * 0.2) * 50 +
+                        (i - layers/2) * 60 + pull;
+                        
+                    if (x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                
+                ctx.globalAlpha = 0.15;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        };
+
+        const drawNetwork = () => {
+            const count = 70;
+            const nodes = [];
+            for(let i=0; i<count; i++) {
+                const angle = i * 137.5;
+                const r = 20 * Math.sqrt(i) + Math.sin(time * 0.5 + i)*50;
+                let x = w/2 + Math.cos(angle + time*0.05) * r * 4;
+                let y = h/2 + Math.sin(angle + time*0.05) * r * 3;
+                
+                const dx = x - mouseRef.current.x;
+                const dy = y - mouseRef.current.y;
+                const d = Math.sqrt(dx*dx + dy*dy);
+                if (d < 200) {
+                    const push = (200 - d) * 0.1;
+                    x += (dx/d) * push;
+                    y += (dy/d) * push;
+                }
+
+                nodes.push({x, y});
+            }
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            
+            for(let i=0; i<count; i++) {
+                for(let j=i+1; j<count; j++) {
+                    const d = Math.sqrt(Math.pow(nodes[i].x - nodes[j].x, 2) + Math.pow(nodes[i].y - nodes[j].y, 2));
+                    if (d < 150) {
+                        ctx.globalAlpha = (1 - d/150) * 0.3; 
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                    }
+                }
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.arc(nodes[i].x, nodes[i].y, 2, 0, Math.PI*2); ctx.fill();
+            }
+        };
 
         const render = () => {
             time += 0.01;
             ctx.clearRect(0, 0, w, h);
+            ctx.globalCompositeOperation = 'lighter'; 
             
-            // Placeholder logic to ensure valid rendering
-            ctx.fillStyle = `rgba(20, 184, 166, 0.1)`;
-            ctx.fillRect(0,0,w,h);
-            
+            if (mode === 'shield') drawShield();
+            else if (mode === 'pulse') drawPulse();
+            else if (mode === 'flow') drawFlow();
+            else if (mode === 'network') drawNetwork();
+
+            ctx.globalCompositeOperation = 'source-over';
             animationFrameId = requestAnimationFrame(render);
         };
         render();
@@ -313,7 +468,7 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
         window.addEventListener('resize', handleResize);
         return () => {
             window.removeEventListener('resize', handleResize);
-            cancelAnimationFrame(animationFrameId); // FIXED TYPO
+            cancelAnimationFrame(animationFrameId);
         };
     }, [mode, color]);
 
@@ -346,6 +501,7 @@ const DomainCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar, on
         const render = () => {
             time += isHovered ? 0.05 : 0.02;
             
+            // Re-check size
             if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
                 w = canvas.width = canvas.clientWidth;
                 h = canvas.height = canvas.clientHeight;
@@ -353,14 +509,137 @@ const DomainCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar, on
 
             ctx.clearRect(0, 0, w, h);
             drawGrid();
-            
-            // Simple placeholder logic for domain cards
-            ctx.fillStyle = pillar.color;
-            ctx.globalAlpha = 0.1;
-            ctx.beginPath();
-            ctx.arc(w/2, h/2, 50 + Math.sin(time)*10, 0, Math.PI*2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
+
+            const cx = w/2;
+            const cy = h/2;
+
+            if (pillar.visualMode === 'shield') {
+                // RADAR SCANNER
+                ctx.translate(cx, cy);
+                
+                // Rings
+                ctx.strokeStyle = `rgba(255,255,255,${isHovered ? 0.2 : 0.1})`;
+                ctx.beginPath(); ctx.arc(0,0, 40, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0,0, 80, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0,0, 120, 0, Math.PI*2); ctx.stroke();
+
+                // Sweep
+                ctx.rotate(time);
+                const grad = ctx.createLinearGradient(0,0, 120, 0);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(1, pillar.color);
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0, 120, -0.2, 0.2); ctx.fill();
+                
+                // Blips
+                if (Math.random() > 0.95) {
+                    const r = Math.random() * 100;
+                    const a = Math.random() * Math.PI * 2;
+                    ctx.fillStyle = pillar.color;
+                    ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, 2, 0, Math.PI*2); ctx.fill();
+                }
+
+                ctx.setTransform(1,0,0,1,0,0);
+            } 
+            else if (pillar.visualMode === 'pulse') {
+                // EKG MONITOR
+                ctx.strokeStyle = pillar.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const points = 100;
+                const step = w / points;
+                
+                for(let i=0; i<points; i++) {
+                    const x = i * step;
+                    // Moving pulse window
+                    const offset = (x - (time * 100) % (w + 200));
+                    let y = h/2;
+                    
+                    if (Math.abs(offset) < 50) {
+                        // QRS Complex logic
+                        const t = offset / 50; // -1 to 1
+                        y += Math.sin(t * 10) * Math.exp(-t*t * 5) * 80;
+                    }
+                    
+                    // Random noise
+                    y += (Math.random() - 0.5) * 4;
+
+                    if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Scan line
+                const scanX = (time * 100) % w;
+                const g = ctx.createLinearGradient(scanX, 0, scanX-50, 0);
+                g.addColorStop(0, pillar.color);
+                g.addColorStop(1, 'transparent');
+                ctx.fillStyle = g;
+                ctx.fillRect(scanX-50, 0, 50, h);
+            }
+            else if (pillar.visualMode === 'flow') {
+                // DNA HELIX
+                const strands = 2;
+                const amplitude = 40;
+                const frequency = 0.02;
+                const speed = time * 2;
+                
+                for(let s=0; s<strands; s++) {
+                    const phase = s * Math.PI;
+                    ctx.fillStyle = s === 0 ? pillar.color : '#ffffff';
+                    
+                    for(let x=0; x<w; x+=10) {
+                        const y = h/2 + Math.sin(x * frequency + speed + phase) * amplitude;
+                        const size = 2 + Math.cos(x * frequency + speed + phase) * 1;
+                        
+                        ctx.globalAlpha = 0.5 + Math.cos(x * frequency + speed + phase) * 0.4;
+                        ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+                        
+                        // Connector
+                        if (s===0 && x % 20 === 0) {
+                            const y2 = h/2 + Math.sin(x * frequency + speed + Math.PI) * amplitude;
+                            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y2); ctx.stroke();
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1;
+            }
+            else if (pillar.visualMode === 'network') {
+                // SYNAPSE
+                const nodes = 15;
+                const r = 150;
+                
+                ctx.translate(cx, cy);
+                ctx.rotate(time * 0.1);
+                
+                for(let i=0; i<nodes; i++) {
+                    const angle = (i / nodes) * Math.PI * 2;
+                    const rad = r + Math.sin(time * 2 + i) * 20;
+                    const x = Math.cos(angle) * rad;
+                    const y = Math.sin(angle) * rad;
+                    
+                    ctx.fillStyle = pillar.color;
+                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+                    
+                    // Connections to center or neighbors
+                    ctx.strokeStyle = `rgba(255,255,255,0.1)`;
+                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(0,0); ctx.stroke();
+                    
+                    const nextAngle = ((i+1) / nodes) * Math.PI * 2;
+                    const nextX = Math.cos(nextAngle) * (r + Math.sin(time * 2 + i+1) * 20);
+                    const nextY = Math.sin(nextAngle) * (r + Math.sin(time * 2 + i+1) * 20);
+                    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nextX, nextY); ctx.stroke();
+                }
+                
+                // Central Pulse
+                const pulse = 1 + Math.sin(time * 5) * 0.2;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(0,0, 5 * pulse, 0, Math.PI*2); ctx.fill();
+                
+                ctx.setTransform(1,0,0,1,0,0);
+            }
 
             frameId = requestAnimationFrame(render);
         };

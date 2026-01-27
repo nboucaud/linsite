@@ -4,184 +4,179 @@ import {
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 
-// --- VISUALIZER: 3D CLIENT NETWORK GLOBE ---
-const ClientNetworkVisualizer: React.FC = () => {
+// --- WEBGL HERO ENGINE (High-Fidelity) ---
+const WebGLHero: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            mouseRef.current = { 
-                x: (e.clientX - w / 2) / (w / 2), 
-                y: (e.clientY - h / 2) / (h / 2) 
-            };
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
 
-        let w = canvas.parentElement?.clientWidth || window.innerWidth;
-        let h = canvas.parentElement?.clientHeight || 600;
-        canvas.width = w;
-        canvas.height = h;
-
-        let time = 0;
-        let frameId: number;
-
-        // --- GLOBE CONFIG ---
-        const GLOBE_RADIUS = Math.min(w, h) * 0.35;
-        const DOT_COUNT = 300; 
-        const CONNECTION_DIST = 60;
-        
-        interface Point3D { x: number, y: number, z: number; type: 'client' | 'hub' }
-        interface ProjectedPoint { x: number, y: number, z: number; scale: number; type: 'client' | 'hub' }
-
-        const points: Point3D[] = [];
-        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
-
-        for (let i = 0; i < DOT_COUNT; i++) {
-            const y = 1 - (i / (DOT_COUNT - 1)) * 2; 
-            const radius = Math.sqrt(1 - y * y);
-            const theta = phi * i;
-
-            const x = Math.cos(theta) * radius;
-            const z = Math.sin(theta) * radius;
-
-            points.push({ 
-                x: x * GLOBE_RADIUS, 
-                y: y * GLOBE_RADIUS, 
-                z: z * GLOBE_RADIUS,
-                type: Math.random() > 0.94 ? 'hub' : 'client' // ~6% hubs
-            });
+        const gl = canvas.getContext('webgl');
+        if (!gl) {
+            console.error("WebGL not supported");
+            return;
         }
 
-        // Buffer
-        const projected: ProjectedPoint[] = new Array(DOT_COUNT).fill(null).map(() => ({ x: 0, y: 0, z: 0, scale: 0, type: 'client' }));
+        const vsSource = `
+            attribute vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        // Fragment Shader: Sharp "Neural" Fractal
+        const fsSource = `
+            precision highp float;
+            uniform vec2 resolution;
+            uniform float time;
+
+            // Polyfill for round()
+            vec3 my_round(vec3 x) { return floor(x + 0.5); }
+
+            void main() {
+                // Correct UV Aspect Ratio
+                vec2 uv = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
+                
+                vec3 col = vec3(0.0);
+                float t = time * 0.4;
+                
+                // Camera Setup - Moved left (x=-3.0) to right-justify the object
+                vec3 ro = vec3(-3.0, 0.0, 9.0);
+                vec3 rd = normalize(vec3(uv, -1.0));
+                
+                float z = 0.0; 
+                float d = 0.0;
+                
+                // Raymarching Loop
+                for(int i = 0; i < 80; i++) {
+                    vec3 p = ro + rd * z;
+                    
+                    // Fractal Distortion (The "Golf" Logic)
+                    for(float f = 1.0; f < 5.0; f += 1.0) {
+                        p += sin(my_round(p.zxy * 8.0) * 0.1 * f - t) / f;
+                    }
+                    
+                    // Distance Estimate: Tighter bounds for sharpness
+                    d = 0.002 + 0.1 * abs(length(p) - 4.5);
+                    
+                    // Accumulate Color (Volumetric Glow)
+                    if(d < 0.2) {
+                        float density = 1.0 / (d * 10.0 + 0.1);
+                        
+                        // Infogito Brand Palette
+                        vec3 teal = vec3(0.41, 0.71, 0.7); // #69B7B2
+                        vec3 cyan = vec3(0.02, 0.71, 0.83);
+                        
+                        // Spatial tinting
+                        vec3 tint = mix(teal, cyan, 0.5 + 0.5 * sin(p.x * 0.5));
+                        
+                        // Add sparkle/highlight
+                        float sparkle = 1.0 / (abs(sin(p.z * 10.0)) + 0.1);
+                        
+                        // DIMMED INTENSITY: Reduced multiplier from 0.004 to 0.0015
+                        col += tint * density * 0.0015 * sparkle;
+                    }
+                    
+                    z += d * 0.7; // Step size
+                    if(z > 20.0) break;
+                }
+                
+                // Tone Mapping
+                col = smoothstep(0.0, 1.0, col); 
+                col = pow(col, vec3(0.9)); 
+                
+                // Extra dimming
+                col *= 0.6;
+
+                // Vignette
+                col *= 1.0 - length(uv) * 0.4;
+
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        const createShader = (type: number, source: string) => {
+            const shader = gl.createShader(type);
+            if (!shader) return null;
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.warn(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        };
+
+        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
+        if (!vertexShader || !fragmentShader) return;
+
+        const program = gl.createProgram();
+        if (!program) return;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+        const positionLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLoc);
+        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLoc = gl.getUniformLocation(program, "time");
+        const resLoc = gl.getUniformLocation(program, "resolution");
+
+        let startTime = Date.now();
+        let frameId: number;
 
         const render = () => {
-            time += 0.003; 
-            ctx.fillStyle = '#020202';
-            ctx.fillRect(0, 0, w, h);
-
-            const cx = w / 2;
-            const cy = h / 2;
-
-            const targetRotX = mouseRef.current.y * 0.3;
-            const targetRotY = mouseRef.current.x * 0.3 + time;
-
-            const cosY = Math.cos(targetRotY);
-            const sinY = Math.sin(targetRotY);
-            const cosX = Math.cos(targetRotX);
-            const sinX = Math.sin(targetRotX);
-
-            // Project
-            for(let i=0; i<DOT_COUNT; i++) {
-                const p = points[i];
-                let x1 = p.x * cosY - p.z * sinY;
-                let z1 = p.z * cosY + p.x * sinY;
-                let y1 = p.y * cosX - z1 * sinX;
-                let z2 = z1 * cosX + p.y * sinX;
-
-                const scale = 800 / (800 - z2); 
-                projected[i].x = x1 * scale + cx;
-                projected[i].y = y1 * scale + cy;
-                projected[i].z = z2;
-                projected[i].scale = scale;
-                projected[i].type = p.type;
+            if (!canvas || !container) return;
+            
+            // Handle Resize with Device Pixel Ratio for Sharpness
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = container.clientWidth;
+            const displayHeight = container.clientHeight;
+            
+            // Check if the canvas is not the same size
+            const needResize = canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr;
+            
+            if (needResize) {
+                canvas.width = displayWidth * dpr;
+                canvas.height = displayHeight * dpr;
+                gl.viewport(0, 0, canvas.width, canvas.height);
             }
 
-            // Connections
-            ctx.lineWidth = 0.5;
-            for(let i=0; i<DOT_COUNT; i++) {
-                const p1 = projected[i];
-                if (p1.z < -100) continue; 
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
 
-                if (p1.type === 'hub') {
-                    for(let j=0; j<DOT_COUNT; j++) {
-                        if (i === j) continue;
-                        const p2 = projected[j];
-                        if (p2.z < -100) continue;
-
-                        const dx = p1.x - p2.x;
-                        const dy = p1.y - p2.y;
-                        const distSq = dx*dx + dy*dy;
-                        const maxDist = CONNECTION_DIST * p1.scale;
-                        
-                        if (distSq < maxDist * maxDist) {
-                            const dist = Math.sqrt(distSq);
-                            const alpha = (1 - dist / maxDist) * 0.4;
-                            ctx.strokeStyle = `rgba(105, 183, 178, ${alpha})`;
-                            ctx.beginPath();
-                            ctx.moveTo(p1.x, p1.y);
-                            ctx.lineTo(p2.x, p2.y);
-                            ctx.stroke();
-                        }
-                    }
-                }
-            }
-
-            // Dots
-            for(let i=0; i<DOT_COUNT; i++) {
-                const p = projected[i];
-                if (p.z < -200) continue; 
-
-                const alpha = Math.max(0.1, (p.z + GLOBE_RADIUS) / (GLOBE_RADIUS * 2));
-                
-                if (p.type === 'hub') {
-                    ctx.fillStyle = '#fff';
-                    ctx.shadowBlur = 10 * p.scale;
-                    ctx.shadowColor = '#69B7B2';
-                    const size = 2.5 * p.scale;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowBlur = 0;
-                    
-                    ctx.strokeStyle = `rgba(105, 183, 178, ${0.5 + Math.sin(time * 5) * 0.5})`;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, size * 2, 0, Math.PI*2); ctx.stroke();
-                } else {
-                    ctx.fillStyle = `rgba(105, 183, 178, ${alpha})`;
-                    const size = 1.2 * p.scale;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
-                }
-            }
-
-            const grad = ctx.createRadialGradient(cx, cy, GLOBE_RADIUS * 0.8, cx, cy, GLOBE_RADIUS * 1.2);
-            grad.addColorStop(0, 'rgba(105, 183, 178, 0.0)');
-            grad.addColorStop(1, 'rgba(105, 183, 178, 0.05)');
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(cx, cy, GLOBE_RADIUS * 1.2, 0, Math.PI*2); ctx.fill();
-
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             frameId = requestAnimationFrame(render);
         };
+
         render();
 
-        const handleResize = () => {
-            if (canvas.parentElement) {
-                w = canvas.parentElement.clientWidth;
-                h = canvas.parentElement.clientHeight;
-                canvas.width = w;
-                canvas.height = h;
-            }
-        };
-        window.addEventListener('resize', handleResize);
         return () => {
-            window.removeEventListener('resize', handleResize);
             cancelAnimationFrame(frameId);
+            gl.deleteProgram(program);
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-80" />;
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#050505]">
+            <canvas ref={canvasRef} className="block w-full h-full opacity-80 mix-blend-screen" />
+        </div>
+    );
 };
 
 const INDUSTRIES = [
@@ -319,25 +314,32 @@ export const OurClientsPage: React.FC = () => {
                 `}
             </style>
 
-            <div className="relative h-[90vh] min-h-[700px] flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10">
-                <div className="absolute inset-0 z-0">
-                    <ClientNetworkVisualizer />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/80 z-10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#020202]/80 via-transparent to-[#020202]/80 z-10" />
+            {/* --- HERO SECTION --- */}
+            {/* Height locked to screen to prevent stretching, using relative positioning */}
+            <div className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 
+                {/* WEBGL ENGINE */}
+                <div className="absolute inset-0 z-0">
+                    <WebGLHero />
+                </div>
+                
+                {/* Vignettes for Readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020202_90%)] z-10 pointer-events-none" />
+                
+                {/* Content */}
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
-                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#69B7B2]/30 bg-[#69B7B2]/10 backdrop-blur-md animate-in slide-in-from-top-8 duration-1000">
+                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#69B7B2]/30 bg-[#69B7B2]/10 backdrop-blur-md animate-in slide-in-from-top-8 duration-1000 shadow-[0_0_20px_rgba(105,183,178,0.2)]">
                         <div className="w-2 h-2 bg-[#69B7B2] rounded-full animate-pulse" />
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#69B7B2]">Global Operations Network</span>
                     </div>
 
-                    <h1 className="text-7xl md:text-9xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000">
+                    <h1 className="text-7xl md:text-9xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         Partners, Not <br/>
                         <span className="text-[#69B7B2] italic">Vendors.</span>
                     </h1>
                     
-                    <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+                    <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
                         We don't sell software. We deploy infrastructure for the world's most critical industries.
                     </p>
 
@@ -357,13 +359,8 @@ export const OurClientsPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="absolute bottom-12 left-12 hidden md:block text-left z-20">
-                    <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-1">Active Nodes</div>
-                    <div className="text-2xl font-mono text-[#69B7B2] font-bold">8,492</div>
-                </div>
-                <div className="absolute bottom-12 right-12 hidden md:block text-right z-20">
-                    <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-1">System Status</div>
-                    <div className="text-2xl font-mono text-green-500 font-bold">OPTIMAL</div>
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 animate-bounce z-20">
+                    <ChevronDown size={24} />
                 </div>
             </div>
 
