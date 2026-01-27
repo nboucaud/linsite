@@ -83,9 +83,10 @@ export const HeroVisualizer: React.FC = () => {
             p.x = ox + (Math.random()-0.5) * spread;
             p.y = oy + (Math.random()-0.5) * spread;
             p.z = oz + (Math.random()-0.5) * spread;
-            p.vx = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
-            p.vy = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
-            p.vz = type === 'trail' ? 10 : (Math.random()-0.5) * 5;
+            // Increased initial velocities by ~35%
+            p.vx = (Math.random()-0.5) * (type === 'ember' ? 6.75 : 2.7);
+            p.vy = (Math.random()-0.5) * (type === 'ember' ? 6.75 : 2.7);
+            p.vz = type === 'trail' ? 13.5 : (Math.random()-0.5) * 6.75;
             p.life = 1.0;
             p.color = type === 'data' ? '#69B7B2' : type === 'ember' ? '#f59e0b' : '#ffffff';
             p.type = type;
@@ -93,7 +94,7 @@ export const HeroVisualizer: React.FC = () => {
 
         // --- MAIN LOOP ---
         const render = () => {
-            globalTime += 0.016;
+            globalTime += 0.022; // Speed up global time (+35%)
             ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
             ctx.fillRect(0, 0, width, height);
 
@@ -108,7 +109,7 @@ export const HeroVisualizer: React.FC = () => {
 
             // --- PHASE LOGIC ---
             if (phase === 0) { // COALESCE
-                phaseTimer += 0.006;
+                phaseTimer += 0.008; // Speed up phase 0 (+35%)
                 meshOpacity = Math.min(1, phaseTimer);
                 const t = Math.min(1, phaseTimer / 2.0);
                 const ease = 1 - Math.pow(1 - t, 4); 
@@ -128,7 +129,7 @@ export const HeroVisualizer: React.FC = () => {
                 if (phaseTimer > 2.5) { phase = 1; phaseTimer = 0; meshOpacity = 1; }
             }
             else if (phase === 1) { // FOLD
-                phaseTimer += 0.012;
+                phaseTimer += 0.016; // Speed up phase 1 (+35%)
                 const t = Math.min(1, phaseTimer);
                 const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
@@ -149,12 +150,13 @@ export const HeroVisualizer: React.FC = () => {
                     phase = 2; phaseTimer = 0;
                     const angle = (Math.random() - 0.5) * 2.5;
                     const lift = (Math.random() - 0.5) * 1.0;
-                    planeVel = { x: Math.sin(angle) * 8, y: Math.sin(lift) * 6, z: 18 };
+                    // Speed up initial launch velocity (+35%)
+                    planeVel = { x: Math.sin(angle) * 10.8, y: Math.sin(lift) * 8.1, z: 24.3 };
                 }
             }
             else if (phase === 2) { // FLIGHT
-                phaseTimer += 0.016;
-                planeVel.z += 0.85;
+                phaseTimer += 0.022; // Speed up phase 2 (+35%)
+                planeVel.z += 1.15; // Speed up acceleration (+35%)
                 planePos.x += planeVel.x;
                 planePos.y += planeVel.y;
                 planePos.z += planeVel.z;
@@ -276,7 +278,7 @@ export const HeroVisualizer: React.FC = () => {
                 if (!p.active) continue;
 
                 p.x += p.vx; p.y += p.vy; p.z += p.vz;
-                p.life -= 0.02;
+                p.life -= 0.027; // Speed up particle decay (+35%)
 
                 if (p.life <= 0 || p.z > 2000) {
                     p.active = false;
