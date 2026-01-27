@@ -32,141 +32,283 @@ const Typewriter: React.FC<{ text: string; delay?: number }> = ({ text, delay = 
     return <span className="font-serif italic text-white/80">{display}</span>;
 };
 
-// ... (HolographicGlobe and SecurityVisualizer remain unchanged - omitted for brevity to focus on Footer update, assuming existing file structure maintained) ...
-const HolographicGlobe: React.FC = () => {
+// --- SHADER 1: CONTACT BACKGROUND ---
+const ContactBackgroundShader: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            const rect = canvasRef.current?.getBoundingClientRect();
-            if (rect) {
-                mouseRef.current = {
-                    x: (e.clientX - rect.left) / rect.width * 2 - 1,
-                    y: (e.clientY - rect.top) / rect.height * 2 - 1
-                };
-            }
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
 
-        let width = canvas.parentElement?.clientWidth || 800;
-        let height = canvas.parentElement?.clientHeight || 600;
-        canvas.width = width;
-        canvas.height = height;
-        
-        let frame = 0;
-        let animationFrameId: number;
+        const gl = canvas.getContext('webgl2');
+        if (!gl) return;
 
-        // --- GLOBE CONFIG ---
-        const GLOBE_RADIUS = 220;
-        const DOT_COUNT = 600;
-        const DOT_SIZE = 1.5;
-        
-        const points: {x: number, y: number, z: number}[] = [];
-        const phi = Math.PI * (3 - Math.sqrt(5)); 
+        const vsSource = `#version 300 es
+            in vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
 
-        for (let i = 0; i < DOT_COUNT; i++) {
-            const y = 1 - (i / (DOT_COUNT - 1)) * 2; 
-            const radius = Math.sqrt(1 - y * y); 
-            const theta = phi * i; 
+        const fsSource = `#version 300 es
+            precision highp float;
+            uniform vec2 resolution;
+            uniform float time;
+            out vec4 fragColor;
 
-            const x = Math.cos(theta) * radius;
-            const z = Math.sin(theta) * radius;
+            void main() {
+                vec2 r = resolution;
+                float t = time * 0.2; 
+                vec4 o = vec4(0.0);
+                
+                // Centered UVs - Corrected to look into -Z
+                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
+                
+                // ZOOM: Scale UVs down to zoom in (0.75 scale = ~33% zoom in)
+                uv *= 0.75;
 
-            points.push({ x: x * GLOBE_RADIUS, y: y * GLOBE_RADIUS, z: z * GLOBE_RADIUS });
-        }
+                vec3 rd = normalize(vec3(uv, -1.0));
+                
+                float z = 0.0;
+                float d = 0.0;
+                
+                for(float i=0.0; i<40.0; i++) {
+                    vec3 p = z * rd;
+                    
+                    // Domain distortion
+                    p.z += 9.0;
+                    
+                    float nx = atan(p.z, p.x + 1.0) * 2.0;
+                    float ny = 0.6 * p.y + t + t;
+                    float nz = length(p.xz) - 3.0;
+                    
+                    vec3 p_loop = vec3(nx, ny, nz);
+                    
+                    for(float j=1.0; j<7.0; j++) {
+                        p_loop += sin(p_loop.yzx * j + t + 0.5 * i) / j;
+                    }
+                    
+                    vec3 v3 = 0.3 * cos(p_loop) - 0.3;
+                    d = 0.4 * length(vec4(v3, p_loop.z)); 
+                    d = max(d, 0.002);
+                    z += d;
+                    
+                    o += (cos(p_loop.y + i * 0.4 + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / d;
+                }
+                
+                o = tanh(o * o / 6000.0);
+                o *= 0.875; // Brightness adjust
+                
+                fragColor = vec4(o.rgb, 1.0);
+            }
+        `;
+
+        const createShader = (type: number, source: string) => {
+            const shader = gl.createShader(type);
+            if (!shader) return null;
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
+        };
+
+        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
+        if (!vertexShader || !fragmentShader) return;
+
+        const program = gl.createProgram();
+        if (!program) return;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+        const positionLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLoc);
+        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLoc = gl.getUniformLocation(program, "time");
+        const resLoc = gl.getUniformLocation(program, "resolution");
+
+        let startTime = Date.now();
+        let frameId: number;
 
         const render = () => {
-            frame++;
-            const time = frame * 0.005;
-
-            ctx.clearRect(0, 0, width, height); 
-
-            const cx = width * 0.5; 
-            const cy = height * 0.5;
-
-            const rotX = time * 0.3 + (mouseRef.current.y * 0.2);
-            const rotY = time * 0.5 + (mouseRef.current.x * 0.2);
-
-            const projected = points.map(p => {
-                let x1 = p.x * Math.cos(rotY) - p.z * Math.sin(rotY);
-                let z1 = p.z * Math.cos(rotY) + p.x * Math.sin(rotY);
-                
-                let y1 = p.y * Math.cos(rotX) - z1 * Math.sin(rotX);
-                let z2 = z1 * Math.cos(rotX) + p.y * Math.sin(rotX);
-
-                const scale = 400 / (400 - z2); 
-                return {
-                    x: x1 * scale + cx,
-                    y: y1 * scale + cy,
-                    z: z2,
-                    scale
-                };
-            });
-
-            projected.forEach(p => {
-                if (p.scale > 0) { 
-                    const alpha = (p.z + GLOBE_RADIUS) / (GLOBE_RADIUS * 2); 
-                    ctx.fillStyle = `rgba(105, 183, 178, ${Math.max(0.1, alpha)})`;
-                    const size = DOT_SIZE * p.scale;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-
-            // Connections
-            ctx.strokeStyle = 'rgba(105, 183, 178, 0.15)';
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            for (let i = 0; i < projected.length; i += 8) {
-                const p1 = projected[i];
-                if (p1.z < 0) continue; 
-
-                for (let j = 1; j < 6; j++) {
-                    const p2 = projected[(i + j * 7) % projected.length];
-                    const dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                    
-                    if (dist < 60) {
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                    }
-                }
+            if (!canvas || !container) return;
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = container.clientWidth;
+            const displayHeight = container.clientHeight;
+            
+            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
+                canvas.width = displayWidth * dpr;
+                canvas.height = displayHeight * dpr;
+                gl.viewport(0, 0, canvas.width, canvas.height);
             }
-            ctx.stroke();
 
-            animationFrameId = requestAnimationFrame(render);
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            frameId = requestAnimationFrame(render);
         };
+
         render();
 
-        const handleResize = () => {
-            if (canvas.parentElement) {
-                width = canvas.parentElement.clientWidth;
-                height = canvas.parentElement.clientHeight;
-                canvas.width = width;
-                canvas.height = height;
-            }
-        };
-        window.addEventListener('resize', handleResize);
         return () => {
-            window.removeEventListener('resize', handleResize);
-            cancelAnimationFrame(animationFrameId);
+            cancelAnimationFrame(frameId);
+            gl.deleteProgram(program);
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
+            <canvas ref={canvasRef} className="block w-full h-full opacity-60 mix-blend-screen" />
+        </div>
+    );
+};
+
+// --- SHADER 2: ELEMENT SHADER (Dimmed) ---
+const ContactElementShader: React.FC<{ className?: string }> = ({ className = "" }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
+
+        const gl = canvas.getContext('webgl2');
+        if (!gl) return;
+
+        const vsSource = `#version 300 es
+            in vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        const fsSource = `#version 300 es
+            precision highp float;
+            uniform vec2 resolution;
+            uniform float time;
+            out vec4 fragColor;
+
+            void main() {
+                vec2 r = resolution;
+                float t = time * 0.5;
+                vec4 o = vec4(0.0);
+                
+                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
+                vec3 rd = normalize(vec3(uv, 1.0));
+                
+                vec3 c = vec3(0.0);
+                vec3 p = vec3(0.0);
+                float z = 0.0;
+                float f = 0.0;
+                
+                for(float i=0.0; i<40.0; i++) {
+                    p = z * rd;
+                    p.z -= t;
+                    c = p;
+                    
+                    float f_loop = 0.3;
+                    for(int j=0; j<5; j++) {
+                        f_loop += 1.0;
+                        p += cos(p.yzx * f_loop + i / 0.4) / f_loop;
+                    }
+                    
+                    p = mix(c, p, 0.3);
+                    
+                    float term = dot(cos(p), sin(p.yzx / 0.6)) + abs(p.y) - 3.0;
+                    f = 0.2 * abs(term);
+                    z += f;
+                    
+                    o += (cos(z + vec4(6.0, 1.0, 2.0, 0.0)) + 2.0) / f / z;
+                }
+                
+                o = tanh(o / 800.0);
+                o *= 0.16; // Dim for readability
+                
+                fragColor = vec4(o.rgb, 1.0);
+            }
+        `;
+
+        const createShader = (type: number, source: string) => {
+            const shader = gl.createShader(type);
+            if (!shader) return null;
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
+        };
+
+        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
+        if (!vertexShader || !fragmentShader) return;
+
+        const program = gl.createProgram();
+        if (!program) return;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+        const positionLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLoc);
+        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLoc = gl.getUniformLocation(program, "time");
+        const resLoc = gl.getUniformLocation(program, "resolution");
+
+        let startTime = Date.now();
+        let frameId: number;
+
+        const render = () => {
+            if (!canvas || !container) return;
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = container.clientWidth;
+            const displayHeight = container.clientHeight;
+            
+            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
+                canvas.width = displayWidth * dpr;
+                canvas.height = displayHeight * dpr;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            frameId = requestAnimationFrame(render);
+        };
+
+        render();
+
+        return () => {
+            cancelAnimationFrame(frameId);
+            gl.deleteProgram(program);
+        };
+    }, []);
+
+    return (
+        <div ref={containerRef} className={`absolute inset-0 w-full h-full bg-[#0c0c0e] ${className}`}>
+            <canvas ref={canvasRef} className="block w-full h-full opacity-100" />
+            <div className="absolute inset-0 bg-black/60" /> {/* Extra overlay for contrast */}
+        </div>
+    );
 };
 
 const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const particlesRef = useRef<any[]>([]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -179,254 +321,191 @@ const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
         canvas.width = w;
         canvas.height = h;
 
-        let time = 0;
-        let particles: any[] = [];
+        const cx = w / 2;
+        const cy = h / 2;
 
-        // Initialize particles
-        for(let i=0; i<80; i++) {
-            particles.push({
-                x: Math.random() * w,
-                y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 1,
-                vy: (Math.random() - 0.5) * 1,
-                size: Math.random() * 2,
-                angle: Math.random() * Math.PI * 2,
-                aesInit: false
-            });
+        // Initialize particles if empty
+        if (particlesRef.current.length === 0) {
+            for (let i = 0; i < 200; i++) {
+                particlesRef.current.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    size: Math.random() * 2 + 1,
+                    color: 'rgba(255, 255, 255, 0.2)',
+                    // Mode specific memory
+                    aesChar: Math.random() > 0.5 ? '1' : '0'
+                });
+            }
         }
 
         let animationFrameId: number;
+        let time = 0;
 
         const render = () => {
             time += 0.02;
             
-            // Clear but leave trail for some modes
+            // Clear with heavy trail for motion blur effect
             ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
             ctx.fillRect(0, 0, w, h);
             ctx.globalCompositeOperation = 'source-over';
 
-            const cx = w/2;
-            const cy = h/2;
+            const particles = particlesRef.current;
 
-            if (mode === 'airgap') {
-                // ISOLATION RING
-                const r = 250;
+            // --- DRAW & UPDATE PARTICLES ---
+            particles.forEach((p, i) => {
+                let forceX = 0;
+                let forceY = 0;
+                let friction = 0.94;
+                let speedLimit = 3;
+                let targetColor = 'rgba(255, 255, 255, 0.15)'; 
+
+                // --- PHYSICS FIELDS ---
                 
-                // Shield pulse
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = '#ef4444';
-                ctx.strokeStyle = `rgba(239, 68, 68, ${0.5 + Math.sin(time * 2) * 0.2})`;
-                ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
-                ctx.shadowBlur = 0;
-
-                // Repel particles
-                particles.forEach(p => {
-                    p.x += p.vx * 2;
-                    p.y += p.vy * 2;
-                    
+                if (mode === 'airgap') {
+                    // Ring Repulsion
+                    const r = 250;
                     const dx = p.x - cx;
                     const dy = p.y - cy;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     
-                    // Bounce off boundary
-                    if (dist > r - 10 && dist < r + 10) {
+                    if (dist < r - 10) {
+                        // Trap inside
+                        const angle = Math.atan2(dy, dx) + 0.05;
+                        const tx = cx + Math.cos(angle) * (dist * 0.99); // Spiral in slightly
+                        const ty = cy + Math.sin(angle) * (dist * 0.99);
+                        forceX = (tx - p.x) * 0.1;
+                        forceY = (ty - p.y) * 0.1;
+                        targetColor = '#10b981';
+                    } else if (dist < r + 30) {
+                        // Bounce boundary
                         const angle = Math.atan2(dy, dx);
-                        p.vx = -Math.cos(angle) * 2;
-                        p.vy = -Math.sin(angle) * 2;
+                        forceX = Math.cos(angle) * 0.8;
+                        forceY = Math.sin(angle) * 0.8;
+                        targetColor = '#ef4444';
+                    } else {
+                        // Drift outside
+                        forceX = (Math.random() - 0.5) * 0.05;
+                        forceY = (Math.random() - 0.5) * 0.05;
+                        targetColor = '#ef4444';
                     }
-                    
-                    // Wrap screen
-                    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
-                    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
-
-                    // Color based on inside/outside
-                    ctx.fillStyle = dist < r ? '#10b981' : '#ef4444';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                });
-                
-                // Center text
-                ctx.font = '10px monospace';
-                ctx.fillStyle = '#ef4444';
-                ctx.textAlign = 'center';
-                ctx.fillText("AIRGAP_PROTOCOL_ACTIVE", cx, cy + r + 20);
-            } 
-            else if (mode === 'rbac') {
-                // HIERARCHY TREE
-                const levels = 3;
-                const levelHeight = 100;
-                
-                particles.forEach((p, i) => {
+                } 
+                else if (mode === 'rbac') {
+                    // Hierarchy Nodes
+                    const levels = 3;
+                    const levelHeight = 100;
                     const level = i % levels;
-                    const targetY = cy + (level - 1) * levelHeight;
-                    const spread = (w * 0.6) / (levels + 1);
-                    const targetX = cx + ((i % 5) - 2) * spread + Math.sin(time + i) * 20;
-
-                    p.x += (targetX - p.x) * 0.05;
-                    p.y += (targetY - p.y) * 0.05;
-
-                    ctx.fillStyle = level === 0 ? '#10b981' : level === 1 ? '#3b82f6' : '#64748b';
+                    const spread = (w * 0.5) / (levels + 1);
+                    const tx = cx + ((i % 5) - 2) * spread;
+                    const ty = cy + (level - 1) * levelHeight + Math.sin(time + i)*5;
                     
-                    // Connections to parent
-                    if (level > 0) {
-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(cx, cy + (level-2)*levelHeight); ctx.stroke();
-                    }
-
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size + (level === 0 ? 3 : 0), 0, Math.PI*2); ctx.fill();
-                });
-                
-                // Scanner
-                const scanY = cy - 150 + (time * 100) % 300;
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-                ctx.fillRect(0, scanY, w, 20);
-            }
-            else if (mode === 'aes') {
-                // DATA STREAM NETWORK (Spinning Number Particles)
-                const pulse = 1 + Math.sin(time * 10) * 0.1;
-                ctx.fillStyle = '#eab308'; // Yellow
-                ctx.shadowBlur = 30 * pulse;
-                ctx.shadowColor = '#eab308';
-                ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.fill();
-                ctx.shadowBlur = 0;
-
-                ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(cx, cy, 30, time * 5, time * 5 + Math.PI * 1.5);
-                ctx.stroke();
-
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-
-                particles.forEach((p, i) => {
-                    if (!p.aesInit) {
-                        p.x = cx;
-                        p.y = cy;
-                        const angle = Math.random() * Math.PI * 2;
-                        const speed = 2 + Math.random() * 3;
-                        p.vx = Math.cos(angle) * speed;
-                        p.vy = Math.sin(angle) * speed;
-                        p.char = Math.random() > 0.5 ? "1" : "0";
-                        p.aesInit = true;
-                    }
-
-                    p.x += p.vx;
-                    p.y += p.vy;
+                    forceX = (tx - p.x) * 0.04;
+                    forceY = (ty - p.y) * 0.04;
+                    friction = 0.85; // Heavier damping
                     
+                    targetColor = level === 0 ? '#10b981' : level === 1 ? '#3b82f6' : '#64748b';
+                }
+                else if (mode === 'aes') {
+                    // Vortex Stream
                     const dx = p.x - cx;
                     const dy = p.y - cy;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    const currentAngle = Math.atan2(dy, dx);
-                    const newAngle = currentAngle + 0.02;
-                    p.x = cx + Math.cos(newAngle) * dist;
-                    p.y = cy + Math.sin(newAngle) * dist;
-
-                    ctx.fillStyle = `rgba(234, 179, 8, ${1 - dist/400})`;
-                    ctx.fillText(p.char, p.x, p.y);
-
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const p2 = particles[j];
-                        const d2 = Math.pow(p.x - p2.x, 2) + Math.pow(p.y - p2.y, 2);
-                        if (d2 < 2500) { 
-                            ctx.strokeStyle = `rgba(234, 179, 8, ${0.2 * (1 - dist/400)})`;
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y);
-                            ctx.lineTo(p2.x, p2.y);
-                            ctx.stroke();
-                        }
+                    const targetR = 150 + Math.sin(i * 0.1) * 100;
+                    
+                    const angle = Math.atan2(dy, dx);
+                    const tangent = angle + (dist < targetR ? 0.1 : -0.05); // Spiral behavior
+                    
+                    const tx = cx + Math.cos(tangent) * targetR;
+                    const ty = cy + Math.sin(tangent) * targetR;
+                    
+                    forceX = (tx - p.x) * 0.03;
+                    forceY = (ty - p.y) * 0.03;
+                    targetColor = '#eab308';
+                }
+                else if (mode === 'tenant') {
+                    // Containment Box
+                    const boxW = 200;
+                    const boxH = 300;
+                    const left = cx - boxW/2;
+                    const right = cx + boxW/2;
+                    const top = cy - boxH/2;
+                    const bottom = cy + boxH/2;
+                    
+                    if (p.x > left && p.x < right && p.y > top && p.y < bottom) {
+                        // Inside: Bounce
+                        if (p.x + p.vx > right || p.x + p.vx < left) p.vx *= -1;
+                        if (p.y + p.vy > bottom || p.y + p.vy < top) p.vy *= -1;
+                    } else {
+                        // Outside: Attract
+                        forceX = (cx - p.x) * 0.04;
+                        forceY = (cy - p.y) * 0.04;
                     }
+                    targetColor = '#a855f7';
+                }
+                else {
+                    // IDLE: Starfield Drift
+                    forceX = (Math.random() - 0.5) * 0.02;
+                    forceY = (Math.random() - 0.5) * 0.02;
+                    // Gentle wrap
+                    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+                    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+                    targetColor = 'rgba(255, 255, 255, 0.2)';
+                }
 
-                    if (dist > 400) {
-                        p.x = cx;
-                        p.y = cy;
-                        p.char = Math.random() > 0.5 ? "1" : "0";
-                        const a = Math.random() * Math.PI * 2;
-                        const s = 2 + Math.random() * 3;
-                        p.vx = Math.cos(a) * s;
-                        p.vy = Math.sin(a) * s;
-                    }
-                });
-            }
-            else if (mode === 'tenant') {
-                // ISOLATED SILO (FORTRESS)
-                const siloWidth = 80;
-                const siloHeight = 300;
+                // Apply Physics
+                p.vx += forceX;
+                p.vy += forceY;
+                p.vx *= friction;
+                p.vy *= friction;
                 
-                ctx.strokeStyle = '#a855f7'; 
+                // Cap speed
+                const s = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+                if (s > speedLimit) {
+                    p.vx = (p.vx/s) * speedLimit;
+                    p.vy = (p.vy/s) * speedLimit;
+                }
+
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Render
+                ctx.fillStyle = targetColor;
+                
+                if (mode === 'aes' && Math.random() > 0.5) {
+                    // Draw binary for AES
+                    ctx.font = '10px monospace';
+                    ctx.fillText(p.aesChar, p.x, p.y);
+                } else {
+                    // Standard dot
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    ctx.fill();
+                }
+
+                // Connectors for RBAC
+                if (mode === 'rbac' && i % 3 === 0) {
+                    const parent = particles[Math.max(0, i-1)];
+                    if (parent) {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(parent.x, parent.y); ctx.stroke();
+                    }
+                }
+            });
+
+            // --- STATIC OVERLAYS ---
+            if (mode === 'airgap') {
+                ctx.strokeStyle = '#ef4444';
                 ctx.lineWidth = 2;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#a855f7';
-                
-                const xLeft = cx - siloWidth/2;
-                const xRight = cx + siloWidth/2;
-                
-                ctx.beginPath();
-                ctx.moveTo(xLeft, cy - siloHeight/2); ctx.lineTo(xLeft, cy + siloHeight/2);
-                ctx.moveTo(xRight, cy - siloHeight/2); ctx.lineTo(xRight, cy + siloHeight/2);
-                ctx.stroke();
-                
-                ctx.shadowBlur = 0;
-                
-                ctx.fillStyle = 'rgba(168, 85, 247, 0.05)';
-                ctx.fillRect(xLeft, cy - siloHeight/2, siloWidth, siloHeight);
-                
-                const scanY = cy - siloHeight/2 + (time * 60) % siloHeight;
-                ctx.fillStyle = '#a855f7';
-                ctx.fillRect(xLeft, scanY, siloWidth, 2);
-                
-                ctx.strokeStyle = 'rgba(168, 85, 247, 0.2)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, 100, 30, time * 0.5, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, 100, 30, -time * 0.5, 0, Math.PI * 2);
-                ctx.stroke();
-
-                particles.forEach(p => {
-                    p.x += p.vx * 3;
-                    p.y += p.vy * 3;
-                    
-                    if (p.x > xLeft - 10 && p.x < xRight + 10 && p.y > cy - siloHeight/2 && p.y < cy + siloHeight/2) {
-                        if (p.x < cx) p.vx = -Math.abs(p.vx * 1.5);
-                        else p.vx = Math.abs(p.vx * 1.5);
-                    }
-                    
-                    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
-                    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
-                    
-                    ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                });
-                
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
-                
-                ctx.fillStyle = '#a855f7';
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText("TENANT_ISOLATION_ACTIVE", cx, cy + siloHeight/2 + 20);
-            }
-            else {
-                // IDLE: Starfield
-                particles.forEach(p => {
-                    if (p.aesInit) {
-                        p.vx = (Math.random() - 0.5) * 1;
-                        p.vy = (Math.random() - 0.5) * 1;
-                        p.aesInit = false;
-                    }
-
-                    p.x += p.vx * 0.2;
-                    p.y += p.vy * 0.2;
-                    
-                    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
-                    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
-                    
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                });
+                ctx.beginPath(); ctx.arc(cx, cy, 250, 0, Math.PI*2); ctx.stroke();
+                ctx.fillStyle = '#ef4444'; ctx.textAlign = 'center'; ctx.font = '10px monospace';
+                ctx.fillText("AIRGAP_PROTOCOL", cx, cy + 270);
+            } else if (mode === 'tenant') {
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(cx - 100, cy - 150, 200, 300);
+                ctx.fillStyle = '#a855f7'; ctx.textAlign = 'center'; ctx.font = '10px monospace';
+                ctx.fillText("SINGLE_TENANT_SILO", cx, cy + 170);
             }
 
             animationFrameId = requestAnimationFrame(render);
@@ -449,7 +528,7 @@ const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
         };
     }, [mode]);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-60" />;
+    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-80" />;
 };
 
 const INDUSTRY_CARDS = [
@@ -736,7 +815,6 @@ export const LandingPage: React.FC = () => {
       <section className="py-16 border-y border-white/5 bg-[#030303]">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
               <div className="text-left md:w-1/3">
-                  <span className="text-xs font-mono uppercase tracking-widest text-[#69B7B2] font-bold block mb-2">Trusted Standard</span>
                   <h3 className="text-2xl font-serif text-white leading-tight">Engineered for regulated and high-trust environments.</h3>
               </div>
               
@@ -764,10 +842,6 @@ export const LandingPage: React.FC = () => {
           
           <div className="w-full">
               <div className="text-center mb-20 px-6 relative z-10">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-6">
-                      <Globe size={12} className="text-[#69B7B2]" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">Everything Else you Need</span>
-                  </div>
                   <h2 className="text-4xl md:text-5xl font-serif text-white mb-6">Built for Mission-Critical Workflows</h2>
                   <p className="text-white/50 text-lg max-w-2xl mx-auto">
                       Deep vertical specialization where generic AI fails. We speak the language of your operations.
@@ -784,46 +858,53 @@ export const LandingPage: React.FC = () => {
           <UseCaseShowcase />
       </section>
 
-      {/* --- 7. CONTACT SECTION (Embedded from ContactPage) --- */}
+      {/* --- 7. CONTACT SECTION (Refreshed with High-Fidelity Shaders) --- */}
       <section id="contact" className="relative py-24 bg-[#0c0c0e] border-t border-white/10 overflow-hidden">
-          {/* Globe Background */}
-          <div className="absolute inset-0 opacity-40 pointer-events-none">
-              <HolographicGlobe />
+          {/* Global Visualizer Background */}
+          <div className="absolute inset-0 z-0">
+              <ContactBackgroundShader />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#020202] via-[#020202]/80 to-transparent" />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/80 pointer-events-none" />
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col lg:flex-row gap-16 items-center">
               {/* Left Column */}
               <div className="w-full lg:w-1/2 space-y-12">
                   <div className="space-y-6">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#69B7B2]/10 border border-[#69B7B2]/20 text-[#69B7B2] text-[10px] font-bold uppercase tracking-widest">
-                          <Radio size={12} className="animate-pulse" />
-                          <span>Contact Us</span>
-                      </div>
-                      <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight">
+                      <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight drop-shadow-xl">
                           Let’s talk about your <br/> <span className="text-[#69B7B2] italic">operational reality.</span>
                       </h2>
-                      <p className="text-xl text-white/60 font-light max-w-md border-l border-white/20 pl-6">
+                      <p className="text-xl text-white/60 font-light max-w-md border-l border-white/20 pl-6 drop-shadow-md">
                           Every engagement starts with understanding how your organization actually works.
                       </p>
                   </div>
 
-                  <div className="relative group overflow-hidden p-1 rounded-3xl bg-gradient-to-br from-white/10 to-transparent">
-                      <div className="absolute inset-0 bg-[#0a0a0c] rounded-3xl m-[1px]" />
-                      <div className="relative p-8">
-                          <div className="flex items-center gap-3 mb-4">
-                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
-                              <span className="text-[10px] font-mono text-green-500 uppercase tracking-widest">Headquarters</span>
+                  {/* HQ Card with Element Shader */}
+                  <div className="relative group overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
+                      <ContactElementShader />
+                      
+                      <div className="relative p-10 flex items-start justify-between z-10">
+                          <div>
+                              <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                                  <span className="text-[10px] font-mono text-green-500 uppercase tracking-widest">Headquarters</span>
+                              </div>
+                              <h3 className="text-3xl font-serif text-white mb-2">New York City</h3>
+                              <p className="text-white/60 text-sm mb-6 max-w-[200px] leading-relaxed">
+                                  New York, NY
+                              </p>
+                              
+                              <div className="flex flex-col gap-3">
+                                  <a href="mailto:connect@infogito.com" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors group/link">
+                                      <div className="p-1.5 bg-white/10 rounded text-[#69B7B2] group-hover/link:bg-[#69B7B2] group-hover/link:text-black transition-all">
+                                          <Mail size={14} />
+                                      </div>
+                                      <span className="text-sm font-mono">connect@infogito.com</span>
+                                  </a>
+                              </div>
                           </div>
-                          <h3 className="text-2xl font-serif text-white mb-2">New York City</h3>
-                          <p className="text-white/40 text-sm mb-6 leading-relaxed">
-                              New York, NY
-                          </p>
-                          <div className="flex flex-col gap-3">
-                              <a href="mailto:connect@infogito.com" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors group/link">
-                                  <div className="p-1.5 bg-white/5 rounded text-[#69B7B2] group-hover/link:bg-[#69B7B2] group-hover/link:text-black transition-all"><Mail size={14} /></div>
-                                  <span className="text-sm font-mono">connect@infogito.com</span>
-                              </a>
+
+                          <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md">
+                              <Building2 size={40} className="text-[#69B7B2] opacity-80" strokeWidth={1} />
                           </div>
                       </div>
                   </div>
@@ -831,13 +912,13 @@ export const LandingPage: React.FC = () => {
 
               {/* Right Column (Form) */}
               <div className="w-full lg:w-1/2">
-                  <div className="relative bg-[#0c0c0e]/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden group">
+                  <div className="relative rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden group border border-white/10">
                       
-                      {/* Animated Scanline Background */}
-                      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(105,183,178,0.05)_50%,transparent_100%)] h-[200%] w-full animate-[scan_10s_linear_infinite] pointer-events-none" />
+                      {/* Form Container Shader */}
+                      <ContactElementShader />
 
                       {formState === 'sent' ? (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c0e] animate-in fade-in duration-500 z-20">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c0e]/80 backdrop-blur-xl animate-in fade-in duration-500 z-20">
                               <div className="w-24 h-24 bg-[#69B7B2]/10 rounded-full flex items-center justify-center text-[#69B7B2] mb-8 border border-[#69B7B2]/20 shadow-[0_0_30px_rgba(105,183,178,0.2)]">
                                   <CheckCircle2 size={48} />
                               </div>
@@ -858,24 +939,24 @@ export const LandingPage: React.FC = () => {
                               <div className="space-y-6">
                                   <div className="grid grid-cols-2 gap-6">
                                       <div className="space-y-2 group/field">
-                                          <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">First Name</label>
-                                          <input type="text" required className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-white/[0.05] transition-all placeholder:text-white/10 font-sans" placeholder="Jane" />
+                                          <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">First Name</label>
+                                          <input type="text" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="Jane" />
                                       </div>
                                       <div className="space-y-2 group/field">
-                                          <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Last Name</label>
-                                          <input type="text" required className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-white/[0.05] transition-all placeholder:text-white/10 font-sans" placeholder="Doe" />
+                                          <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Last Name</label>
+                                          <input type="text" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="Doe" />
                                       </div>
                                   </div>
                                   
                                   <div className="space-y-2 group/field">
-                                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Work Email</label>
-                                      <input type="email" required className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-white/[0.05] transition-all placeholder:text-white/10 font-sans" placeholder="jane@company.com" />
+                                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Work Email</label>
+                                      <input type="email" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="jane@company.com" />
                                   </div>
 
                                   <div className="space-y-2 group/field">
-                                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Inquiry Type</label>
+                                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Inquiry Type</label>
                                       <div className="relative">
-                                          <select className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-white/[0.05] transition-all appearance-none cursor-pointer font-sans">
+                                          <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all appearance-none cursor-pointer font-sans backdrop-blur-sm">
                                               <option className="bg-[#0a0a0c]">Enterprise Platform Demo</option>
                                               <option className="bg-[#0a0a0c]">Partnership Inquiry</option>
                                               <option className="bg-[#0a0a0c]">Technical Support</option>
@@ -888,8 +969,8 @@ export const LandingPage: React.FC = () => {
                                   </div>
 
                                   <div className="space-y-2 group/field">
-                                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Message</label>
-                                      <textarea rows={4} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-white/[0.05] transition-all resize-none placeholder:text-white/10 font-sans" placeholder="Tell us about your needs..." />
+                                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1 group-focus-within/field:text-[#69B7B2] transition-colors">Message</label>
+                                      <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all resize-none placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="Tell us about your needs..." />
                                   </div>
                               </div>
 

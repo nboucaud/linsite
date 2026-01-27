@@ -134,22 +134,10 @@ export const UseCaseShowcase: React.FC = () => {
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 
                 {/* Section Header */}
-                <div className="mb-20 text-center md:text-left flex flex-col md:flex-row justify-between items-end gap-8">
-                    <div>
-                        <div className="inline-flex items-center gap-2 mb-4 text-[#69B7B2]">
-                            <Terminal size={16} />
-                            <span className="text-xs font-mono font-bold uppercase tracking-[0.2em]">The Intelligence Pipeline</span>
-                        </div>
-                        <h2 className="text-4xl md:text-6xl font-serif text-white leading-none">
-                            Our <span className="text-white/40">Tools.</span>
-                        </h2>
-                    </div>
-                    <div className="text-right hidden md:block">
-                        <div className="text-xs font-mono text-white/40 mb-1">SYSTEM_STATUS</div>
-                        <div className="flex items-center gap-2 text-[#69B7B2] font-bold text-sm uppercase tracking-widest">
-                            <Activity size={14} className="animate-pulse" /> Operational
-                        </div>
-                    </div>
+                <div className="mb-20 text-center md:text-left">
+                    <h2 className="text-4xl md:text-6xl font-serif text-white leading-none">
+                        Our <span className="text-white/40">Tools.</span>
+                    </h2>
                 </div>
 
                 {/* --- THE PIPELINE INTERFACE --- */}
@@ -272,21 +260,12 @@ export const UseCaseShowcase: React.FC = () => {
                         {/* The Monitor Frame */}
                         <div className="absolute inset-0 bg-[#0c0c0e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col group">
                             
-                            {/* Monitor Header */}
+                            {/* Monitor Header (Minimalist) */}
                             <div className="h-12 bg-white/5 border-b border-white/5 flex items-center justify-between px-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex gap-1.5">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/50" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50" />
-                                    </div>
-                                    <div className="h-4 w-px bg-white/10 mx-2" />
-                                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest flex items-center gap-2">
-                                        <Cpu size={10} /> PROCESS: {activeItem.id.toUpperCase()}_THREAD
-                                    </span>
-                                </div>
-                                <div className="text-[10px] font-bold text-white/50" style={{ color: activeItem.color }}>
-                                    {activeItem.tag} MODE ACTIVE
+                                <div className="flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/50" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50" />
                                 </div>
                             </div>
 

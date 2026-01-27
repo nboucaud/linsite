@@ -4,11 +4,18 @@ import {
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 
-// --- WEBGL HERO ENGINE (High-Fidelity) ---
+// Import Industry Hero Visualizers for the Carousel
+import { LogisticsHeroVisualizer } from './LogisticsHeroVisualizer';
+import { SmallBusinessHeroVisualizer } from './SmallBusinessHeroVisualizer';
+import { IndustrialsHeroVisualizer } from './IndustrialsHeroVisualizer';
+import { HealthcareHeroVisualizer } from './HealthcareHeroVisualizer';
+import { ResourcesHeroVisualizer } from './ResourcesHeroVisualizer';
+
+// --- WEBGL HERO ENGINE (Main Header) ---
 const WebGLHero: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -31,71 +38,43 @@ const WebGLHero: React.FC = () => {
             }
         `;
 
-        // Fragment Shader: Sharp "Neural" Fractal
         const fsSource = `
             precision highp float;
             uniform vec2 resolution;
             uniform float time;
 
-            // Polyfill for round()
             vec3 my_round(vec3 x) { return floor(x + 0.5); }
 
             void main() {
-                // Correct UV Aspect Ratio
                 vec2 uv = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-                
                 vec3 col = vec3(0.0);
                 float t = time * 0.4;
-                
-                // Camera Setup - Moved left (x=-3.0) to right-justify the object
                 vec3 ro = vec3(-3.0, 0.0, 9.0);
                 vec3 rd = normalize(vec3(uv, -1.0));
-                
                 float z = 0.0; 
                 float d = 0.0;
                 
-                // Raymarching Loop
                 for(int i = 0; i < 80; i++) {
                     vec3 p = ro + rd * z;
-                    
-                    // Fractal Distortion (The "Golf" Logic)
                     for(float f = 1.0; f < 5.0; f += 1.0) {
                         p += sin(my_round(p.zxy * 8.0) * 0.1 * f - t) / f;
                     }
-                    
-                    // Distance Estimate: Tighter bounds for sharpness
                     d = 0.002 + 0.1 * abs(length(p) - 4.5);
-                    
-                    // Accumulate Color (Volumetric Glow)
                     if(d < 0.2) {
                         float density = 1.0 / (d * 10.0 + 0.1);
-                        
-                        // Infogito Brand Palette
-                        vec3 teal = vec3(0.41, 0.71, 0.7); // #69B7B2
+                        vec3 teal = vec3(0.41, 0.71, 0.7); 
                         vec3 cyan = vec3(0.02, 0.71, 0.83);
-                        
-                        // Spatial tinting
                         vec3 tint = mix(teal, cyan, 0.5 + 0.5 * sin(p.x * 0.5));
-                        
-                        // Add sparkle/highlight
                         float sparkle = 1.0 / (abs(sin(p.z * 10.0)) + 0.1);
-                        
-                        // DIMMED INTENSITY: Reduced multiplier from 0.004 to 0.0015
                         col += tint * density * 0.0015 * sparkle;
                     }
-                    
-                    z += d * 0.7; // Step size
+                    z += d * 0.7;
                     if(z > 20.0) break;
                 }
                 
-                // Tone Mapping
                 col = smoothstep(0.0, 1.0, col); 
                 col = pow(col, vec3(0.9)); 
-                
-                // Extra dimming
                 col *= 0.6;
-
-                // Vignette
                 col *= 1.0 - length(uv) * 0.4;
 
                 gl_FragColor = vec4(col, 1.0);
@@ -107,8 +86,155 @@ const WebGLHero: React.FC = () => {
             if (!shader) return null;
             gl.shaderSource(shader, source);
             gl.compileShader(shader);
+            return shader;
+        };
+
+        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
+        if (!vertexShader || !fragmentShader) return;
+
+        const program = gl.createProgram();
+        if (!program) return;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+        const positionLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLoc);
+        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLoc = gl.getUniformLocation(program, "time");
+        const resLoc = gl.getUniformLocation(program, "resolution");
+
+        let startTime = Date.now();
+        let frameId: number;
+
+        const render = () => {
+            if (!canvas || !container) return;
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = container.clientWidth;
+            const displayHeight = container.clientHeight;
+            
+            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
+                canvas.width = displayWidth * dpr;
+                canvas.height = displayHeight * dpr;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            frameId = requestAnimationFrame(render);
+        };
+
+        render();
+
+        return () => {
+            cancelAnimationFrame(frameId);
+            gl.deleteProgram(program);
+        };
+    }, []);
+
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#050505]">
+            <canvas ref={canvasRef} className="block w-full h-full opacity-80 mix-blend-screen" />
+        </div>
+    );
+};
+
+// --- PARTNERSHIP SHADER (The "Graphic") ---
+const PartnershipShader: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
+
+        const gl = canvas.getContext('webgl2');
+        if (!gl) {
+            console.error("WebGL2 not supported for PartnershipShader");
+            return;
+        }
+
+        const vsSource = `#version 300 es
+            in vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        const fsSource = `#version 300 es
+            precision highp float;
+            uniform vec2 resolution;
+            uniform float time;
+            out vec4 fragColor;
+
+            #define PI 3.14159265
+            #define PI2 6.2831853
+
+            void main() {
+                vec2 r = resolution;
+                float t = time * 0.2; // Speed
+                vec4 o = vec4(0.0);
+                vec3 p = vec3(0.0);
+                
+                // Normalize UV to preserve aspect ratio
+                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
+                vec3 rd = normalize(vec3(uv, 1.0)); // Forward ray
+                
+                float z = 0.0;
+                float f = 0.0;
+                
+                // Raymarching Loop (Simplified from user code)
+                for(float i=0.0; i<30.0; i++) {
+                    p = z * rd;
+                    p.z -= t;
+                    f = 1.0;
+                    
+                    // Fractal folding
+                    for(int j=0; j<6; j++) {
+                        f += 1.0;
+                        // p += sin(round(p.yxz * PI2) / PI * f) / f;
+                        p += sin(floor(p.yxz * PI2 + 0.5) / PI * f) / f;
+                    }
+                    
+                    // Distance Estimate
+                    // .003 + abs(length(p.xy)-5. + dot(cos(p),sin(p).yzx))/8.
+                    float d = 0.003 + abs(length(p.xy) - 5.0 + dot(cos(p), sin(p.yzx))) / 8.0;
+                    
+                    f = d;
+                    z += f;
+                    
+                    // Color Accumulation
+                    // o += (1. + sin(i*.3 + z + t + vec4(6,1,2,0))) / f
+                    o += (1.0 + sin(i * 0.3 + z + t + vec4(6.0, 1.0, 2.0, 0.0))) / f;
+                }
+                
+                // Tone Mapping & Brightness Adjustment
+                o = tanh(o / 1000.0);
+                
+                // Low brightness request
+                o *= 0.3; 
+                
+                fragColor = vec4(o.rgb, 1.0);
+            }
+        `;
+
+        const createShader = (type: number, source: string) => {
+            const shader = gl.createShader(type);
+            if (!shader) return null;
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.warn(gl.getShaderInfoLog(shader));
+                console.error(gl.getShaderInfoLog(shader));
                 gl.deleteShader(shader);
                 return null;
             }
@@ -143,17 +269,13 @@ const WebGLHero: React.FC = () => {
         const render = () => {
             if (!canvas || !container) return;
             
-            // Handle Resize with Device Pixel Ratio for Sharpness
             const dpr = window.devicePixelRatio || 1;
-            const displayWidth = container.clientWidth;
-            const displayHeight = container.clientHeight;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
             
-            // Check if the canvas is not the same size
-            const needResize = canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr;
-            
-            if (needResize) {
-                canvas.width = displayWidth * dpr;
-                canvas.height = displayHeight * dpr;
+            if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
                 gl.viewport(0, 0, canvas.width, canvas.height);
             }
 
@@ -173,8 +295,8 @@ const WebGLHero: React.FC = () => {
     }, []);
 
     return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#050505]">
-            <canvas ref={canvasRef} className="block w-full h-full opacity-80 mix-blend-screen" />
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-black">
+            <canvas ref={canvasRef} className="block w-full h-full" />
         </div>
     );
 };
@@ -182,77 +304,213 @@ const WebGLHero: React.FC = () => {
 const INDUSTRIES = [
     {
         id: 'logistics',
-        title: "Logistics & Supply Chain",
-        desc: "Orchestrating global movement in real-time.",
+        title: "Logistics",
+        subtitle: "Global Supply Chain",
+        desc: "Operational decisions shaped by real-time movement, accumulated context, and constrained physical systems.",
         path: "our-clients/industries/logistics",
         icon: Truck,
-        color: "#06b6d4"
+        color: "#06b6d4",
+        Visualizer: LogisticsHeroVisualizer
     },
     {
         id: 'smb',
         title: "SMB Operations",
-        desc: "Enterprise-grade tools for lean teams.",
+        subtitle: "High-Velocity Strategy",
+        desc: "Rapid decision cycles and resource allocation for organizations scaling without enterprise overhead.",
         path: "our-clients/industries/smb-operations",
         icon: Briefcase,
-        color: "#8b5cf6"
+        color: "#8b5cf6",
+        Visualizer: SmallBusinessHeroVisualizer
     },
     {
         id: 'industrials',
         title: "Industrial Systems",
-        desc: "Reliability for heavy assets and manufacturing.",
+        subtitle: "Asset Reliability",
+        desc: "Stabilizing complex manufacturing operations where reliability, safety, and performance are inseparable.",
         path: "our-clients/industries/industrials",
         icon: Factory,
-        color: "#f59e0b"
+        color: "#f59e0b",
+        Visualizer: IndustrialsHeroVisualizer
     },
     {
         id: 'healthcare',
         title: "Healthcare",
-        desc: "Compliance and capacity in critical care.",
+        subtitle: "Clinical Operations",
+        desc: "Reducing operational risk, bottlenecks, and compliance overhead in regulated care environments.",
         path: "our-clients/industries/healthcare",
         icon: Activity,
-        color: "#14b8a6"
+        color: "#14b8a6",
+        Visualizer: HealthcareHeroVisualizer
     },
     {
         id: 'resources',
         title: "Natural Resources",
-        desc: "Managing physical constraints and geology.",
+        subtitle: "Physical Constraints",
+        desc: "Managing operations defined by geology, long time horizons, and irreversible extraction decisions.",
         path: "our-clients/industries/natural-resources",
         icon: Globe,
-        color: "#10b981"
+        color: "#10b981",
+        Visualizer: ResourcesHeroVisualizer
     }
 ];
 
+// --- CAROUSEL COMPONENT ---
+const IndustryCarousel: React.FC = () => {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const { navigateTo } = useNavigation();
+    const count = INDUSTRIES.length;
+
+    const next = () => setActiveIndex((prev) => (prev + 1) % count);
+    const prev = () => setActiveIndex((prev) => (prev - 1 + count) % count);
+
+    const activeItem = INDUSTRIES[activeIndex];
+
+    return (
+        <div className="relative w-full h-[700px] flex items-center justify-center overflow-hidden">
+            
+            {/* Dynamic Background */}
+            <div 
+                className="absolute inset-0 transition-all duration-1000 ease-in-out pointer-events-none"
+                style={{
+                    background: `radial-gradient(circle at 50% 50%, ${activeItem.color}20, transparent 70%)`
+                }}
+            />
+
+            {/* Cards Container */}
+            <div className="relative w-full max-w-7xl h-full mx-auto">
+                {INDUSTRIES.map((item, index) => {
+                    // Logic to position items relative to active index
+                    let offset = (index - activeIndex);
+                    // Handle wrap-around for correct visual positioning
+                    if (offset < -Math.floor(count / 2)) offset += count;
+                    if (offset > Math.floor(count / 2)) offset -= count;
+                    
+                    const isActive = offset === 0;
+                    const isVisible = Math.abs(offset) <= 2; // Only render near items
+
+                    if (!isVisible) return null;
+
+                    const zIndex = isActive ? 20 : 10 - Math.abs(offset);
+                    const opacity = isActive ? 1 : Math.max(0.3, 1 - Math.abs(offset) * 0.4);
+                    const scale = isActive ? 1 : Math.max(0.8, 1 - Math.abs(offset) * 0.15);
+                    const translateX = offset * 110; // % distance
+
+                    return (
+                        <div 
+                            key={item.id}
+                            className="absolute top-1/2 left-1/2 w-[340px] md:w-[400px] h-[500px] transition-all duration-700 cubic-bezier(0.25, 0.8, 0.25, 1) cursor-pointer"
+                            style={{
+                                transform: `translate(-50%, -50%) translateX(${translateX}%) scale(${scale})`,
+                                zIndex,
+                                opacity
+                            }}
+                            onClick={() => {
+                                if (isActive) navigateTo(item.path);
+                                else setActiveIndex(index);
+                            }}
+                        >
+                            <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] overflow-hidden shadow-2xl group border border-white/10 hover:border-white/20 transition-colors">
+                                
+                                {/* Visualizer (Only render for active/adjacent to save resources, but keep active always on) */}
+                                <div className={`absolute inset-0 transition-opacity duration-700 ${isActive ? 'opacity-100' : 'opacity-40 grayscale'}`}>
+                                    {Math.abs(offset) <= 1 && <item.Visualizer />}
+                                    <div className="absolute inset-0 bg-black/40" />
+                                </div>
+
+                                {/* Content Overlay */}
+                                <div className="absolute inset-0 p-8 flex flex-col justify-end bg-gradient-to-t from-black via-black/50 to-transparent">
+                                    <div className={`transition-all duration-500 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-80'}`}>
+                                        <div className="flex items-center gap-3 mb-4 text-[var(--card-color)]" style={{'--card-color': item.color} as any}>
+                                            <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm">
+                                                <item.icon size={20} />
+                                            </div>
+                                            <span className="text-xs font-bold uppercase tracking-widest">{item.subtitle}</span>
+                                        </div>
+                                        
+                                        <h3 className="text-3xl md:text-4xl font-serif text-white mb-4 leading-none">{item.title}</h3>
+                                        <p className="text-sm text-white/70 leading-relaxed mb-8 line-clamp-3">
+                                            {item.desc}
+                                        </p>
+                                        
+                                        <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}>
+                                            <span>Explore Sector</span>
+                                            <ArrowUpRight size={14} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Active Border Glow */}
+                                {isActive && (
+                                    <div 
+                                        className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-[var(--card-color)] opacity-50 shadow-[0_0_30px_var(--card-color)] transition-all"
+                                        style={{'--card-color': item.color} as any}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Navigation Controls */}
+            <button 
+                onClick={prev}
+                className="absolute left-4 md:left-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95"
+            >
+                <ChevronLeft size={24} />
+            </button>
+            <button 
+                onClick={next}
+                className="absolute right-4 md:right-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95"
+            >
+                <ChevronRight size={24} />
+            </button>
+
+            {/* Pagination Dots */}
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-30">
+                {INDUSTRIES.map((_, idx) => (
+                    <button 
+                        key={idx}
+                        onClick={() => setActiveIndex(idx)}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'w-8 bg-white' : 'w-2 bg-white/20 hover:bg-white/40'}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const PHILOSOPHY = [
     {
-        title: "Shared Risk",
-        desc: "We don't charge for shelfware. Our contracts are structured around outcomes—we only succeed when your operational metrics improve.",
+        title: "Aligned Incentives",
+        desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.",
         icon: Handshake,
         color: "#10b981"
     },
     {
-        title: "Deep Embedding",
-        desc: "We deploy forward-engineers into your environment. We learn your acronyms, your bottlenecks, and your culture before writing code.",
+        title: "Embedded Engineering",
+        desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.",
         icon: Users,
         color: "#3b82f6"
     },
     {
-        title: "Sovereignty First",
-        desc: "Your data remains yours. Our architecture ensures intelligence models are trained on your data but owned by you, never shared.",
+        title: "Data Sovereignty",
+        desc: "Your data remains your asset. Our architecture ensures that models are trained on your context but deployed within your secure perimeter.",
         icon: ShieldCheck,
         color: "#8b5cf6"
     },
     {
-        title: "Long Horizons",
-        desc: "Industrial transformation takes time. We build systems designed to last decades, not just until the next funding cycle.",
+        title: "Long-Term Reliability",
+        desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.",
         icon: Target,
         color: "#f59e0b"
     }
 ];
 
 const IMPACT_METRICS = [
-    { label: "Assets Monitored", value: "$42B+", icon: Database },
-    { label: "Uptime Protected", value: "99.99%", icon: Activity },
-    { label: "Decisions Automated", value: "1.2M/day", icon: Cpu },
+    { label: "Assets Optimized", value: "$42B+", icon: Database },
+    { label: "Uptime Maintained", value: "99.9%", icon: Activity },
+    { label: "Decisions Supported", value: "1.2M/day", icon: Cpu },
     { label: "Security Incidents", value: "0", icon: ShieldCheck },
 ];
 
@@ -261,25 +519,6 @@ const PARTNER_CODES = [
     "RIO_MINING_AUTO", "FEDEX_SORT_OPT", "TESLA_MFG_FLOW",
     "SHELL_ASSET_INT", "PFIZER_COMP_TRK", "JP_MORGAN_RISK"
 ];
-
-const PhilosophyCard: React.FC<{ item: typeof PHILOSOPHY[0] }> = ({ item }) => (
-    <div className="relative group p-8 rounded-3xl bg-[#0c0c0e] border border-white/5 hover:border-white/10 transition-all duration-500 overflow-hidden hover:-translate-y-2">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div 
-            className="absolute -right-12 -top-12 w-40 h-40 bg-[var(--card-color)] blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 rounded-full"
-            style={{ '--card-color': item.color } as React.CSSProperties}
-        />
-        <div className="relative z-10">
-            <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white/50 group-hover:text-white group-hover:scale-110 transition-all duration-300 mb-6 border border-white/5 group-hover:bg-[var(--card-color)] group-hover:border-transparent shadow-lg" style={{ '--card-color': item.color } as React.CSSProperties}>
-                <item.icon size={24} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-4 group-hover:text-[var(--card-color)] transition-colors" style={{ '--card-color': item.color } as React.CSSProperties}>{item.title}</h3>
-            <p className="text-sm text-white/50 leading-relaxed font-light border-l border-white/10 pl-4 group-hover:border-[var(--card-color)] transition-colors" style={{ '--card-color': item.color } as React.CSSProperties}>
-                {item.desc}
-            </p>
-        </div>
-    </div>
-);
 
 const MarqueeRow: React.FC = () => (
     <div className="w-full overflow-hidden bg-[#08080a] border-y border-white/5 py-6 flex relative">
@@ -298,7 +537,6 @@ const MarqueeRow: React.FC = () => (
 
 export const OurClientsPage: React.FC = () => {
     const { navigateTo } = useNavigation();
-    const [hoveredIndustry, setHoveredIndustry] = useState<string | null>(null);
 
     return (
         <div className="relative min-h-screen bg-[#020202] text-white pt-24 font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
@@ -315,7 +553,6 @@ export const OurClientsPage: React.FC = () => {
             </style>
 
             {/* --- HERO SECTION --- */}
-            {/* Height locked to screen to prevent stretching, using relative positioning */}
             <div className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 
                 {/* WEBGL ENGINE */}
@@ -340,7 +577,7 @@ export const OurClientsPage: React.FC = () => {
                     </h1>
                     
                     <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
-                        We don't sell software. We deploy infrastructure for the world's most critical industries.
+                        We deploy critical infrastructure for the world's most demanding industries.
                     </p>
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
@@ -382,28 +619,63 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </section>
 
-            <section id="manifesto" className="py-32 bg-[#020202] relative">
-                <div className="absolute top-0 right-0 p-64 bg-[#69B7B2]/5 blur-[120px] rounded-full pointer-events-none" />
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="text-center mb-24">
-                        <div className="inline-block border-b border-white/20 pb-2 mb-6">
-                            <span className="text-xs font-mono uppercase tracking-widest text-white/60">The Anti-Vendor Model</span>
-                        </div>
-                        <h2 className="text-4xl md:text-6xl font-serif text-white max-w-4xl mx-auto leading-tight">
-                            We operate as a strategic extension of your team.
-                        </h2>
-                    </div>
+            {/* --- MANIFESTO SECTION (REDESIGNED) --- */}
+            <section id="manifesto" className="relative py-32 bg-black overflow-hidden border-b border-white/10">
+                
+                {/* Background Shader */}
+                <div className="absolute inset-0 z-0">
+                    <PartnershipShader />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+                    <div className="absolute inset-0 bg-black/40" /> {/* Extra dimming for text readability */}
+                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {PHILOSOPHY.map((item, i) => (
-                            <PhilosophyCard key={i} item={item} />
-                        ))}
+                <div className="relative z-10 max-w-7xl mx-auto px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+                        
+                        {/* Left: Sticky Header */}
+                        <div className="lg:sticky lg:top-32">
+                            <div className="inline-block border-b border-white/20 pb-2 mb-6">
+                                <span className="text-xs font-mono uppercase tracking-widest text-white/60">The Partnership Model</span>
+                            </div>
+                            <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight mb-8">
+                                We operate as a strategic extension of your team.
+                            </h2>
+                            <p className="text-xl text-white/60 font-light leading-relaxed max-w-lg">
+                                Traditional vendor relationships are transactional. We build operational capabilities that become a permanent part of your infrastructure.
+                            </p>
+                        </div>
+
+                        {/* Right: Philosophy List */}
+                        <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10 bg-black/20 backdrop-blur-sm rounded-xl">
+                            {PHILOSOPHY.map((item, i) => (
+                                <div key={i} className="group py-8 px-6 hover:bg-white/5 transition-all duration-300">
+                                    <div className="flex items-start gap-6">
+                                        <div 
+                                            className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/40 group-hover:text-white group-hover:scale-110 transition-all duration-300 flex-shrink-0"
+                                            style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                                        >
+                                            <item.icon size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[var(--hover-color)] transition-colors" style={{ '--hover-color': item.color } as React.CSSProperties}>
+                                                {item.title}
+                                            </h3>
+                                            <p className="text-white/50 text-base leading-relaxed font-light group-hover:text-white/80 transition-colors">
+                                                {item.desc}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                     </div>
                 </div>
             </section>
 
-            <section className="py-32 bg-[#08080a] border-t border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
+            {/* --- INDUSTRY CAROUSEL SECTION --- */}
+            <section className="py-32 bg-[#08080a] border-t border-white/5 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
                         <div>
                             <div className="text-[#69B7B2] font-mono text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -419,57 +691,8 @@ export const OurClientsPage: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {INDUSTRIES.map((ind) => (
-                            <div 
-                                key={ind.id}
-                                onClick={() => navigateTo(ind.path)}
-                                onMouseEnter={() => setHoveredIndustry(ind.id)}
-                                onMouseLeave={() => setHoveredIndustry(null)}
-                                className="group relative h-96 bg-[#0c0c0e] border border-white/10 rounded-3xl overflow-hidden cursor-pointer hover:border-white/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col"
-                            >
-                                <div 
-                                    className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none mix-blend-screen"
-                                    style={{ background: `radial-gradient(circle at top left, ${ind.color}, transparent 70%)` }} 
-                                />
-                                <div className="absolute inset-x-0 h-px bg-white/20 top-0 opacity-0 group-hover:opacity-100 group-hover:animate-scan transition-opacity pointer-events-none blur-[1px]" />
-                                
-                                <div className="relative z-10 p-10 h-full flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
-                                        <div 
-                                            className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-xl backdrop-blur-sm"
-                                            style={{ 
-                                                backgroundColor: hoveredIndustry === ind.id ? `${ind.color}10` : undefined,
-                                                borderColor: hoveredIndustry === ind.id ? `${ind.color}40` : undefined,
-                                                color: hoveredIndustry === ind.id ? ind.color : undefined 
-                                            }}
-                                        >
-                                            <ind.icon size={32} strokeWidth={1.5} />
-                                        </div>
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 transform translate-x-4 group-hover:translate-x-0">
-                                            <div className="p-2 rounded-full border border-white/10 bg-white/5 text-white">
-                                                <ArrowUpRight size={16} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
-                                            <ScanLine size={12} className="text-white/40" />
-                                            <span className="text-[9px] font-mono uppercase tracking-widest text-white/40">Secure Access</span>
-                                        </div>
-                                        <h3 className="text-2xl font-serif text-white mb-3 group-hover:text-white transition-colors">
-                                            {ind.title}
-                                        </h3>
-                                        <div className="h-0.5 w-8 bg-white/10 mb-4 group-hover:w-full transition-all duration-700" style={{ backgroundColor: hoveredIndustry === ind.id ? ind.color : undefined }} />
-                                        <p className="text-sm text-white/50 leading-relaxed font-light group-hover:text-white/70 transition-colors">
-                                            {ind.desc}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    {/* NEW CAROUSEL */}
+                    <IndustryCarousel />
                 </div>
             </section>
 

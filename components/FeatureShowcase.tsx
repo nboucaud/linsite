@@ -109,11 +109,6 @@ const WindowHeader = ({ title, stageId }: { title: string, stageId: string }) =>
                 <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50 group-hover:brightness-110 transition-all cursor-pointer" />
                 <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/50 group-hover:brightness-110 transition-all cursor-pointer" />
             </div>
-            <div className="h-4 w-px bg-white/10 mx-2" />
-            <div className="flex items-center gap-2 text-[10px] font-mono text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/5 shadow-inner">
-                <Lock size={10} />
-                <span>infogito://{stageId}</span>
-            </div>
         </div>
         <div className="hidden md:flex items-center gap-4 text-[10px] font-mono uppercase tracking-widest text-white/30">
             <div className="flex items-center gap-3">
@@ -771,10 +766,6 @@ export const FeatureShowcase: React.FC = () => {
                 {/* Header */}
                 <div className="mb-16 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
-                        <div className="flex items-center gap-3 text-[#69B7B2] mb-4">
-                            <Bot size={20} />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] font-mono">Agentic Workflow</span>
-                        </div>
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
                             Agents designed to think like <span className="text-white/40">you do.</span>
                         </h2>
