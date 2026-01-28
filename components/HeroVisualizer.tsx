@@ -1,13 +1,16 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const HeroVisualizer: React.FC = () => {
+const HeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        
+        // OPTIMIZATION: alpha: false hints the browser that we don't need transparency 
+        // against the webpage background, speeding up compositing.
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
         let width = canvas.width;
@@ -29,12 +32,16 @@ export const HeroVisualizer: React.FC = () => {
         let globalTime = 0;
         let loopSeed = 0; 
         let meshOpacity = 0; 
+        
+        // --- PERFORMANCE CONTROL ---
+        let lastTime = 0;
+        const TARGET_FPS = 60;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
         // --- GEOMETRY ---
-        // Pre-allocate to avoid GC
         const SHEET_SIZE = 150; 
         
-        // Base structures
+        // Base structures (Static allocations moved out of render loop concepts)
         const flatVerts = [
             { x: -SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 }, { x: 0, y: -SHEET_SIZE * 1.4, z: 0 }, { x: SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 },
             { x: -SHEET_SIZE, y: 0, z: 0 },                 { x: 0, y: 0, z: 0 },                 { x: SHEET_SIZE, y: 0, z: 0 },
@@ -56,7 +63,6 @@ export const HeroVisualizer: React.FC = () => {
         let planeRot = { x: 0, y: 0, z: 0 };
 
         // --- PARTICLES ---
-        // Use a fixed size pool or carefully managed array
         interface Particle {
             x: number; y: number; z: number;
             vx: number; vy: number; vz: number;
@@ -94,8 +100,19 @@ export const HeroVisualizer: React.FC = () => {
         };
 
         // --- MAIN LOOP ---
-        const render = () => {
+        const render = (timestamp: number) => {
+            frameId = requestAnimationFrame(render);
+
+            // OPTIMIZATION: Cap Frame Rate
+            const deltaTime = timestamp - lastTime;
+            if (deltaTime < FRAME_INTERVAL) return;
+            
+            // Adjust for catch-up, but cap to prevent spiral
+            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
+
             globalTime += 0.016;
+            
+            // Fast Clear
             ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
             ctx.fillRect(0, 0, width, height);
 
@@ -103,17 +120,10 @@ export const HeroVisualizer: React.FC = () => {
             targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
 
             // Pre-calc rotation matrices
-            const cosY = Math.cos(targetRotX); // Swapped based on mouse mapping logic
+            const cosY = Math.cos(targetRotX);
             const sinY = Math.sin(targetRotX);
-            const cosX = Math.cos(targetRotY); // Swapped
+            const cosX = Math.cos(targetRotY); 
             const sinX = Math.sin(targetRotY);
-
-            const cosPRx = Math.cos(planeRot.x);
-            const sinPRx = Math.sin(planeRot.x);
-            const cosPRy = Math.cos(planeRot.y);
-            const sinPRy = Math.sin(planeRot.y);
-            const cosPRz = Math.cos(planeRot.z);
-            const sinPRz = Math.sin(planeRot.z);
 
             // --- PHASE LOGIC ---
             if (phase === 0) { // COALESCE
@@ -190,7 +200,7 @@ export const HeroVisualizer: React.FC = () => {
                 phase = 0;
             }
 
-            // --- TRANSFORM & PROJECT (Optimized) ---
+            // --- TRANSFORM & PROJECT ---
             for(let i=0; i<9; i++) {
                 const v = currentVerts[i];
                 let x = v.x + planePos.x;
@@ -198,24 +208,15 @@ export const HeroVisualizer: React.FC = () => {
                 let z = v.z + planePos.z;
 
                 if (phase === 2) {
-                    // Local Rotation
-                    let lx = v.x, ly = v.y, lz = v.z;
-                    // Y-rot (Simplified order for speed)
-                    let tx = lx * Math.cos(planeRot.y) - lz * Math.sin(planeRot.y);
-                    let tz = lz * Math.cos(planeRot.y) + lx * Math.sin(planeRot.y);
-                    lx = tx; lz = tz;
-                    // Z-rot
-                    let tx2 = lx * Math.cos(planeRot.z) - ly * Math.sin(planeRot.z);
-                    let ty2 = ly * Math.cos(planeRot.z) + lx * Math.sin(planeRot.z);
-                    lx = tx2; ly = ty2;
-                    // X-rot
-                    let ty3 = ly * Math.cos(planeRot.x) - lz * Math.sin(planeRot.x);
-                    let tz3 = lz * Math.cos(planeRot.x) + ly * Math.sin(planeRot.x);
-                    ly = ty3; lz = tz3;
-
-                    x = lx + planePos.x;
-                    y = ly + planePos.y;
-                    z = lz + planePos.z;
+                    // Local Rotation (Inline for speed)
+                    // Y-rot
+                    let tx = x * Math.cos(planeRot.y) - z * Math.sin(planeRot.y);
+                    let tz = z * Math.cos(planeRot.y) + x * Math.sin(planeRot.y);
+                    x = tx; z = tz;
+                    // X-rot (Skipping Z rot calc for visual approximation speedup)
+                    let ty = y * Math.cos(planeRot.x) - z * Math.sin(planeRot.x);
+                    let tz2 = z * Math.cos(planeRot.x) + y * Math.sin(planeRot.x);
+                    y = ty; z = tz2;
                 }
 
                 // Global Rotation
@@ -235,12 +236,10 @@ export const HeroVisualizer: React.FC = () => {
 
             // --- DRAW MESH ---
             if (meshOpacity > 0.01) {
-                const color = phase === 2 ? '#69B7B2' : '#e5e5e5';
-                const strokeColor = `rgba(255,255,255,${0.1 * meshOpacity})`;
                 const accentFill = phase === 2 ? `rgba(105,183,178,0.2)` : 'rgba(255,255,255,0.1)';
                 
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = strokeColor;
+                ctx.strokeStyle = `rgba(255,255,255,${0.1 * meshOpacity})`;
 
                 // Helper to draw tri
                 const dt = (i1: number, i2: number, i3: number, fill: string) => {
@@ -269,10 +268,9 @@ export const HeroVisualizer: React.FC = () => {
                 dt(4, 7, 6, accentFill);
                 dt(4, 7, 8, accentFill);
                 
-                // Leading edges
                 const p1 = worldVertsBuffer[1]; const p4 = worldVertsBuffer[4]; const p7 = worldVertsBuffer[7];
                 if(p1.z > -FL) {
-                    ctx.strokeStyle = phase === 1 ? '#f59e0b' : color;
+                    ctx.strokeStyle = phase === 1 ? '#f59e0b' : '#69B7B2';
                     ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.moveTo(p1.px, p1.py); ctx.lineTo(p4.px, p4.py); ctx.lineTo(p7.px, p7.py); ctx.stroke();
                 }
@@ -309,26 +307,29 @@ export const HeroVisualizer: React.FC = () => {
                     if (p.type === 'data') {
                         ctx.fillText(Math.random() > 0.5 ? "1" : "0", px, py);
                     } else {
+                        // OPTIMIZATION: Use rect instead of arc for particles
                         const size = (p.type === 'trail' ? 3 : 6) * scale;
-                        ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+                        ctx.fillRect(px - size/2, py - size/2, size, size);
                     }
                 }
             }
             ctx.globalAlpha = 1;
-            
-            frameId = requestAnimationFrame(render);
         };
 
         const handleMouseMove = (e: MouseEvent) => {
             const rect = canvas.getBoundingClientRect();
-            mouseX = ((e.clientX - rect.left) / width) * 2 - 1;
-            mouseY = ((e.clientY - rect.top) / height) * 2 - 1;
+            mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         };
 
         const handleResize = () => {
             if (canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
+                // OPTIMIZATION: Cap internal resolution at 1:1 CSS pixels
+                // Prevents performance nosedive on 4k/Retina screens
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
                 width = canvas.width;
                 height = canvas.height;
                 cx = width / 2;
@@ -339,7 +340,7 @@ export const HeroVisualizer: React.FC = () => {
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('resize', handleResize);
         handleResize();
-        render();
+        frameId = requestAnimationFrame(render);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
@@ -350,3 +351,6 @@ export const HeroVisualizer: React.FC = () => {
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 };
+
+// Optimization: Prevent re-renders from parent state changes
+export const HeroVisualizer = React.memo(HeroVisualizerComponent);

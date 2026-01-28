@@ -1,26 +1,33 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const LogisticsHeroVisualizer: React.FC = () => {
+const LogisticsHeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        
+        // OPTIMIZATION: alpha: false for faster compositing
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        let w = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
-        let h = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
+        let w = canvas.width;
+        let h = canvas.height;
         let frame = 0;
         let frameId: number;
+        
+        // --- PERFORMANCE CONTROL ---
+        let lastTime = 0;
+        const TARGET_FPS = 60;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
         
         const PHASE_DURATION = 900; 
         
         // --- 1. INDUCTION (Packages) ---
         interface PackageBox { x: number, y: number, w: number, h: number, speed: number, type: 'standard' | 'priority' | 'hazardous' }
         const packages: PackageBox[] = [];
-        for(let i=0; i<100; i++) {
+        for(let i=0; i<80; i++) { // Reduced count slightly
             packages.push({
                 x: Math.random() * w * 1.5,
                 y: Math.random() * h,
@@ -34,7 +41,7 @@ export const LogisticsHeroVisualizer: React.FC = () => {
         // --- 2. NETWORK (Globe) ---
         interface GlobePoint { x: number, y: number, z: number, r: number }
         const globePoints: GlobePoint[] = [];
-        const count = 600;
+        const count = 500; // Reduced count
         const r = 250;
         const phi = Math.PI * (3 - Math.sqrt(5));
         for(let i=0; i<count; i++) {
@@ -58,11 +65,17 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             });
         }
 
-        const render = () => {
+        const render = (timestamp: number) => {
+            frameId = requestAnimationFrame(render);
+
+            // OPTIMIZATION: Cap Frame Rate
+            const deltaTime = timestamp - lastTime;
+            if (deltaTime < FRAME_INTERVAL) return;
+            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
+
             frame++;
             const cycle = frame % (PHASE_DURATION * 3);
             let activePhase = 0;
-            let opacity = 1;
             
             if (cycle < PHASE_DURATION) activePhase = 0;
             else if (cycle < PHASE_DURATION * 2) activePhase = 1;
@@ -73,58 +86,72 @@ export const LogisticsHeroVisualizer: React.FC = () => {
 
             if (activePhase === 0) {
                 // Induction Draw
-                packages.forEach(p => {
+                for(let i=0; i<packages.length; i++) {
+                    const p = packages[i];
                     p.x -= p.speed;
                     if (p.x < -100) { p.x = w + Math.random() * 200; p.y = Math.random() * h; }
+                    
                     const color = p.type === 'hazardous' ? '#ef4444' : p.type === 'priority' ? '#f59e0b' : '#06b6d4';
                     ctx.fillStyle = color;
                     ctx.fillRect(p.x, p.y, p.w, p.h);
+                    
                     // 3D Side
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
                     ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+10, p.y-10); ctx.lineTo(p.x+p.w+10, p.y-10); ctx.lineTo(p.x+p.w, p.y); ctx.fill();
-                });
+                }
             } else if (activePhase === 1) {
                 // Globe Draw
-                ctx.save();
-                ctx.translate(w * 0.75, h * 0.5);
                 const time = frame * 0.005;
-                globePoints.forEach(p => {
-                    let x = p.x * Math.cos(time) - p.z * Math.sin(time);
-                    let z = p.z * Math.cos(time) + p.x * Math.sin(time);
+                const cx = w * 0.75;
+                const cy = h * 0.5;
+                const cosT = Math.cos(time);
+                const sinT = Math.sin(time);
+
+                for(let i=0; i<globePoints.length; i++) {
+                    const p = globePoints[i];
+                    let x = p.x * cosT - p.z * sinT;
+                    let z = p.z * cosT + p.x * sinT;
                     const scale = 500 / (500 + z);
+                    
                     if (z > -200) {
                         ctx.fillStyle = p.r > 2 ? '#f59e0b' : '#06b6d4';
-                        ctx.beginPath(); ctx.arc(x * scale, p.y * scale, p.r * scale, 0, Math.PI*2); ctx.fill();
+                        // OPTIMIZATION: Rects instead of arcs
+                        const s = p.r * scale;
+                        ctx.fillRect(cx + x * scale, cy + p.y * scale, s, s);
                     }
-                });
-                ctx.restore();
+                }
             } else {
                 // Sortation Draw
-                ctx.save();
-                ctx.translate(w * 0.75, h * 0.5);
-                sortParticles.forEach(p => {
+                const cx = w * 0.75;
+                const cy = h * 0.5;
+                for(let i=0; i<sortParticles.length; i++) {
+                    const p = sortParticles[i];
                     p.r += p.speed;
                     p.angle += 0.05;
                     if (p.r > 300) { p.r = 60; p.angle = Math.random() * Math.PI * 2; }
-                    const px = Math.cos(p.angle) * p.r;
-                    const py = Math.sin(p.angle) * p.r;
+                    
+                    const px = cx + Math.cos(p.angle) * p.r;
+                    const py = cy + Math.sin(p.angle) * p.r;
+                    
                     ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2); ctx.fill();
-                });
-                ctx.restore();
+                    // OPTIMIZATION: Rects
+                    ctx.fillRect(px, py, 3, 3);
+                }
             }
-
-            frameId = requestAnimationFrame(render);
         };
 
         const handleResize = () => {
             if (canvas.parentElement) {
-                w = canvas.width = canvas.parentElement.clientWidth;
-                h = canvas.height = canvas.parentElement.clientHeight;
+                // OPTIMIZATION: 1:1 Pixel Ratio
+                const rect = canvas.parentElement.getBoundingClientRect();
+                w = canvas.width = rect.width;
+                h = canvas.height = rect.height;
             }
         };
+        
         window.addEventListener('resize', handleResize);
-        render();
+        handleResize();
+        frameId = requestAnimationFrame(render);
 
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -134,3 +161,5 @@ export const LogisticsHeroVisualizer: React.FC = () => {
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 };
+
+export const LogisticsHeroVisualizer = React.memo(LogisticsHeroVisualizerComponent);

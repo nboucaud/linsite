@@ -1,29 +1,39 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const HealthcareHeroVisualizer: React.FC = () => {
+const HealthcareHeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        let width = canvas.width = canvas.parentElement?.clientWidth || 800;
-        let height = canvas.height = canvas.parentElement?.clientHeight || 600;
+        let width = canvas.width;
+        let height = canvas.height;
         let time = 0;
         let frameId: number;
+
+        // --- PERFORMANCE CONTROL ---
+        let lastTime = 0;
+        const TARGET_FPS = 60;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
         const BASE_PAIRS = 30;
         const ROTATION_SPEED = 0.015;
 
-        const render = () => {
+        const render = (timestamp: number) => {
+            frameId = requestAnimationFrame(render);
+
+            const deltaTime = timestamp - lastTime;
+            if (deltaTime < FRAME_INTERVAL) return;
+            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
+
             time += 1;
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, width, height);
 
-            const cx = width / 2;
             const cy = height / 2;
             const amplitude = 80;
             const spacing = width / (BASE_PAIRS - 2);
@@ -37,8 +47,11 @@ export const HealthcareHeroVisualizer: React.FC = () => {
                 const isScanned = distToScan < 80;
                 const scanIntensity = Math.max(0, 1 - distToScan / 80);
 
-                const y1 = cy + Math.sin(angle) * amplitude;
-                const z1 = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                const cosA = Math.cos(angle);
+                
+                const y1 = cy + sinA * amplitude;
+                const z1 = cosA;
                 const y2 = cy + Math.sin(angle + Math.PI) * amplitude;
                 const z2 = Math.cos(angle + Math.PI);
 
@@ -49,27 +62,29 @@ export const HealthcareHeroVisualizer: React.FC = () => {
                     ctx.beginPath(); ctx.moveTo(xBase, y1); ctx.lineTo(xBase, y2); ctx.stroke();
                 }
 
-                const scale1 = 1 + z1 * 0.3;
-                ctx.beginPath(); ctx.arc(xBase, y1, 4 * scale1, 0, Math.PI*2); 
+                // OPTIMIZATION: Rects instead of arcs
+                const scale1 = 2 + z1 * 1.5;
+                const scale2 = 2 + z2 * 1.5;
+                
                 ctx.fillStyle = isScanned ? `rgba(255, 255, 255, ${scanIntensity})` : `rgba(45, 212, 191, ${0.2 + (z1+1)*0.3})`;
-                ctx.fill();
+                ctx.fillRect(xBase - scale1, y1 - scale1, scale1 * 2, scale1 * 2);
 
-                const scale2 = 1 + z2 * 0.3;
-                ctx.beginPath(); ctx.arc(xBase, y2, 4 * scale2, 0, Math.PI*2);
-                ctx.fill();
+                ctx.fillStyle = isScanned ? `rgba(255, 255, 255, ${scanIntensity})` : `rgba(45, 212, 191, ${0.2 + (z2+1)*0.3})`;
+                ctx.fillRect(xBase - scale2, y2 - scale2, scale2 * 2, scale2 * 2);
             }
-
-            frameId = requestAnimationFrame(render);
         };
 
         const handleResize = () => {
             if (canvas.parentElement) {
-                width = canvas.width = canvas.parentElement.clientWidth;
-                height = canvas.height = canvas.parentElement.clientHeight;
+                const rect = canvas.parentElement.getBoundingClientRect();
+                width = canvas.width = rect.width;
+                height = canvas.height = rect.height;
             }
         };
+        
         window.addEventListener('resize', handleResize);
-        render();
+        handleResize();
+        frameId = requestAnimationFrame(render);
 
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -79,3 +94,5 @@ export const HealthcareHeroVisualizer: React.FC = () => {
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 };
+
+export const HealthcareHeroVisualizer = React.memo(HealthcareHeroVisualizerComponent);

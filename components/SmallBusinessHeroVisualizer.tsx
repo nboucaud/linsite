@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const SmallBusinessHeroVisualizer: React.FC = () => {
+const SmallBusinessHeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -10,8 +10,7 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         const container = containerRef.current;
         if (!canvas || !container) return;
 
-        // Use WebGL 2 for tanh support and better performance
-        const gl = canvas.getContext('webgl2');
+        const gl = canvas.getContext('webgl2', { alpha: false });
         if (!gl) {
             console.error("WebGL2 not supported");
             return;
@@ -24,7 +23,6 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
             }
         `;
 
-        // Transpiled "Code Golf" Shader
         const fsSource = `#version 300 es
             precision highp float;
             uniform vec2 resolution;
@@ -33,29 +31,23 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
 
             void main() {
                 vec2 r = resolution;
-                float t = time * 0.3; // Tuned speed
+                float t = time * 0.3; 
                 
-                vec3 x = vec3(9.0, 0.0, 0.0); // x.x+=9.
+                vec3 x = vec3(9.0, 0.0, 0.0);
                 vec3 c = vec3(0.0);
                 vec3 p = vec3(0.0);
                 vec4 o = vec4(0.0);
                 float z = 0.0;
                 
                 // UV Setup with Pan & Zoom
-                // Normalize coordinates (-1 to 1 based on height)
                 vec2 uv = (gl_FragCoord.xy * 2.0 - r.xy) / r.y;
-                
-                // ADJUSTMENT: Right Justify (Shift camera left by subtracting X)
                 uv.x -= 0.9; 
-                
-                // ADJUSTMENT: Zoom In (Scale UVs down)
                 uv *= 0.65;
 
-                // Ray Direction
                 vec3 rd = normalize(vec3(uv, -1.0));
                 
-                // Raymarching Loop (i++ < 5e1)
-                for(float i=0.0; i<50.0; i+=1.0) {
+                // Reduced Raymarching Loop for performance (50 -> 30)
+                for(float i=0.0; i<30.0; i+=1.0) {
                     
                     p = z * rd;
                     c = p;
@@ -63,31 +55,20 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
                     float f = 0.3;
                     p.y *= f;
                     
-                    // Fractal Distortion Loop (f++ < 5.)
-                    for(int j=0; j<5; j++) {
+                    // Reduced Fractal Loop (5 -> 4)
+                    for(int j=0; j<4; j++) {
                         f += 1.0;
                         p += cos(p.yzx * f + i + z + x * t) / f;
                     }
                     
-                    // Accumulation & Update
                     p = mix(c, p, 0.3);
-                    
-                    // Distance Estimate
-                    // .2*(abs(p.z+p.x+16.+tanh(p.y)/.1)+sin(p.x-p.z+t+t)+1.)
                     float d = 0.2 * (abs(p.z + p.x + 16.0 + tanh(p.y)/0.1) + sin(p.x - p.z + t*2.0) + 1.0);
-                    
                     f = d; 
                     z += f;
-                    
-                    // Color Accumulation
-                    // o+=(cos(p.x*.2+f+vec4(6,1,2,0))+2.)/f/z
                     o += (cos(p.x * 0.2 + f + vec4(6,1,2,0)) + 2.0) / f / z;
                 }
                 
-                // Tone Mapping
                 o = tanh(o / 30.0);
-                
-                // Output
                 fragColor = vec4(o.rgb, 1.0);
             }
         `;
@@ -97,11 +78,6 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
             if (!shader) return null;
             gl.shaderSource(shader, source);
             gl.compileShader(shader);
-            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.warn(gl.getShaderInfoLog(shader));
-                gl.deleteShader(shader);
-                return null;
-            }
             return shader;
         };
 
@@ -129,11 +105,21 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
 
         let startTime = Date.now();
         let frameId: number;
+        let lastTime = 0;
+        const TARGET_FPS = 60;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
-        const render = () => {
+        const render = (timestamp: number) => {
+            frameId = requestAnimationFrame(render);
+
+            const deltaTime = timestamp - lastTime;
+            if (deltaTime < FRAME_INTERVAL) return;
+            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
+
             if (!canvas || !container) return;
             
-            const dpr = window.devicePixelRatio || 1;
+            // OPTIMIZATION: Force 1:1 pixel ratio regardless of device density
+            const dpr = 1; 
             const w = container.clientWidth;
             const h = container.clientHeight;
             
@@ -147,10 +133,9 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
             gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
         };
 
-        render();
+        frameId = requestAnimationFrame(render);
 
         return () => {
             cancelAnimationFrame(frameId);
@@ -164,3 +149,5 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         </div>
     );
 };
+
+export const SmallBusinessHeroVisualizer = React.memo(SmallBusinessHeroVisualizerComponent);
