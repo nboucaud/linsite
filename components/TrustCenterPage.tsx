@@ -13,180 +13,168 @@ import {
 import { NeuralBackground } from './NeuralBackground';
 
 // --- VISUALIZER ENGINE: ABSTRACT SECURITY ---
-// Clean, professional, geometric visualizations
+// Persistent particle system that morphs between security states
 const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({ mode, color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const particlesRef = useRef<any[]>([]);
+    const reqRef = useRef<number>(null);
+
+    // Initialize particles once
+    useEffect(() => {
+        // Create 150 particles
+        if (particlesRef.current.length === 0) {
+            for(let i=0; i<150; i++) {
+                particlesRef.current.push({
+                    x: Math.random() * 800,
+                    y: Math.random() * 600,
+                    tx: Math.random() * 800, // Target X
+                    ty: Math.random() * 600, // Target Y
+                    r: Math.random() * 2 + 1
+                });
+            }
+        }
+    }, []);
+
+    // Update Targets based on Mode
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const w = canvas?.width || 800;
+        const h = canvas?.height || 500;
+        const particles = particlesRef.current;
+        const cx = w/2; 
+        const cy = h/2;
+
+        if (mode === 'isolation') {
+            // Two separate clusters (Silo)
+            particles.forEach((p, i) => {
+                const cluster = i % 2;
+                const center = cluster === 0 ? {x: w*0.25, y: h*0.5} : {x: w*0.75, y: h*0.5};
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 80;
+                p.tx = center.x + Math.cos(angle) * dist;
+                p.ty = center.y + Math.sin(angle) * dist;
+            });
+        } else if (mode === 'encryption') {
+            // Grid Matrix (Logic Protection)
+            const cols = 15;
+            const rows = 10;
+            const spacingX = w / cols;
+            const spacingY = h / rows;
+            particles.forEach((p, i) => {
+                const col = i % cols;
+                const row = Math.floor(i / cols) % rows;
+                // Add some jitter so it's not too rigid
+                p.tx = col * spacingX + spacingX/2 + (Math.random()-0.5)*10;
+                p.ty = row * spacingY + spacingY/2 + (Math.random()-0.5)*10;
+            });
+        } else if (mode === 'redaction') {
+            // Text lines with gaps (Airlock)
+            const lines = 8;
+            const lineHeight = h / (lines + 4);
+            particles.forEach((p, i) => {
+                const line = i % lines;
+                let tx = Math.random() * (w * 0.8) + (w * 0.1);
+                // Create a "redacted" gap in middle
+                if (tx > w*0.4 && tx < w*0.6) {
+                    tx = tx < w*0.5 ? w*0.38 : w*0.62;
+                }
+                p.tx = tx;
+                p.ty = (line + 2) * lineHeight;
+            });
+        } else if (mode === 'audit') {
+            // Bar graph (Traceability)
+            const bars = 20;
+            const barW = w / (bars + 4);
+            const startX = barW * 2;
+            particles.forEach((p, i) => {
+                const bar = i % bars;
+                const barH = Math.abs(Math.sin(bar * 132.1)) * h * 0.6;
+                p.tx = startX + bar * barW + (Math.random() * barW * 0.5);
+                p.ty = h - 50 - (Math.random() * barH);
+            });
+        } else {
+            // Human/Default - Orbiting Network
+            particles.forEach((p, i) => {
+                const angle = (i / particles.length) * Math.PI * 4;
+                const dist = 60 + Math.random() * 180;
+                p.tx = cx + Math.cos(angle) * dist;
+                p.ty = cy + Math.sin(angle) * dist;
+            });
+        }
+    }, [mode]);
+
+    // Animation Loop
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        
-        let w = canvas.width = canvas.parentElement?.clientWidth || 800;
-        let h = canvas.height = canvas.parentElement?.clientHeight || 500;
-        let time = 0;
-        let frameId: number;
-        
-        // Entities
-        const nodes: {x: number, y: number, vx: number, vy: number}[] = [];
-        for(let i=0; i<40; i++) nodes.push({ x: Math.random()*w, y: Math.random()*h, vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5 });
 
         const render = () => {
-            time += 0.01;
-            ctx.clearRect(0,0,w,h);
+            // Resize handling inside loop to stay responsive without flicker
+            const rect = canvas.parentElement?.getBoundingClientRect();
+            if (rect && (canvas.width !== rect.width || canvas.height !== rect.height)) {
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const cx = w/2; 
-            const cy = h/2;
+            // Draw
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            
+            particlesRef.current.forEach(p => {
+                // Lerp towards target position
+                p.x += (p.tx - p.x) * 0.08;
+                p.y += (p.ty - p.y) * 0.08;
+                
+                // Draw Particle
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath(); 
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); 
+                ctx.fill();
+            });
 
-            if (mode === 'isolation') {
-                // Two distinct clusters
-                const center1 = { x: w * 0.3, y: h * 0.5 };
-                const center2 = { x: w * 0.7, y: h * 0.5 };
+            // Draw Connections (Web Effect)
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            
+            const parts = particlesRef.current;
+            // Connect close neighbors
+            for(let i=0; i<parts.length; i+=2) {
+                // Connect to a few nearby particles in the array (spatial hashing is overkill here)
+                const p1 = parts[i];
+                const p2 = parts[(i+1) % parts.length]; // Array neighbor
+                const p3 = parts[(i+5) % parts.length]; // Distant array neighbor
                 
-                nodes.forEach((n, i) => {
-                    const target = i % 2 === 0 ? center1 : center2;
-                    n.x += (target.x - n.x) * 0.02 + Math.sin(time + i)*0.5;
-                    n.y += (target.y - n.y) * 0.02 + Math.cos(time + i)*0.5;
-                    
-                    ctx.fillStyle = color;
-                    ctx.beginPath(); ctx.arc(n.x, n.y, 2, 0, Math.PI*2); ctx.fill();
-                });
+                // Check dist
+                if ((p1.x-p2.x)**2 + (p1.y-p2.y)**2 < 4000) {
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                }
+                 if ((p1.x-p3.x)**2 + (p1.y-p3.y)**2 < 4000) {
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p3.x, p3.y);
+                }
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
 
-                // Dividers
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                ctx.beginPath(); ctx.moveTo(w*0.5, h*0.2); ctx.lineTo(w*0.5, h*0.8); ctx.stroke();
-                
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(center1.x, center1.y, 60, 0, Math.PI*2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(center2.x, center2.y, 60, 0, Math.PI*2); ctx.stroke();
-            }
-            else if (mode === 'encryption') {
-                // Lattice
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1;
-                const size = 40;
-                const offset = (time * 20) % size;
-                
-                for(let x=0; x<w; x+=size) {
-                    for(let y=0; y<h; y+=size) {
-                        const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
-                        if (dist < 150) {
-                            ctx.globalAlpha = (1 - dist/150);
-                            ctx.strokeRect(x + offset - size/2, y - size/2, 4, 4);
-                            ctx.globalAlpha = 1;
-                        }
-                    }
-                }
-                
-                // Lock Icon shape
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(cx, cy - 20, 25, Math.PI, 0);
-                ctx.stroke();
-                ctx.strokeRect(cx - 30, cy - 20, 60, 50);
-            }
-            else if (mode === 'redaction') {
-                // Data stream with blocks
-                const speed = 2;
-                const rows = 10;
-                const rowH = h / rows;
-                
-                for(let i=0; i<rows; i++) {
-                    const y = i * rowH + rowH/2;
-                    const offset = (time * 50 * (i%2===0?1:-1)) % w;
-                    
-                    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-                    ctx.fillRect(0, y-2, w, 4);
-                    
-                    // Moving Packet
-                    const px = (offset + w) % w;
-                    const isRedacted = px > w*0.4 && px < w*0.6;
-                    
-                    ctx.fillStyle = isRedacted ? color : '#fff';
-                    if (isRedacted) {
-                        ctx.fillRect(px - 10, y - 6, 20, 12); // Block
-                    } else {
-                        ctx.beginPath(); ctx.arc(px, y, 4, 0, Math.PI*2); ctx.fill(); // Dot
-                    }
-                }
-                
-                // Filter Zone
-                ctx.strokeStyle = color;
-                ctx.strokeRect(w*0.4, 0, w*0.2, h);
-            }
-            else if (mode === 'audit') {
-                // Timeline
-                const history = 20;
-                const step = w / history;
-                
-                ctx.beginPath();
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                ctx.moveTo(0, cy); ctx.lineTo(w, cy);
-                ctx.stroke();
-                
-                for(let i=0; i<history; i++) {
-                    const x = (i * step + time * 50) % w;
-                    const active = Math.abs(x - cx) < 50;
-                    
-                    ctx.fillStyle = active ? '#fff' : color;
-                    ctx.globalAlpha = active ? 1 : 0.3;
-                    
-                    const hBar = 10 + Math.sin(i * 132) * 40;
-                    ctx.fillRect(x, cy - hBar/2, 4, hBar);
-                    
-                    if (active) {
-                        ctx.beginPath(); ctx.arc(x+2, cy, 15, 0, Math.PI*2); 
-                        ctx.strokeStyle = color; ctx.stroke();
-                    }
-                }
-                ctx.globalAlpha = 1;
-            }
-            else {
-                // General Network (Human)
-                nodes.forEach(n => {
-                    n.x += n.vx; n.y += n.vy;
-                    if (n.x < 0 || n.x > w) n.vx *= -1;
-                    if (n.y < 0 || n.y > h) n.vy *= -1;
-                    
-                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                    ctx.beginPath(); ctx.arc(n.x, n.y, 2, 0, Math.PI*2); ctx.fill();
-                    
-                    // Connect to mouse/center
-                    const dist = Math.sqrt((n.x-cx)**2 + (n.y-cy)**2);
-                    if (dist < 150) {
-                        ctx.strokeStyle = color;
-                        ctx.globalAlpha = 1 - dist/150;
-                        ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(cx, cy); ctx.stroke();
-                        ctx.globalAlpha = 1;
-                    }
-                });
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
-            }
-
-            frameId = requestAnimationFrame(render);
+            reqRef.current = requestAnimationFrame(render);
         };
         render();
-        
-        const resize = () => {
-             if(canvas.parentElement) {
-                 w = canvas.width = canvas.parentElement.clientWidth;
-                 h = canvas.height = canvas.parentElement.clientHeight;
-             }
-        };
-        window.addEventListener('resize', resize);
+
         return () => {
-            window.removeEventListener('resize', resize);
-            cancelAnimationFrame(frameId);
+            if (reqRef.current) cancelAnimationFrame(reqRef.current);
         };
-    }, [mode, color]);
+    }, [color]); 
 
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-// --- COMPONENT: SECURITY CONSOLE (PROFESSIONAL REVERT) ---
+// --- COMPONENT: SECURITY CONSOLE ---
 const SecurityProtocolConsole: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
 
@@ -280,7 +268,8 @@ const SecurityProtocolConsole: React.FC = () => {
                     {/* Visualizer Area */}
                     <div className="flex-1 relative bg-black/20 overflow-hidden border-b border-white/10">
                         <div className="absolute inset-0">
-                            <AbstractSecurityVisualizer key={activeProtocol.id} mode={activeProtocol.mode} color={activeProtocol.color} />
+                            {/* Key removed to prevent unmounting, allowing particles to morph */}
+                            <AbstractSecurityVisualizer mode={activeProtocol.mode} color={activeProtocol.color} />
                         </div>
                         
                         {/* Overlay Gradient */}

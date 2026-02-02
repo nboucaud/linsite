@@ -143,7 +143,8 @@ const HeroVisualizerComponent: React.FC = () => {
                 if (phaseTimer > 2.5) { phase = 1; phaseTimer = 0; meshOpacity = 1; }
             }
             else if (phase === 1) { // FOLD
-                phaseTimer += 0.012;
+                // Slower folding speed (reduced from 0.012 to 0.01)
+                phaseTimer += 0.01;
                 const t = Math.min(1, phaseTimer);
                 const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
@@ -163,7 +164,7 @@ const HeroVisualizerComponent: React.FC = () => {
 
                 if (phaseTimer > 1.2) { 
                     phase = 2; phaseTimer = 0;
-                    // Reset vectors
+                    // Reset vectors for flight
                     planePos.x = 0; planePos.y = 0; planePos.z = 0;
                     planeRot.x = 0; planeRot.y = 0; planeRot.z = 0;
                     
@@ -203,6 +204,11 @@ const HeroVisualizerComponent: React.FC = () => {
                 meshOpacity = 0;
                 phase = 0;
                 cx = width/2; cy = height/2;
+                
+                // CRITICAL FIX: Reset Plane Position for next loop
+                planePos.x = 0; planePos.y = 0; planePos.z = 0;
+                planeRot.x = 0; planeRot.y = 0; planeRot.z = 0;
+                planeVel.x = 0; planeVel.y = 0; planeVel.z = 0;
             }
 
             // --- TRANSFORM & PROJECT (BATCHED) ---
