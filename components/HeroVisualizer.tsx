@@ -3,9 +3,11 @@ import React, { useEffect, useRef } from 'react';
 
 const HeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
+        const container = containerRef.current;
         if (!canvas) return;
         
         // OPTIMIZATION: alpha: false hints the browser that we don't need transparency 
@@ -16,6 +18,7 @@ const HeroVisualizerComponent: React.FC = () => {
         let width = canvas.width;
         let height = canvas.height;
         let frameId: number;
+        let isVisible = true;
 
         // --- 3D ENGINE SETTINGS ---
         const FL = 800;
@@ -35,13 +38,12 @@ const HeroVisualizerComponent: React.FC = () => {
         
         // --- PERFORMANCE CONTROL ---
         let lastTime = 0;
-        const TARGET_FPS = 60;
+        const TARGET_FPS = 45; // Reduced from 60 to 45 for smoother startup on low-end
         const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
         // --- GEOMETRY ---
         const SHEET_SIZE = 150; 
         
-        // Base structures (Static allocations moved out of render loop concepts)
         const flatVerts = [
             { x: -SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 }, { x: 0, y: -SHEET_SIZE * 1.4, z: 0 }, { x: SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 },
             { x: -SHEET_SIZE, y: 0, z: 0 },                 { x: 0, y: 0, z: 0 },                 { x: SHEET_SIZE, y: 0, z: 0 },
@@ -54,7 +56,6 @@ const HeroVisualizerComponent: React.FC = () => {
             { x: -20, y: SHEET_SIZE * 1.4, z: 0 },     { x: 0, y: SHEET_SIZE * 1.4, z: 0 },      { x: 20, y: SHEET_SIZE * 1.4, z: 0 }
         ];
 
-        // Mutable working buffers
         const currentVerts = flatVerts.map(v => ({...v}));
         const worldVertsBuffer = flatVerts.map(() => ({ x: 0, y: 0, z: 0, px: 0, py: 0, scale: 0 }));
         
@@ -72,18 +73,16 @@ const HeroVisualizerComponent: React.FC = () => {
             active: boolean;
         }
         
-        const MAX_PARTICLES = 100;
+        // Reduced particle count for performance
+        const MAX_PARTICLES = 60;
         const particles: Particle[] = [];
-        // Init pool
         for(let i=0; i<MAX_PARTICLES; i++) {
             particles.push({ x:0, y:0, z:0, vx:0, vy:0, vz:0, life:0, color:'#fff', type:'ember', active: false });
         }
 
-        // --- HELPERS ---
         const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
 
         const spawnParticle = (type: 'data' | 'trail' | 'ember', ox: number, oy: number, oz: number, spread: number) => {
-            // Find inactive particle
             const p = particles.find(p => !p.active);
             if (!p) return;
 
@@ -99,27 +98,29 @@ const HeroVisualizerComponent: React.FC = () => {
             p.type = type;
         };
 
-        // --- MAIN LOOP ---
         const render = (timestamp: number) => {
             frameId = requestAnimationFrame(render);
 
-            // OPTIMIZATION: Cap Frame Rate
+            if (!isVisible) return;
+
             const deltaTime = timestamp - lastTime;
             if (deltaTime < FRAME_INTERVAL) return;
-            
-            // Adjust for catch-up, but cap to prevent spiral
             lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
 
             globalTime += 0.016;
             
-            // Fast Clear
-            ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
+            // Background Paint (Simulate the webpage background color #020202 to avoid alpha: true)
+            ctx.fillStyle = '#020202';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Trail effect (simulated manually since we fillRect opacity 1 above)
+            // To fix "slow start", we ensure we don't do expensive gradient calcs here.
+            ctx.fillStyle = 'rgba(2, 2, 2, 0.25)';
             ctx.fillRect(0, 0, width, height);
 
             targetRotY += (mouseX * 0.5 - targetRotY) * 0.05;
             targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
 
-            // Pre-calc rotation matrices
             const cosY = Math.cos(targetRotX);
             const sinY = Math.sin(targetRotX);
             const cosX = Math.cos(targetRotY); 
@@ -208,18 +209,14 @@ const HeroVisualizerComponent: React.FC = () => {
                 let z = v.z + planePos.z;
 
                 if (phase === 2) {
-                    // Local Rotation (Inline for speed)
-                    // Y-rot
                     let tx = x * Math.cos(planeRot.y) - z * Math.sin(planeRot.y);
                     let tz = z * Math.cos(planeRot.y) + x * Math.sin(planeRot.y);
                     x = tx; z = tz;
-                    // X-rot (Skipping Z rot calc for visual approximation speedup)
                     let ty = y * Math.cos(planeRot.x) - z * Math.sin(planeRot.x);
                     let tz2 = z * Math.cos(planeRot.x) + y * Math.sin(planeRot.x);
                     y = ty; z = tz2;
                 }
 
-                // Global Rotation
                 let y1 = y * cosY - z * sinY;
                 let z1 = z * cosY + y * sinY;
                 let x1 = x * cosX - z1 * sinX;
@@ -241,7 +238,6 @@ const HeroVisualizerComponent: React.FC = () => {
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = `rgba(255,255,255,${0.1 * meshOpacity})`;
 
-                // Helper to draw tri
                 const dt = (i1: number, i2: number, i3: number, fill: string) => {
                     const p1 = worldVertsBuffer[i1];
                     const p2 = worldVertsBuffer[i2];
@@ -290,7 +286,6 @@ const HeroVisualizerComponent: React.FC = () => {
                     continue;
                 }
 
-                // Rotate Particle
                 let y1 = p.y * cosY - p.z * sinY;
                 let z1 = p.z * cosY + p.y * sinY;
                 let x1 = p.x * cosX - z1 * sinX;
@@ -305,9 +300,10 @@ const HeroVisualizerComponent: React.FC = () => {
                     ctx.globalAlpha = p.life * (phase === 2 ? meshOpacity : 1);
                     
                     if (p.type === 'data') {
-                        ctx.fillText(Math.random() > 0.5 ? "1" : "0", px, py);
+                        // Simplified Text
+                        ctx.font = '10px monospace';
+                        ctx.fillText("1", px, py);
                     } else {
-                        // OPTIMIZATION: Use rect instead of arc for particles
                         const size = (p.type === 'trail' ? 3 : 6) * scale;
                         ctx.fillRect(px - size/2, py - size/2, size, size);
                     }
@@ -323,19 +319,23 @@ const HeroVisualizerComponent: React.FC = () => {
         };
 
         const handleResize = () => {
-            if (canvas.parentElement) {
-                // OPTIMIZATION: Cap internal resolution at 1:1 CSS pixels
-                // Prevents performance nosedive on 4k/Retina screens
-                const rect = canvas.parentElement.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = rect.height;
-                
-                width = canvas.width;
-                height = canvas.height;
+            if (containerRef.current && canvasRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                canvasRef.current.width = rect.width;
+                canvasRef.current.height = rect.height;
+                width = rect.width;
+                height = rect.height;
                 cx = width / 2;
                 cy = height / 2;
             }
         };
+
+        // --- INTERSECTION OBSERVER FOR PERFORMANCE ---
+        const observer = new IntersectionObserver(([entry]) => {
+            isVisible = entry.isIntersecting;
+        }, { threshold: 0.01 });
+        
+        if (containerRef.current) observer.observe(containerRef.current);
 
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('resize', handleResize);
@@ -345,12 +345,16 @@ const HeroVisualizerComponent: React.FC = () => {
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('resize', handleResize);
+            if (containerRef.current) observer.unobserve(containerRef.current);
             cancelAnimationFrame(frameId);
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
+            <canvas ref={canvasRef} className="block w-full h-full" />
+        </div>
+    );
 };
 
-// Optimization: Prevent re-renders from parent state changes
 export const HeroVisualizer = React.memo(HeroVisualizerComponent);
