@@ -26,28 +26,34 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
         const MODEL_SCALE = 1.4;
 
         interface Point { x: number, y: number, z: number }
-        const parts: { points: Point[], rotationSpeed: number, color: string, type: string }[] = [];
+        // Pre-calculate geometry once
+        const parts: { points: Point[], rotationSpeed: number, color: string, type: 'casing' | 'rotor' }[] = [];
 
-        // CASING (Optimized)
+        // 1. CASING (Static Geometry)
         const casingPoints: Point[] = [];
-        // Increased step from 30 to 60 for performance
-        for (let z = -250; z <= 250; z += 60) {
+        // Increased Z-step to reduce point count while maintaining structure
+        for (let z = -250; z <= 250; z += 40) {
             const r = (130 + Math.sin(z * 0.008) * 15) * MODEL_SCALE;
-            for (let a = 0; a < Math.PI * 2; a += 0.4) {
+            // Draw casing as dots
+            for (let a = 0; a < Math.PI * 2; a += 0.3) {
                 casingPoints.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: z });
             }
         }
-        parts.push({ points: casingPoints, rotationSpeed: 0.001, color: 'rgba(255, 255, 255, 0.2)', type: 'casing' });
+        parts.push({ points: casingPoints, rotationSpeed: 0.001, color: 'rgba(255, 255, 255, 0.15)', type: 'casing' });
 
-        // ROTORS
+        // 2. ROTORS (Dynamic Geometry)
         for (let i = 0; i < 6; i++) {
             const z = -200 + i * 80;
             const pts: Point[] = [];
             const rOuter = 115 * MODEL_SCALE;
-            const bladeCount = 8 + (i%2)*4;
+            const bladeCount = 8 + (i%2)*4; // Fewer blades for clarity/perf
+            
+            // Generate blade lines
             for (let b = 0; b < bladeCount; b++) {
                 const angle = (Math.PI * 2 / bladeCount) * b;
+                // Inner point
                 pts.push({ x: Math.cos(angle) * 40 * MODEL_SCALE, y: Math.sin(angle) * 40 * MODEL_SCALE, z });
+                // Outer point (slightly twisted)
                 pts.push({ x: Math.cos(angle + 0.3) * rOuter, y: Math.sin(angle + 0.3) * rOuter, z });
             }
             parts.push({ points: pts, rotationSpeed: 0.15 * (i%2===0?1:-1), color: 'rgba(245, 158, 11, 0.8)', type: 'rotor' });
@@ -62,7 +68,6 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
 
             time += 0.01;
             
-            // Fast clear
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
@@ -72,6 +77,7 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
             const cosCY = Math.cos(camRotY), sinCY = Math.sin(camRotY);
             const cosCX = Math.cos(camRotX), sinCX = Math.sin(camRotX);
 
+            // Render Parts
             for(let j=0; j<parts.length; j++) {
                 const part = parts[j];
                 const currentRot = time * part.rotationSpeed * 50;
@@ -79,28 +85,35 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
                 const sinR = Math.sin(currentRot);
                 
                 ctx.beginPath();
-                
+                ctx.strokeStyle = part.color;
+                ctx.fillStyle = part.color;
+
                 const pts = part.points;
                 const len = pts.length;
                 
+                // Batch all points for this part into a single path
                 for (let i = 0; i < len; i++) {
                     const p = pts[i];
                     let x = p.x, y = p.y, z = p.z;
 
+                    // 1. Model Rotation (Rotors only)
                     if (part.type === 'rotor') {
                         const nx = x * cosR - y * sinR;
                         const ny = x * sinR + y * cosR;
                         x = nx; y = ny;
                     }
 
+                    // 2. Camera Rotation Y
                     const tx = x * cosCY - z * sinCY;
                     const tz = z * cosCY + x * sinCY;
                     x = tx; z = tz;
                     
+                    // 3. Camera Rotation X
                     const ty = y * cosCX - z * sinCX;
                     const tz2 = z * cosCX + y * sinCX;
                     y = ty; z = tz2;
 
+                    // 4. Projection
                     const scale = CAM_Z / (CAM_Z + z);
                     
                     if (scale > 0) {
@@ -108,18 +121,20 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
                         const py = CY + y * scale;
 
                         if (part.type === 'rotor') {
-                            if (i % 2 === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                            // Draw lines for blades
+                            if (i % 2 === 0) ctx.moveTo(px, py); 
+                            else ctx.lineTo(px, py);
                         } else {
-                            // OPTIMIZATION: Rect instead of Arc
-                            ctx.rect(px, py, 2 * scale, 2 * scale);
+                            // Draw dots for casing (using tiny rects is faster than arcs)
+                            ctx.rect(px, py, 1.5 * scale, 1.5 * scale);
                         }
                     }
                 }
                 
                 if (part.type === 'rotor') {
-                    ctx.strokeStyle = part.color; ctx.stroke();
+                    ctx.stroke();
                 } else {
-                    ctx.fillStyle = part.color; ctx.fill();
+                    ctx.fill();
                 }
             }
         };

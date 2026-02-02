@@ -34,60 +34,63 @@ const ResourcesHeroVisualizerComponent: React.FC = () => {
 
             frame++;
             const time = frame * 0.015;
-            const scroll = frame * 1.5; // Horizontal terrain movement
+            const scroll = frame * 1.5;
 
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
-            // 2. Draw "Strata" Lines (Optimized)
-            const lines = 35; 
+            // 1. Draw "Strata" Lines (Optimized)
+            const lines = 40; 
             const step = h / lines;
             const scanX = (time * 200) % (w + 400) - 200;
 
+            ctx.lineWidth = 1.5;
+
             for (let i = 0; i < lines; i++) {
                 const yBase = i * step + step/2;
+                const hue = 150 + (1 - i/lines) * 60;
+                
+                // Pre-calculate style to avoid state change in loop? No, style changes per line.
+                // Optimization: Don't create complex gradients every frame if possible.
+                // For now, simpler stroke style is better for performance.
                 
                 ctx.beginPath();
-                ctx.lineWidth = 1.5;
                 
-                const alpha = i / lines * 0.6 + 0.1;
-                const hue = 160 + (1 - i/lines) * 60; 
-                
-                // Optimized Step: 10px instead of 6px
-                for (let x = 0; x <= w; x += 10) {
+                // Reduced resolution x+=15
+                for (let x = 0; x <= w; x += 15) {
                     const worldX = x + scroll;
                     const worldZ = i * 50; 
 
-                    let elevation = Math.sin(worldX * 0.002 + worldZ * 0.001) * 40;
-                    const ridge1 = Math.pow(1 - Math.abs(Math.sin(worldX * 0.006 + time * 0.2)), 3);
-                    elevation -= ridge1 * 50; 
-
+                    // Simplified math
+                    let elevation = Math.sin(worldX * 0.002 + worldZ * 0.001) * 30;
+                    
                     const distToScan = Math.abs(x - scanX);
-                    if (distToScan < 120) {
-                        const scanInfluence = 1 - distToScan / 120;
+                    if (distToScan < 100) {
+                        const scanInfluence = 1 - distToScan / 100;
                         elevation += Math.sin(x * 0.2) * 5 * scanInfluence;
                     }
 
-                    const perspectiveY = h * (0.2 + Math.pow(i/lines, 1.2) * 0.8);
+                    const perspectiveY = h * (0.2 + (i*i)/(lines*lines) * 0.8);
                     const finalY = perspectiveY + elevation;
                     
                     if (x === 0) ctx.moveTo(x, finalY);
                     else ctx.lineTo(x, finalY);
                 }
 
+                // Only use expensive gradient for the active scan line
                 if (scanX > -150 && scanX < w + 150) {
                     const grad = ctx.createLinearGradient(scanX - 100, 0, scanX + 100, 0);
-                    grad.addColorStop(0, `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`);
-                    grad.addColorStop(0.5, `hsla(${hue - 40}, 90%, 80%, ${alpha})`);
-                    grad.addColorStop(1, `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`);
+                    grad.addColorStop(0, `hsla(${hue}, 50%, 40%, 0.1)`);
+                    grad.addColorStop(0.5, `hsla(${hue}, 90%, 80%, 0.8)`);
+                    grad.addColorStop(1, `hsla(${hue}, 50%, 40%, 0.1)`);
                     ctx.strokeStyle = grad;
                 } else {
-                    ctx.strokeStyle = `hsla(${hue}, 60%, 50%, 0.12)`;
+                    ctx.strokeStyle = `hsla(${hue}, 60%, 50%, 0.15)`;
                 }
                 ctx.stroke();
             }
 
-            // 3. Draw "Resources"
+            // 2. Draw Resources (Batched by type if possible, but they are sparse)
             const dotCount = 8;
             for(let j=0; j<dotCount; j++) {
                 const nodeColor = NODE_COLORS[j % NODE_COLORS.length];
@@ -96,6 +99,7 @@ const ResourcesHeroVisualizerComponent: React.FC = () => {
                 
                 const distToScan = Math.abs(dx - scanX);
                 
+                // Logic: Extraction Trigger
                 if (distToScan < 5 && Math.random() > 0.98) {
                     const tooClose = extractions.some(e => Math.abs(e.x - dx) < 20);
                     if (!tooClose) {
@@ -109,9 +113,7 @@ const ResourcesHeroVisualizerComponent: React.FC = () => {
 
                 if (distToScan < 70) {
                     ctx.fillStyle = nodeColor;
-                    const pulse = 1 + Math.sin(frame * 0.2) * 0.3;
-                    // OPTIMIZATION: Rects
-                    const size = 6 * pulse;
+                    const size = 6 * (1 + Math.sin(frame * 0.2) * 0.3);
                     ctx.fillRect(dx - size/2, dy - size/2, size, size);
                 } else {
                     ctx.fillStyle = `rgba(255,255,255,0.1)`;
@@ -119,36 +121,49 @@ const ResourcesHeroVisualizerComponent: React.FC = () => {
                 }
             }
 
-            // 4. Render Active Extractions
+            // 3. Render Active Extractions
+            // Batch the beams? They have different colors.
+            // But we can batch the white packets.
+            const packets: {x:number, y:number}[] = [];
+            
             for (let i = extractions.length - 1; i >= 0; i--) {
                 const ex = extractions[i];
                 ex.life -= 0.015;
-                ex.x -= 1.5; // Match scroll
+                ex.x -= 1.5;
 
                 if (ex.life <= 0) {
                     extractions.splice(i, 1);
                     continue;
                 }
 
+                // Beam
                 const beamHeight = 150 * (1 - ex.life);
                 ctx.fillStyle = ex.color;
                 ctx.globalAlpha = Math.sin(ex.life * Math.PI) * 0.6;
                 ctx.fillRect(ex.x - 1, ex.y - beamHeight, 2, beamHeight);
+                
+                // Text
+                if (ex.life > 0.4) {
+                    ctx.font = '10px monospace';
+                    ctx.fillText(`[${ex.code}]`, ex.x + 8, ex.y - beamHeight);
+                }
+                
                 ctx.globalAlpha = 1;
 
+                // Collect packet
                 const travelProgress = Math.pow(1 - ex.life, 2); 
                 const packetY = ex.y - (travelProgress * ex.y);
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(ex.x - 2, packetY - 2, 4, 4);
+                packets.push({x: ex.x, y: packetY});
+            }
 
-                if (ex.life > 0.4) {
-                    ctx.fillStyle = ex.color;
-                    ctx.globalAlpha = Math.sin(ex.life * Math.PI) * 0.6;
-                    ctx.font = '10px monospace';
-                    ctx.fillText(`[${ex.code}]`, ex.x + 8, packetY);
-                    ctx.globalAlpha = 1;
-                }
+            // Draw all packets in one pass
+            if (packets.length > 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                packets.forEach(p => {
+                    ctx.rect(p.x - 2, p.y - 2, 4, 4);
+                });
+                ctx.fill();
             }
         };
 

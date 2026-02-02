@@ -10,20 +10,21 @@ const HeroVisualizerComponent: React.FC = () => {
         const container = containerRef.current;
         if (!canvas) return;
         
-        // OPTIMIZATION: alpha: false hints the browser that we don't need transparency 
-        // against the webpage background, speeding up compositing.
+        // OPTIMIZATION: alpha: false eliminates the browser's need to composite 
+        // the canvas against the DOM background.
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
         let width = canvas.width;
         let height = canvas.height;
+        let cx = width / 2;
+        let cy = height / 2;
+        
         let frameId: number;
         let isVisible = true;
 
         // --- 3D ENGINE SETTINGS ---
         const FL = 800;
-        let cx = width / 2;
-        let cy = height / 2;
         let mouseX = 0;
         let mouseY = 0;
         let targetRotX = 0;
@@ -36,88 +37,78 @@ const HeroVisualizerComponent: React.FC = () => {
         let loopSeed = 0; 
         let meshOpacity = 0; 
         
-        // --- PERFORMANCE CONTROL ---
-        let lastTime = 0;
-        const TARGET_FPS = 45; // Reduced from 60 to 45 for smoother startup on low-end
-        const FRAME_INTERVAL = 1000 / TARGET_FPS;
-
-        // --- GEOMETRY ---
+        // --- GEOMETRY DATA STRUCTURES ---
         const SHEET_SIZE = 150; 
         
+        // Pre-allocate objects to avoid Garbage Collection during render loop
+        const createVec = (x: number, y: number, z: number) => ({ x, y, z });
+        
         const flatVerts = [
-            { x: -SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 }, { x: 0, y: -SHEET_SIZE * 1.4, z: 0 }, { x: SHEET_SIZE, y: -SHEET_SIZE * 1.4, z: 0 },
-            { x: -SHEET_SIZE, y: 0, z: 0 },                 { x: 0, y: 0, z: 0 },                 { x: SHEET_SIZE, y: 0, z: 0 },
-            { x: -SHEET_SIZE, y: SHEET_SIZE * 1.4, z: 0 },  { x: 0, y: SHEET_SIZE * 1.4, z: 0 },  { x: SHEET_SIZE, y: SHEET_SIZE * 1.4, z: 0 }
+            createVec(-SHEET_SIZE, -SHEET_SIZE * 1.4, 0), createVec(0, -SHEET_SIZE * 1.4, 0), createVec(SHEET_SIZE, -SHEET_SIZE * 1.4, 0),
+            createVec(-SHEET_SIZE, 0, 0),                 createVec(0, 0, 0),                 createVec(SHEET_SIZE, 0, 0),
+            createVec(-SHEET_SIZE, SHEET_SIZE * 1.4, 0),  createVec(0, SHEET_SIZE * 1.4, 0),  createVec(SHEET_SIZE, SHEET_SIZE * 1.4, 0)
         ];
 
         const planeVerts = [
-            { x: 0, y: -SHEET_SIZE * 1.8, z: -20 },   { x: 0, y: -SHEET_SIZE * 1.8, z: -20 },   { x: 0, y: -SHEET_SIZE * 1.8, z: -20 },
-            { x: -SHEET_SIZE * 1.2, y: SHEET_SIZE, z: 20 }, { x: 0, y: -SHEET_SIZE * 0.5, z: -50 }, { x: SHEET_SIZE * 1.2, y: SHEET_SIZE, z: 20 },
-            { x: -20, y: SHEET_SIZE * 1.4, z: 0 },     { x: 0, y: SHEET_SIZE * 1.4, z: 0 },      { x: 20, y: SHEET_SIZE * 1.4, z: 0 }
+            createVec(0, -SHEET_SIZE * 1.8, -20),   createVec(0, -SHEET_SIZE * 1.8, -20),   createVec(0, -SHEET_SIZE * 1.8, -20),
+            createVec(-SHEET_SIZE * 1.2, SHEET_SIZE, 20), createVec(0, -SHEET_SIZE * 0.5, -50), createVec(SHEET_SIZE * 1.2, SHEET_SIZE, 20),
+            createVec(-20, SHEET_SIZE * 1.4, 0),     createVec(0, SHEET_SIZE * 1.4, 0),      createVec(20, SHEET_SIZE * 1.4, 0)
         ];
 
+        // Mutable state vectors
         const currentVerts = flatVerts.map(v => ({...v}));
         const worldVertsBuffer = flatVerts.map(() => ({ x: 0, y: 0, z: 0, px: 0, py: 0, scale: 0 }));
         
-        let planePos = { x: 0, y: 0, z: 0 };
-        let planeVel = { x: 0, y: 0, z: 0 };
-        let planeRot = { x: 0, y: 0, z: 0 };
+        const planePos = { x: 0, y: 0, z: 0 };
+        const planeVel = { x: 0, y: 0, z: 0 };
+        const planeRot = { x: 0, y: 0, z: 0 };
 
         // --- PARTICLES ---
-        interface Particle {
-            x: number; y: number; z: number;
-            vx: number; vy: number; vz: number;
-            life: number;
-            color: string;
-            type: 'data' | 'trail' | 'ember';
-            active: boolean;
-        }
-        
-        // Reduced particle count for performance
         const MAX_PARTICLES = 60;
-        const particles: Particle[] = [];
-        for(let i=0; i<MAX_PARTICLES; i++) {
-            particles.push({ x:0, y:0, z:0, vx:0, vy:0, vz:0, life:0, color:'#fff', type:'ember', active: false });
-        }
+        const particles = Array.from({ length: MAX_PARTICLES }, () => ({
+            x: 0, y: 0, z: 0,
+            vx: 0, vy: 0, vz: 0,
+            life: 0,
+            color: '#fff',
+            type: 'ember' as 'data' | 'trail' | 'ember',
+            active: false
+        }));
 
         const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
 
         const spawnParticle = (type: 'data' | 'trail' | 'ember', ox: number, oy: number, oz: number, spread: number) => {
-            const p = particles.find(p => !p.active);
-            if (!p) return;
-
-            p.active = true;
-            p.x = ox + (Math.random()-0.5) * spread;
-            p.y = oy + (Math.random()-0.5) * spread;
-            p.z = oz + (Math.random()-0.5) * spread;
-            p.vx = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
-            p.vy = (Math.random()-0.5) * (type === 'ember' ? 5 : 2);
-            p.vz = type === 'trail' ? 10 : (Math.random()-0.5) * 5;
-            p.life = 1.0;
-            p.color = type === 'data' ? '#69B7B2' : type === 'ember' ? '#f59e0b' : '#ffffff';
-            p.type = type;
+            // Find first inactive particle to reuse memory
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                const p = particles[i];
+                if (!p.active) {
+                    p.active = true;
+                    p.x = ox + (Math.random() - 0.5) * spread;
+                    p.y = oy + (Math.random() - 0.5) * spread;
+                    p.z = oz + (Math.random() - 0.5) * spread;
+                    p.vx = (Math.random() - 0.5) * (type === 'ember' ? 5 : 2);
+                    p.vy = (Math.random() - 0.5) * (type === 'ember' ? 5 : 2);
+                    p.vz = type === 'trail' ? 10 : (Math.random() - 0.5) * 5;
+                    p.life = 1.0;
+                    p.color = type === 'data' ? '#69B7B2' : type === 'ember' ? '#f59e0b' : '#ffffff';
+                    p.type = type;
+                    break; 
+                }
+            }
         };
 
-        const render = (timestamp: number) => {
+        const render = () => {
             frameId = requestAnimationFrame(render);
-
             if (!isVisible) return;
 
-            const deltaTime = timestamp - lastTime;
-            if (deltaTime < FRAME_INTERVAL) return;
-            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
-
             globalTime += 0.016;
-            
-            // Background Paint (Simulate the webpage background color #020202 to avoid alpha: true)
-            ctx.fillStyle = '#020202';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Trail effect (simulated manually since we fillRect opacity 1 above)
-            // To fix "slow start", we ensure we don't do expensive gradient calcs here.
+
+            // OPTIMIZATION: Single fillRect with low opacity creates the trail effect.
+            // No need to clearRect + fillRect(black) + fillRect(opacity).
+            // This is a 2x reduction in full-screen draw calls.
             ctx.fillStyle = 'rgba(2, 2, 2, 0.25)';
             ctx.fillRect(0, 0, width, height);
 
+            // Camera Smoothing
             targetRotY += (mouseX * 0.5 - targetRotY) * 0.05;
             targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
 
@@ -135,13 +126,17 @@ const HeroVisualizerComponent: React.FC = () => {
                 
                 for(let i=0; i<9; i++) {
                     const float = Math.sin(globalTime * 2 + i) * 20 * (1-ease);
-                    const noiseX = Math.sin(i * 12.3 + loopSeed) * 1200 + float;
-                    const noiseY = Math.cos(i * 45.6 + loopSeed) * 800 + float;
-                    const noiseZ = Math.sin(i * 78.9 + loopSeed) * 1000 - 500;
+                    // Pre-calc noise factors to avoid repetitive Math calls
+                    const idx = i * 1.0;
+                    const noiseX = Math.sin(idx * 12.3 + loopSeed) * 1200 + float;
+                    const noiseY = Math.cos(idx * 45.6 + loopSeed) * 800 + float;
+                    const noiseZ = Math.sin(idx * 78.9 + loopSeed) * 1000 - 500;
                     
-                    currentVerts[i].x = lerp(noiseX, flatVerts[i].x, ease);
-                    currentVerts[i].y = lerp(noiseY, flatVerts[i].y, ease);
-                    currentVerts[i].z = lerp(noiseZ, flatVerts[i].z, ease);
+                    const cv = currentVerts[i];
+                    const fv = flatVerts[i];
+                    cv.x = lerp(noiseX, fv.x, ease);
+                    cv.y = lerp(noiseY, fv.y, ease);
+                    cv.z = lerp(noiseZ, fv.z, ease);
                 }
 
                 if (Math.random() > 0.85 && phaseTimer < 1.5) spawnParticle('data', 0, 0, 0, 800);
@@ -159,6 +154,7 @@ const HeroVisualizerComponent: React.FC = () => {
                 }
                 
                 if (t > 0.8) {
+                    // Shake effect
                     cx = width/2 + (Math.random()-0.5)*5;
                     cy = height/2 + (Math.random()-0.5)*5;
                 } else {
@@ -167,9 +163,15 @@ const HeroVisualizerComponent: React.FC = () => {
 
                 if (phaseTimer > 1.2) { 
                     phase = 2; phaseTimer = 0;
+                    // Reset vectors
+                    planePos.x = 0; planePos.y = 0; planePos.z = 0;
+                    planeRot.x = 0; planeRot.y = 0; planeRot.z = 0;
+                    
                     const angle = (Math.random() - 0.5) * 2.5;
                     const lift = (Math.random() - 0.5) * 1.0;
-                    planeVel = { x: Math.sin(angle) * 8, y: Math.sin(lift) * 6, z: 18 };
+                    planeVel.x = Math.sin(angle) * 8;
+                    planeVel.y = Math.sin(lift) * 6;
+                    planeVel.z = 18;
                 }
             }
             else if (phase === 2) { // FLIGHT
@@ -179,6 +181,7 @@ const HeroVisualizerComponent: React.FC = () => {
                 planePos.y += planeVel.y;
                 planePos.z += planeVel.z;
 
+                // Banking logic
                 const targetBank = planeVel.x * 0.03;
                 planeRot.z += (targetBank - planeRot.z) * 0.1;
                 const targetPitch = planeVel.y * 0.03;
@@ -190,18 +193,19 @@ const HeroVisualizerComponent: React.FC = () => {
                 if(Math.random() > 0.5) spawnParticle('ember', planePos.x, planePos.y, planePos.z, 10);
                 if(Math.random() > 0.8) spawnParticle('trail', planePos.x, planePos.y, planePos.z, 20);
 
-                if (planePos.z > 3500) { phase = 3; phaseTimer = 0; }
+                if (planePos.z > 3500) { 
+                    phase = 3; 
+                    phaseTimer = 0; 
+                }
             }
             else if (phase === 3) { // RESET
-                planePos = { x: 0, y: 0, z: 0 };
-                planeVel = { x: 0, y: 0, z: 0 };
-                planeRot = { x: 0, y: 0, z: 0 };
                 loopSeed += 13.7;
                 meshOpacity = 0;
                 phase = 0;
+                cx = width/2; cy = height/2;
             }
 
-            // --- TRANSFORM & PROJECT ---
+            // --- TRANSFORM & PROJECT (BATCHED) ---
             for(let i=0; i<9; i++) {
                 const v = currentVerts[i];
                 let x = v.x + planePos.x;
@@ -209,68 +213,85 @@ const HeroVisualizerComponent: React.FC = () => {
                 let z = v.z + planePos.z;
 
                 if (phase === 2) {
-                    let tx = x * Math.cos(planeRot.y) - z * Math.sin(planeRot.y);
-                    let tz = z * Math.cos(planeRot.y) + x * Math.sin(planeRot.y);
+                    // Apply Plane Rotation Matrix
+                    const cosRY = Math.cos(planeRot.y); const sinRY = Math.sin(planeRot.y);
+                    const cosRX = Math.cos(planeRot.x); const sinRX = Math.sin(planeRot.x);
+                    
+                    let tx = x * cosRY - z * sinRY;
+                    let tz = z * cosRY + x * sinRY;
                     x = tx; z = tz;
-                    let ty = y * Math.cos(planeRot.x) - z * Math.sin(planeRot.x);
-                    let tz2 = z * Math.cos(planeRot.x) + y * Math.sin(planeRot.x);
+                    let ty = y * cosRX - z * sinRX;
+                    let tz2 = z * cosRX + y * sinRX;
                     y = ty; z = tz2;
                 }
 
+                // Apply Camera Rotation Matrix
                 let y1 = y * cosY - z * sinY;
                 let z1 = z * cosY + y * sinY;
                 let x1 = x * cosX - z1 * sinX;
                 let z2 = z1 * cosX + x * sinX;
 
                 const scale = FL / (FL + z2);
-                worldVertsBuffer[i].x = x1;
-                worldVertsBuffer[i].y = y1;
-                worldVertsBuffer[i].z = z2;
-                worldVertsBuffer[i].px = cx + x1 * scale;
-                worldVertsBuffer[i].py = cy + y1 * scale;
-                worldVertsBuffer[i].scale = scale;
+                const buff = worldVertsBuffer[i];
+                buff.x = x1; buff.y = y1; buff.z = z2;
+                buff.px = cx + x1 * scale;
+                buff.py = cy + y1 * scale;
+                buff.scale = scale;
             }
 
-            // --- DRAW MESH ---
+            // --- DRAW MESH (BATCHED) ---
+            // Instead of drawing each triangle individually (which changes context state),
+            // we batch "base" polygons and "accent" polygons to reduce draw calls.
             if (meshOpacity > 0.01) {
-                const accentFill = phase === 2 ? `rgba(105,183,178,0.2)` : 'rgba(255,255,255,0.1)';
+                const accentFill = phase === 2 ? `rgba(105,183,178,${meshOpacity * 0.2})` : `rgba(255,255,255,${meshOpacity * 0.1})`;
+                const baseFill = `rgba(255,255,255,${meshOpacity * 0.05})`;
                 
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = `rgba(255,255,255,${0.1 * meshOpacity})`;
 
-                const dt = (i1: number, i2: number, i3: number, fill: string) => {
+                // Helper to add path
+                const addTri = (i1: number, i2: number, i3: number) => {
                     const p1 = worldVertsBuffer[i1];
                     const p2 = worldVertsBuffer[i2];
                     const p3 = worldVertsBuffer[i3];
+                    // Culling check
                     if (p1.z < -FL+10 || p2.z < -FL+10 || p3.z < -FL+10) return;
                     
-                    ctx.fillStyle = fill;
-                    ctx.beginPath();
                     ctx.moveTo(p1.px, p1.py);
                     ctx.lineTo(p2.px, p2.py);
                     ctx.lineTo(p3.px, p3.py);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
+                    ctx.lineTo(p1.px, p1.py);
                 };
 
-                ctx.globalAlpha = meshOpacity;
-                dt(0, 1, 3, `rgba(255,255,255,0.05)`);
-                dt(1, 4, 3, accentFill);
-                dt(1, 2, 5, `rgba(255,255,255,0.05)`);
-                dt(1, 4, 5, accentFill);
-                dt(3, 4, 6, `rgba(255,255,255,0.05)`);
-                dt(4, 5, 8, `rgba(255,255,255,0.05)`);
-                dt(4, 7, 6, accentFill);
-                dt(4, 7, 8, accentFill);
+                // BATCH 1: Base Triangles
+                ctx.beginPath();
+                addTri(0, 1, 3);
+                addTri(1, 2, 5);
+                addTri(3, 4, 6);
+                addTri(4, 5, 8);
+                ctx.fillStyle = baseFill;
+                ctx.fill();
+                ctx.stroke();
+
+                // BATCH 2: Accent Triangles
+                ctx.beginPath();
+                addTri(1, 4, 3);
+                addTri(1, 4, 5);
+                addTri(4, 7, 6);
+                addTri(4, 7, 8);
+                ctx.fillStyle = accentFill;
+                ctx.fill();
+                ctx.stroke();
                 
+                // Highlight Line
                 const p1 = worldVertsBuffer[1]; const p4 = worldVertsBuffer[4]; const p7 = worldVertsBuffer[7];
                 if(p1.z > -FL) {
+                    ctx.beginPath();
                     ctx.strokeStyle = phase === 1 ? '#f59e0b' : '#69B7B2';
                     ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(p1.px, p1.py); ctx.lineTo(p4.px, p4.py); ctx.lineTo(p7.px, p7.py); ctx.stroke();
+                    ctx.moveTo(p1.px, p1.py); ctx.lineTo(p4.px, p4.py); ctx.lineTo(p7.px, p7.py); 
+                    ctx.stroke();
                 }
-                ctx.globalAlpha = 1;
             }
 
             // --- DRAW PARTICLES ---
@@ -300,7 +321,6 @@ const HeroVisualizerComponent: React.FC = () => {
                     ctx.globalAlpha = p.life * (phase === 2 ? meshOpacity : 1);
                     
                     if (p.type === 'data') {
-                        // Simplified Text
                         ctx.font = '10px monospace';
                         ctx.fillText("1", px, py);
                     } else {
@@ -314,6 +334,7 @@ const HeroVisualizerComponent: React.FC = () => {
 
         const handleMouseMove = (e: MouseEvent) => {
             const rect = canvas.getBoundingClientRect();
+            // Simple normalization
             mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             mouseY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         };
@@ -321,6 +342,8 @@ const HeroVisualizerComponent: React.FC = () => {
         const handleResize = () => {
             if (containerRef.current && canvasRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();
+                // OPTIMIZATION: Match canvas dimensions 1:1 with CSS pixels
+                // This avoids high-DPI scaling overhead which causes 4x pixel processing on Retina
                 canvasRef.current.width = rect.width;
                 canvasRef.current.height = rect.height;
                 width = rect.width;
@@ -330,7 +353,7 @@ const HeroVisualizerComponent: React.FC = () => {
             }
         };
 
-        // --- INTERSECTION OBSERVER FOR PERFORMANCE ---
+        // Visibility handling to stop rendering when off-screen
         const observer = new IntersectionObserver(([entry]) => {
             isVisible = entry.isIntersecting;
         }, { threshold: 0.01 });
@@ -340,7 +363,7 @@ const HeroVisualizerComponent: React.FC = () => {
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('resize', handleResize);
         handleResize();
-        frameId = requestAnimationFrame(render);
+        render();
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);

@@ -1,153 +1,247 @@
 
 import React, { useEffect, useRef } from 'react';
 
-const SmallBusinessHeroVisualizerComponent: React.FC = () => {
+export const SmallBusinessHeroVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const mouseRef = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) return;
 
-        const gl = canvas.getContext('webgl2', { alpha: false });
-        if (!gl) {
-            console.error("WebGL2 not supported");
-            return;
+        let w = canvas.width = canvas.parentElement?.clientWidth || 800;
+        let h = canvas.height = canvas.parentElement?.clientHeight || 600;
+        let frameId: number;
+        let time = 0;
+
+        // 3D PARTICLE ENGINE
+        const PARTICLE_COUNT = 800;
+        const CAM_Z = 800;
+        let CX = w * 0.5;
+        let CY = h * 0.5;
+
+        interface Point3D { x: number; y: number; z: number }
+        
+        // Particle State
+        const particles = new Float32Array(PARTICLE_COUNT * 9); 
+        // Layout: [curX, curY, curZ, tgtX, tgtY, tgtZ, colorIdx, size, randomOffset]
+        // Storing basic types in TypedArray is faster for math, but we need colors.
+        // We'll use a parallel array for colors to keep it simple or a color palette index.
+        const colors = ['#8b5cf6', '#a78bfa', '#22d3ee', '#c4b5fd'];
+        const particleColors = new Uint8Array(PARTICLE_COUNT);
+
+        // Pre-allocate Sort Buffer to avoid GC
+        // We store indices here and sort indices based on Z depth
+        const renderOrder = new Int32Array(PARTICLE_COUNT);
+        const depthBuffer = new Float32Array(PARTICLE_COUNT);
+
+        let phase = 0; // 0: CLOUD, 1: SPHERE, 2: CUBE
+        let phaseTimer = 0;
+        const PHASE_DURATION = 400; 
+
+        // Generators
+        const setCloudTarget = (i: number) => {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI * 2;
+            const rMain = 250 + Math.random() * 50;
+            const rTube = 80 + Math.random() * 40;
+            
+            const idx = i * 9;
+            particles[idx + 3] = (rMain + rTube * Math.cos(phi)) * Math.cos(theta); // tx
+            particles[idx + 4] = (rMain + rTube * Math.cos(phi)) * Math.sin(theta); // ty
+            particles[idx + 5] = rTube * Math.sin(phi); // tz
+        };
+
+        const setSphereTarget = (i: number, total: number, radius: number) => {
+            const phi = Math.acos(-1 + (2 * i) / total);
+            const theta = Math.sqrt(total * Math.PI) * phi;
+            
+            const idx = i * 9;
+            particles[idx + 3] = radius * Math.cos(theta) * Math.sin(phi);
+            particles[idx + 4] = radius * Math.sin(theta) * Math.sin(phi);
+            particles[idx + 5] = radius * Math.cos(phi);
+        };
+
+        const setCubeTarget = (i: number, total: number) => {
+            const dim = Math.floor(Math.cbrt(total));
+            const remainder = i % (dim*dim*dim);
+            const x = (remainder % dim);
+            const y = Math.floor((remainder / dim) % dim);
+            const z = Math.floor(remainder / (dim * dim));
+            const spacing = 40;
+            const offset = (dim * spacing) / 2;
+            
+            const idx = i * 9;
+            particles[idx + 3] = x * spacing - offset;
+            particles[idx + 4] = y * spacing - offset;
+            particles[idx + 5] = z * spacing - offset;
+        };
+
+        // Initialize
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const idx = i * 9;
+            setCloudTarget(i); // Set initial targets
+            // Set current pos to target initially
+            particles[idx] = particles[idx+3];
+            particles[idx+1] = particles[idx+4];
+            particles[idx+2] = particles[idx+5];
+            
+            particleColors[i] = Math.floor(Math.random() * colors.length);
+            particles[idx+7] = Math.random() > 0.9 ? 2.5 : 1.2; // Size
+            particles[idx+8] = Math.random() * Math.PI * 2; // Offset
+            
+            renderOrder[i] = i;
         }
 
-        const vsSource = `#version 300 es
-            in vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
+        const setTargetShape = (shape: number) => {
+            for(let i=0; i<PARTICLE_COUNT; i++) {
+                if (shape === 0) setCloudTarget(i);
+                else if (shape === 1) setSphereTarget(i, PARTICLE_COUNT, 220);
+                else if (shape === 2) setCubeTarget(i, PARTICLE_COUNT);
             }
-        `;
+        };
 
-        const fsSource = `#version 300 es
-            precision highp float;
-            uniform vec2 resolution;
-            uniform float time;
-            out vec4 fragColor;
+        const render = () => {
+            time += 0.008;
+            phaseTimer++;
 
-            void main() {
-                vec2 r = resolution;
-                float t = time * 0.3; 
-                
-                vec3 x = vec3(9.0, 0.0, 0.0);
-                vec3 c = vec3(0.0);
-                vec3 p = vec3(0.0);
-                vec4 o = vec4(0.0);
-                float z = 0.0;
-                
-                // UV Setup with Pan & Zoom
-                vec2 uv = (gl_FragCoord.xy * 2.0 - r.xy) / r.y;
-                uv.x -= 0.9; 
-                uv *= 0.65;
+            if (phaseTimer > PHASE_DURATION) {
+                phaseTimer = 0;
+                phase = (phase + 1) % 3;
+                setTargetShape(phase);
+            }
 
-                vec3 rd = normalize(vec3(uv, -1.0));
+            ctx.fillStyle = '#020202';
+            ctx.fillRect(0, 0, w, h);
+
+            const rotX = time * 0.3 + (mouseRef.current.y * 0.1);
+            const rotY = time * 0.4 + (mouseRef.current.x * 0.1);
+            const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+            const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+            // 1. UPDATE & PROJECT
+            for(let i=0; i<PARTICLE_COUNT; i++) {
+                const idx = i * 9;
                 
-                // Reduced Raymarching Loop for performance (50 -> 30)
-                for(float i=0.0; i<30.0; i+=1.0) {
-                    
-                    p = z * rd;
-                    c = p;
-                    
-                    float f = 0.3;
-                    p.y *= f;
-                    
-                    // Reduced Fractal Loop (5 -> 4)
-                    for(int j=0; j<4; j++) {
-                        f += 1.0;
-                        p += cos(p.yzx * f + i + z + x * t) / f;
-                    }
-                    
-                    p = mix(c, p, 0.3);
-                    float d = 0.2 * (abs(p.z + p.x + 16.0 + tanh(p.y)/0.1) + sin(p.x - p.z + t*2.0) + 1.0);
-                    f = d; 
-                    z += f;
-                    o += (cos(p.x * 0.2 + f + vec4(6,1,2,0)) + 2.0) / f / z;
+                // Lerp current to target
+                particles[idx] += (particles[idx+3] - particles[idx]) * 0.04;
+                particles[idx+1] += (particles[idx+4] - particles[idx+1]) * 0.04;
+                particles[idx+2] += (particles[idx+5] - particles[idx+2]) * 0.04;
+
+                let x = particles[idx];
+                let y = particles[idx+1];
+                let z = particles[idx+2];
+
+                // Add noise for Cloud phase
+                if (phase === 0) {
+                    const offset = particles[idx+8];
+                    x += Math.sin(time * 2 + offset) * 2;
+                    y += Math.cos(time * 3 + offset) * 2;
                 }
+
+                // Rotate
+                let tx = x * cosY - z * sinY;
+                let tz = z * cosY + x * sinY;
+                x = tx; z = tz;
+
+                let ty = y * cosX - z * sinX;
+                let tz2 = z * cosX + y * sinX;
+                y = ty; z = tz2;
+
+                // Store projected Z for sorting
+                depthBuffer[i] = z;
                 
-                o = tanh(o / 30.0);
-                fragColor = vec4(o.rgb, 1.0);
+                // Store projected X/Y temporarily in target slots (optimization hack? No, let's keep array pure)
+                // We'll recalculate projection during draw to save memory bandwidth vs storing a whole new array
+                // Or just store the transformed X/Y/Z back into a buffer? 
+                // Actually, let's just re-project. It's cheap.
+                // We just need Z for sort.
             }
-        `;
 
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
+            // 2. SORT
+            // Int32Array sort is fast in modern JS engines
+            renderOrder.sort((a, b) => depthBuffer[b] - depthBuffer[a]);
 
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
+            // 3. DRAW
+            for(let i=0; i<PARTICLE_COUNT; i++) {
+                const pIdx = renderOrder[i];
+                const z = depthBuffer[pIdx];
+                const scale = CAM_Z / (CAM_Z + z);
 
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
+                if (scale > 0) {
+                    const idx = pIdx * 9;
+                    // Re-calculate X/Y rotation (redundant but avoids allocation)
+                    // Ideally we'd store this in a "renderBuffer"
+                    let x = particles[idx];
+                    let y = particles[idx+1];
+                    let zRaw = particles[idx+2];
+                    
+                    if (phase === 0) {
+                        const offset = particles[idx+8];
+                        x += Math.sin(time * 2 + offset) * 2;
+                        y += Math.cos(time * 3 + offset) * 2;
+                    }
 
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+                    let tx = x * cosY - zRaw * sinY;
+                    let tz = zRaw * cosY + x * sinY;
+                    x = tx; zRaw = tz;
 
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+                    let ty = y * cosX - zRaw * sinX;
+                    y = ty;
 
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
+                    const px = CX + x * scale;
+                    const py = CY + y * scale;
+                    const size = particles[idx+7] * scale;
+                    
+                    ctx.fillStyle = colors[particleColors[pIdx]];
+                    ctx.globalAlpha = Math.min(1, scale * 0.7);
+                    
+                    // Optimization: Use rect for everything. At small sizes, rect ~ circle.
+                    ctx.fillRect(px - size/2, py - size/2, size, size);
+                }
+            }
+            ctx.globalAlpha = 1;
 
-        let startTime = Date.now();
-        let frameId: number;
-        let lastTime = 0;
-        const TARGET_FPS = 60;
-        const FRAME_INTERVAL = 1000 / TARGET_FPS;
+            // Connectivity lines (Optional visual flair - only for top 100 closest to save cycles)
+            /*
+            if (phase !== 0) {
+                ctx.strokeStyle = phase === 2 ? 'rgba(34, 211, 238, 0.15)' : 'rgba(139, 92, 246, 0.1)';
+                ctx.lineWidth = 0.5;
+                // Only connect a subset
+            }
+            */
 
-        const render = (timestamp: number) => {
             frameId = requestAnimationFrame(render);
-
-            const deltaTime = timestamp - lastTime;
-            if (deltaTime < FRAME_INTERVAL) return;
-            lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
-
-            if (!canvas || !container) return;
-            
-            // OPTIMIZATION: Force 1:1 pixel ratio regardless of device density
-            const dpr = 1; 
-            const w = container.clientWidth;
-            const h = container.clientHeight;
-            
-            if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-                canvas.width = w * dpr;
-                canvas.height = h * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         };
 
-        frameId = requestAnimationFrame(render);
+        const handleResize = () => {
+            if (canvas.parentElement) {
+                w = canvas.width = canvas.parentElement.clientWidth;
+                h = canvas.height = canvas.parentElement.clientHeight;
+                CX = w * 0.5;
+                CY = h * 0.5;
+            }
+        };
+        const handleMouseMove = (e: MouseEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseRef.current = {
+                x: ((e.clientX - rect.left) / w) * 2 - 1,
+                y: ((e.clientY - rect.top) / h) * 2 - 1
+            };
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('mousemove', handleMouseMove);
+        render();
 
         return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('mousemove', handleMouseMove);
             cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
         };
     }, []);
 
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
-            <canvas ref={canvasRef} className="block w-full h-full opacity-60 mix-blend-screen" />
-        </div>
-    );
+    return <canvas ref={canvasRef} className="w-full h-full block" />;
 };
-
-export const SmallBusinessHeroVisualizer = React.memo(SmallBusinessHeroVisualizerComponent);

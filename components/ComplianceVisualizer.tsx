@@ -7,7 +7,8 @@ export const ComplianceVisualizer: React.FC = () => {
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        // alpha: false improves compositing performance
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
         let width = canvas.width = canvas.parentElement?.clientWidth || 800;
@@ -27,102 +28,96 @@ export const ComplianceVisualizer: React.FC = () => {
 
         interface Point3D { x: number, y: number, z: number }
         
+        // Reusable objects to reduce GC
         class Particle {
             x: number; y: number; z: number;
             vx: number; vy: number; vz: number;
             target: Point3D | null;
             color: string;
             size: number;
+            // Cache projected coordinates to avoid recalc during batching
+            px: number = 0;
+            py: number = 0;
+            scale: number = 0;
             
             constructor() {
                 this.x = (Math.random() - 0.5) * width * 2;
                 this.y = (Math.random() - 0.5) * height * 2;
                 this.z = (Math.random() - 0.5) * 1000;
-                // Slower initial velocity
                 this.vx = (Math.random() - 0.5) * 2.5;
                 this.vy = (Math.random() - 0.5) * 2.5;
                 this.vz = (Math.random() - 0.5) * 2.5;
                 this.target = null;
-                this.color = '#94a3b8'; // Default slate
+                this.color = '#94a3b8'; 
                 this.size = 2;
             }
 
-            update(t: number) {
-                // PHASE 0: UNSECURED - Chaotic Brownian Motion (Slower)
+            update(width: number, height: number) {
+                // PHASE 0: UNSECURED
                 if (currentPhase === 0) {
                     this.x += this.vx;
                     this.y += this.vy;
                     this.z += this.vz;
                     
-                    // Bounce off virtual walls
                     if (Math.abs(this.x) > width) this.vx *= -1;
                     if (Math.abs(this.y) > height) this.vy *= -1;
                     if (Math.abs(this.z) > 1000) this.vz *= -1;
 
-                    // UPDATED: No longer pure white. Uses desaturated blue/slate.
                     this.color = Math.random() > 0.9 ? '#69B7B2' : '#cbd5e1'; 
-                    this.size = Math.random() * 2 + 1;
+                    this.size = 2;
                 }
-                
-                // PHASE 1: ANALYZING - Suction Vortex
+                // PHASE 1: ANALYZING
                 else if (currentPhase === 1) {
-                    // Spiral towards center
-                    const angle = Math.atan2(this.y, this.x) + 0.05; // Slower rotation
+                    const angle = Math.atan2(this.y, this.x) + 0.05;
                     const dist = Math.sqrt(this.x*this.x + this.y*this.y);
-                    const targetDist = Math.max(50, dist * 0.98); // Gentler suction
+                    const targetDist = Math.max(50, dist * 0.98); 
                     
                     this.x = Math.cos(angle) * targetDist;
                     this.y = Math.sin(angle) * targetDist;
                     this.z = this.z * 0.98; 
 
-                    this.color = '#22d3ee'; // Cyan
+                    this.color = '#22d3ee'; 
                     this.size = 2;
                 }
-
-                // PHASE 2: SECURED - Crystal Lattice Lock
+                // PHASE 2: SECURED
                 else if (currentPhase === 2 && this.target) {
-                    // Lerp to target geometry (Slower easing)
                     this.x += (this.target.x - this.x) * 0.05;
                     this.y += (this.target.y - this.y) * 0.05;
                     this.z += (this.target.z - this.z) * 0.05;
                     
-                    this.color = '#69B7B2'; // Brand Teal
+                    this.color = '#69B7B2'; 
                     this.size = 1.5;
                 }
             }
 
-            draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rotX: number, rotY: number) {
+            project(cx: number, cy: number, rotX: number, rotY: number) {
                 // 3D Rotation
                 let x = this.x, y = this.y, z = this.z;
                 
                 // Rotate Y
-                let x1 = x * Math.cos(rotY) - z * Math.sin(rotY);
-                let z1 = z * Math.cos(rotY) + x * Math.sin(rotY);
+                const cosY = Math.cos(rotY);
+                const sinY = Math.sin(rotY);
+                let x1 = x * cosY - z * sinY;
+                let z1 = z * cosY + x * sinY;
                 x = x1; z = z1;
 
                 // Rotate X
-                let y1 = y * Math.cos(rotX) - z * Math.sin(rotX);
-                let z2 = z * Math.cos(rotX) + y * Math.sin(rotX);
+                const cosX = Math.cos(rotX);
+                const sinX = Math.sin(rotX);
+                let y1 = y * cosX - z * sinX;
+                let z2 = z * cosX + y * sinX;
                 y = y1; z = z2;
 
-                // Project
                 const scale = PERSPECTIVE / (PERSPECTIVE + z);
-                if (scale <= 0) return; // Behind camera
-
-                const px = cx + x * scale;
-                const py = cy + y * scale;
-                const pSize = this.size * scale;
-
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(px, py, pSize, 0, Math.PI*2);
-                ctx.fill();
+                this.scale = scale;
+                this.px = cx + x * scale;
+                this.py = cy + y * scale;
             }
         }
 
         const particles: Particle[] = Array.from({length: PARTICLE_COUNT}, () => new Particle());
 
-        // --- GEOMETRY GENERATION (The Shield/Lock) ---
+        // --- GEOMETRY GENERATION ---
         const generateSpherePoints = (count: number, radius: number): Point3D[] => {
             const points: Point3D[] = [];
             const phi = Math.PI * (3 - Math.sqrt(5)); 
@@ -138,38 +133,30 @@ export const ComplianceVisualizer: React.FC = () => {
         };
         
         const sphereTargets = generateSpherePoints(PARTICLE_COUNT, 200);
-
-        // Assign targets once
         particles.forEach((p, i) => {
             if (sphereTargets[i]) p.target = sphereTargets[i];
         });
 
         // --- RENDER LOOP ---
         const render = () => {
-            // SLOW DOWN: 50% Speed
             time += 0.005; 
-            phaseTimer += 1; // Timer still ticks frames
+            phaseTimer += 1; 
 
             // Phase Switching Logic
-            if (currentPhase === 0 && phaseTimer > 400) { // Chaos
-                currentPhase = 1; 
-                phaseTimer = 0;
-            } else if (currentPhase === 1 && phaseTimer > 300) { // Vortex
-                currentPhase = 2; 
-                phaseTimer = 0;
-            } else if (currentPhase === 2 && phaseTimer > 600) { // Locked
-                // EXPLODE reset
-                currentPhase = 0;
+            if (currentPhase === 0 && phaseTimer > 400) { currentPhase = 1; phaseTimer = 0; } 
+            else if (currentPhase === 1 && phaseTimer > 300) { currentPhase = 2; phaseTimer = 0; } 
+            else if (currentPhase === 2 && phaseTimer > 600) { 
+                currentPhase = 0; 
                 phaseTimer = 0;
                 particles.forEach(p => {
-                    p.vx = (Math.random() - 0.5) * 10; // Slower explosion
+                    p.vx = (Math.random() - 0.5) * 10;
                     p.vy = (Math.random() - 0.5) * 10;
                     p.vz = (Math.random() - 0.5) * 10;
                 });
             }
 
-            // Canvas Clear
-            ctx.fillStyle = 'rgba(2, 2, 2, 0.2)'; // Heavy trails
+            // Clear Background
+            ctx.fillStyle = 'rgba(2, 2, 2, 0.25)'; // Slower fade for better trails
             ctx.fillRect(0, 0, width, height);
 
             const cx = width / 2;
@@ -177,68 +164,92 @@ export const ComplianceVisualizer: React.FC = () => {
             const rotX = time * 0.2;
             const rotY = time * 0.3;
 
-            // Draw Connection Lines (Only in Phase 2)
+            // 1. UPDATE & PROJECT
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles[i].update(width, height);
+                particles[i].project(cx, cy, rotX, rotY);
+            }
+
+            // 2. BATCH DRAW LINES (Only in Phase 2)
             if (currentPhase === 2) {
-                const pulse = Math.sin(time * 5) * 0.5 + 0.5; // 0 to 1
-                ctx.strokeStyle = `rgba(105, 183, 178, ${0.1 + pulse * 0.2})`; // Brand teal pulse
+                const pulse = Math.sin(time * 5) * 0.5 + 0.5;
+                ctx.strokeStyle = `rgba(105, 183, 178, ${0.1 + pulse * 0.2})`;
                 ctx.lineWidth = 0.5;
                 ctx.beginPath();
                 
-                // Connect particles to neighbors
-                for (let i = 0; i < particles.length; i++) {
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
                     const p1 = particles[i];
-                    // Check next few particles
+                    if (p1.scale <= 0) continue;
+
+                    // Only connect to immediate neighbors in array for performance (pseudo-spatial)
                     for(let j=1; j<=3; j++) {
-                        const p2 = particles[(i+j) % particles.length];
-                        if (p1.target && p2.target) {
-                            let x1 = p1.x, y1 = p1.y, z1 = p1.z;
-                            let x1_r = x1*Math.cos(rotY)-z1*Math.sin(rotY); let z1_r = z1*Math.cos(rotY)+x1*Math.sin(rotY);
-                            let y1_r = y1*Math.cos(rotX)-z1_r*Math.sin(rotX); let z1_rr = z1_r*Math.cos(rotX)+y1*Math.sin(rotX);
-                            const s1 = PERSPECTIVE/(PERSPECTIVE+z1_rr);
-
-                            let x2 = p2.x, y2 = p2.y, z2 = p2.z;
-                            let x2_r = x2*Math.cos(rotY)-z2*Math.sin(rotY); let z2_r = z2*Math.cos(rotY)+x2*Math.sin(rotY);
-                            let y2_r = y2*Math.cos(rotX)-z2_r*Math.sin(rotX); let z2_rr = z2_r*Math.cos(rotX)+y2*Math.sin(rotX);
-                            const s2 = PERSPECTIVE/(PERSPECTIVE+z2_rr);
-
-                            if (s1 > 0 && s2 > 0) {
-                                ctx.moveTo(cx + x1_r*s1, cy + y1_r*s1);
-                                ctx.lineTo(cx + x2_r*s2, cy + y2_r*s2);
-                            }
+                        const p2 = particles[(i+j) % PARTICLE_COUNT];
+                        if (p2.scale > 0 && p1.target && p2.target) {
+                            ctx.moveTo(p1.px, p1.py);
+                            ctx.lineTo(p2.px, p2.py);
                         }
                     }
                 }
                 ctx.stroke();
             }
 
-            // Draw Particles
-            particles.forEach(p => {
-                p.update(time);
-                p.draw(ctx, cx, cy, rotX, rotY);
-            });
+            // 3. BATCH DRAW PARTICLES
+            // Group 1: Primary Colors (Teal/Cyan)
+            ctx.beginPath();
+            ctx.fillStyle = currentPhase === 1 ? '#22d3ee' : '#69B7B2';
+            let hasPrimary = false;
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const p = particles[i];
+                if (p.scale <= 0) continue;
+                
+                // If it matches primary color or we are in phase 1/2
+                if (currentPhase > 0 || p.color === '#69B7B2') {
+                    hasPrimary = true;
+                    const s = p.size * p.scale;
+                    ctx.rect(p.px - s/2, p.py - s/2, s, s);
+                }
+            }
+            if (hasPrimary) ctx.fill();
+
+            // Group 2: Secondary Colors (Slate - only in Phase 0)
+            if (currentPhase === 0) {
+                ctx.beginPath();
+                ctx.fillStyle = '#cbd5e1';
+                let hasSecondary = false;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const p = particles[i];
+                    if (p.scale > 0 && p.color !== '#69B7B2') {
+                        hasSecondary = true;
+                        const s = p.size * p.scale;
+                        ctx.rect(p.px - s/2, p.py - s/2, s, s);
+                    }
+                }
+                if (hasSecondary) ctx.fill();
+            }
 
             // HUD Text
             ctx.font = '12px monospace';
             ctx.textAlign = 'center';
             if (currentPhase === 0) {
-                ctx.fillStyle = `rgba(148, 163, 184, ${0.5 + Math.random()*0.5})`; // Slate instead of white
+                ctx.fillStyle = `rgba(148, 163, 184, ${0.5 + Math.random()*0.5})`;
                 ctx.fillText("/// ANALYZING DATA STREAM ///", cx, cy + 250);
             } else if (currentPhase === 1) {
                 ctx.fillStyle = '#22d3ee';
                 ctx.fillText("/// ENCRYPTING PROTOCOLS ///", cx, cy + 250);
                 
-                // Draw suction ring
+                // Ring batch
                 ctx.strokeStyle = `rgba(34, 211, 238, ${Math.random()})`;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(cx, cy, 220 - (phaseTimer/300)*200, 0, Math.PI*2); // Slower contraction
+                ctx.arc(cx, cy, 220 - (phaseTimer/300)*200, 0, Math.PI*2);
                 ctx.stroke();
 
             } else if (currentPhase === 2) {
                 ctx.fillStyle = '#69B7B2';
                 ctx.fillText("/// SYSTEM SECURED ///", cx, cy + 250);
                 
-                // Scanline
+                // Scanline batch
                 const scanY = cy - 220 + (phaseTimer % 100) * 4.4;
                 ctx.fillStyle = 'rgba(105, 183, 178, 0.1)';
                 ctx.fillRect(cx - 250, scanY, 500, 5);
