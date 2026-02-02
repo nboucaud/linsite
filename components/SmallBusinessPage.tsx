@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SmallBusinessHeroVisualizer } from './SmallBusinessHeroVisualizer';
 import { IndustryNavigationFooter } from './IndustryNavigationFooter';
+import { ViewportSlot } from './ViewportSlot';
 
 // --- UTILS ---
 const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
@@ -392,16 +393,18 @@ export const SmallBusinessPage: React.FC = () => {
                     </div>
 
                     {/* --- CONTEXT --- */}
-                    <section className="py-32 bg-[#050505] border-b border-white/5 relative">
-                        <div className="absolute top-0 right-0 p-64 bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
-                        
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
-                            <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Scaling Paradox</h2>
-                            <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
-                                SMB Operations refers to small and mid-sized businesses where operational decisions, revenue strategy, analytics, and technology adoption are tightly coupled and continuously evolving. Unlike large enterprises, SMBs operate without the buffer of specialized departments. Planning, execution, and adjustment occur simultaneously. As SMBs grow, operational complexity increases faster than formal structure. Success depends on integrated systems that support planning, execution, and scaling while preserving speed, accountability, and adaptability.
-                            </p>
-                        </div>
-                    </section>
+                    <ViewportSlot minHeight="600px">
+                        <section className="py-32 bg-[#050505] border-b border-white/5 relative">
+                            <div className="absolute top-0 right-0 p-64 bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
+                            
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
+                                <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Scaling Paradox</h2>
+                                <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
+                                    SMB Operations refers to small and mid-sized businesses where operational decisions, revenue strategy, analytics, and technology adoption are tightly coupled and continuously evolving. Unlike large enterprises, SMBs operate without the buffer of specialized departments. Planning, execution, and adjustment occur simultaneously. As SMBs grow, operational complexity increases faster than formal structure. Success depends on integrated systems that support planning, execution, and scaling while preserving speed, accountability, and adaptability.
+                                </p>
+                            </div>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- STATS GRID --- */}
                     <section className="py-24 bg-[#08080a] border-b border-white/5">
@@ -415,24 +418,26 @@ export const SmallBusinessPage: React.FC = () => {
                     </section>
 
                     {/* --- PILLARS --- */}
-                    <section id="strategic-domains" className="py-24 bg-[#020202] scroll-mt-24">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="text-center mb-20">
-                                <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
-                                <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
-                            </div>
+                    <ViewportSlot minHeight="800px" id="strategic-domains">
+                        <section className="py-24 bg-[#020202] scroll-mt-24">
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12">
+                                <div className="text-center mb-20">
+                                    <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
+                                    <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
+                                </div>
 
-                            <div className="grid md:grid-cols-3 gap-8">
-                                {PILLARS.map((pillar) => (
-                                    <TiltPillarCard 
-                                        key={pillar.id}
-                                        pillar={pillar}
-                                        onClick={() => handleExpand(pillar.id)}
-                                    />
-                                ))}
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    {PILLARS.map((pillar) => (
+                                        <TiltPillarCard 
+                                            key={pillar.id}
+                                            pillar={pillar}
+                                            onClick={() => handleExpand(pillar.id)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- NEW CROSS-NAVIGATION FOOTER --- */}
                     <IndustryNavigationFooter currentId="smb" />

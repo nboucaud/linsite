@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShieldAlert, Factory, HardHat, FileWarning, Search, CheckCircle2, ArrowRight, X, Gauge, Activity, Radio, Cpu, Crosshair, Zap, AlertTriangle, Users, Network, ScanLine, Database, ImageIcon, ChevronUp } from 'lucide-react';
 import { IndustrialsHeroVisualizer } from './IndustrialsHeroVisualizer';
 import { IndustryNavigationFooter } from './IndustryNavigationFooter';
+import { ViewportSlot } from './ViewportSlot';
 
 // --- UTILS ---
 const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
@@ -170,9 +171,7 @@ const ECOSYSTEM = [
     "SAP", "Oracle", "IBM", "Microsoft Azure", "AWS"
 ];
 
-// ... (VISUALIZERS & COMPONENTS KEPT SAME AS PREVIOUS)
-// RE-ADDING VISUALIZERS FOR FILE INTEGRITY
-
+// ... (VISUALIZERS KEPT UNCHANGED) ...
 const WaveformVisualizer = ({ color }: { color: string }) => (
     <div className="w-full h-full flex items-center justify-center opacity-60 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" 
@@ -550,24 +549,26 @@ export const IndustrialsPage: React.FC = () => {
                     </section>
 
                     {/* --- PILLARS --- */}
-                    <section id="strategic-domains" className="py-24 bg-[#020202] scroll-mt-24">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="text-center mb-20">
-                                <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
-                                <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
-                            </div>
+                    <ViewportSlot minHeight="800px" id="strategic-domains">
+                        <section className="py-24 bg-[#020202] scroll-mt-24">
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12">
+                                <div className="text-center mb-20">
+                                    <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
+                                    <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
+                                </div>
 
-                            <div className="grid md:grid-cols-3 gap-8">
-                                {PILLARS.map((pillar) => (
-                                    <DomainCard 
-                                        key={pillar.id}
-                                        pillar={pillar}
-                                        onClick={() => handleExpand(pillar.id)}
-                                    />
-                                ))}
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    {PILLARS.map((pillar) => (
+                                        <DomainCard 
+                                            key={pillar.id}
+                                            pillar={pillar}
+                                            onClick={() => handleExpand(pillar.id)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- ECOSYSTEM FOOTER --- */}
                     <section className="py-32 border-t border-white/5 bg-[#050505]">

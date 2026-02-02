@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Target, Shield, Users, Clock, ArrowRight, Binary, Fingerprint, History, Cpu, Globe, Zap, FileText, User, Sparkles, Code, Network, Layers, Database, Lock, ScanLine, Terminal, ChevronDown } from 'lucide-react';
+import { ViewportSlot } from './ViewportSlot';
 
 // --- VISUALIZERS ---
 
@@ -336,7 +337,7 @@ export const AboutPage: React.FC = () => {
     return (
         <div className="relative min-h-screen bg-[#020202] text-white pt-24 font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
             
-            {/* HERO SECTION */}
+            {/* HERO SECTION - Keep Eager */}
             <section className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 flex flex-col items-center text-center">
                 <div className="absolute inset-0 z-0 opacity-100 pointer-events-none">
                     <OriginVisualizer />
@@ -360,120 +361,128 @@ export const AboutPage: React.FC = () => {
             </section>
 
             {/* PHILOSOPHY: THE STACK */}
-            <section className="py-32 bg-[#050505] border-y border-white/5">
-                <div className="max-w-6xl mx-auto px-6">
-                    <ScrollReveal className="mb-20 text-center">
-                        <h2 className="text-3xl font-serif text-white mb-4">The Intelligence Stack</h2>
-                        <p className="text-white/50">We don't just "do AI." We rebuild the way organizations think, layer by layer.</p>
-                    </ScrollReveal>
+            <ViewportSlot minHeight="600px">
+                <section className="py-32 bg-[#050505] border-y border-white/5">
+                    <div className="max-w-6xl mx-auto px-6">
+                        <ScrollReveal className="mb-20 text-center">
+                            <h2 className="text-3xl font-serif text-white mb-4">The Intelligence Stack</h2>
+                            <p className="text-white/50">We don't just "do AI." We rebuild the way organizations think, layer by layer.</p>
+                        </ScrollReveal>
 
-                    <IntelligenceStack />
-                </div>
-            </section>
+                        <IntelligenceStack />
+                    </div>
+                </section>
+            </ViewportSlot>
 
             {/* INTERACTIVE TIMELINE */}
-            <section className="relative py-32 bg-[#020202]">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(105,183,178,0.05),transparent)] pointer-events-none" />
-                
-                <div className="relative z-10 max-w-5xl mx-auto px-6">
-                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/5 -translate-x-1/2 z-0 hidden md:block" />
+            <ViewportSlot minHeight="800px">
+                <section className="relative py-32 bg-[#020202]">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(105,183,178,0.05),transparent)] pointer-events-none" />
                     
-                    <TimelineItem 
-                        year="2024" 
-                        title="The Signal" 
-                        desc="Identifying the critical gap: Industrial sectors were drowning in unstructured data while AI was hallucinating poetry. We built the first 'Truth Engine' prototype to anchor LLMs to ground truth."
-                        icon={Binary}
-                        align="right"
-                    />
-                    <TimelineItem 
-                        year="2025" 
-                        title="The Breach" 
-                        desc="First major deployment in the energy sector. Our system predicted a grid failure 48 hours in advance using only archived maintenance logs, proving the value of 'dormant data'."
-                        icon={Zap}
-                        align="left"
-                    />
-                    <TimelineItem 
-                        year="2026" 
-                        title="The Network" 
-                        desc="Expanded to Healthcare and Logistics. The launch of the 'Walled Garden' architecture allowed secure, air-gapped deployment for government clients requiring zero-trust environments."
-                        icon={Network}
-                        align="right"
-                    />
-                    <TimelineItem 
-                        year="2027" 
-                        title="The Standard" 
-                        desc="Infogito becomes the de-facto operating system for regulated industries. Intelligence is no longer a luxury; it is the primary infrastructure for decision making."
-                        icon={Shield}
-                        align="left"
-                        isLast={true}
-                    />
-                </div>
-            </section>
+                    <div className="relative z-10 max-w-5xl mx-auto px-6">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/5 -translate-x-1/2 z-0 hidden md:block" />
+                        
+                        <TimelineItem 
+                            year="2024" 
+                            title="The Signal" 
+                            desc="Identifying the critical gap: Industrial sectors were drowning in unstructured data while AI was hallucinating poetry. We built the first 'Truth Engine' prototype to anchor LLMs to ground truth."
+                            icon={Binary}
+                            align="right"
+                        />
+                        <TimelineItem 
+                            year="2025" 
+                            title="The Breach" 
+                            desc="First major deployment in the energy sector. Our system predicted a grid failure 48 hours in advance using only archived maintenance logs, proving the value of 'dormant data'."
+                            icon={Zap}
+                            align="left"
+                        />
+                        <TimelineItem 
+                            year="2026" 
+                            title="The Network" 
+                            desc="Expanded to Healthcare and Logistics. The launch of the 'Walled Garden' architecture allowed secure, air-gapped deployment for government clients requiring zero-trust environments."
+                            icon={Network}
+                            align="right"
+                        />
+                        <TimelineItem 
+                            year="2027" 
+                            title="The Standard" 
+                            desc="Infogito becomes the de-facto operating system for regulated industries. Intelligence is no longer a luxury; it is the primary infrastructure for decision making."
+                            icon={Shield}
+                            align="left"
+                            isLast={true}
+                        />
+                    </div>
+                </section>
+            </ViewportSlot>
 
             {/* MANIFESTO GRID */}
-            <section className="py-32 border-t border-white/5 bg-[#050505] relative">
-                <div className="absolute inset-0 opacity-20 pointer-events-none" 
-                    style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
-                />
+            <ViewportSlot minHeight="600px">
+                <section className="py-32 border-t border-white/5 bg-[#050505] relative">
+                    <div className="absolute inset-0 opacity-20 pointer-events-none" 
+                        style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+                    />
 
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <ScrollReveal className="mb-20 text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 mb-4 text-[#69B7B2] font-mono text-xs uppercase tracking-widest">
-                            <Target size={14} /> Mission Parameters
-                        </div>
-                        <h2 className="text-4xl md:text-6xl font-serif text-white mb-6">Core Directives</h2>
-                        <p className="text-white/50 max-w-xl">The operating principles hard-coded into our culture.</p>
-                    </ScrollReveal>
+                    <div className="max-w-7xl mx-auto px-6 relative z-10">
+                        <ScrollReveal className="mb-20 text-center md:text-left">
+                            <div className="inline-flex items-center gap-2 mb-4 text-[#69B7B2] font-mono text-xs uppercase tracking-widest">
+                                <Target size={14} /> Mission Parameters
+                            </div>
+                            <h2 className="text-4xl md:text-6xl font-serif text-white mb-6">Core Directives</h2>
+                            <p className="text-white/50 max-w-xl">The operating principles hard-coded into our culture.</p>
+                        </ScrollReveal>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-                        {[
-                            { title: "Zero Hallucination", desc: "If the AI doesn't know, it says 'I don't know'. Accuracy over fluency. We build tools for engineers, not poets.", icon: FileText, color: "text-red-400" },
-                            { title: "Radical Sovereignty", desc: "Your data never trains our models. It stays in your garden, forever. We sell the engine, not the fuel.", icon: Fingerprint, color: "text-[#69B7B2]" },
-                            { title: "Human Command", desc: "AI suggests; Humans decide. We build tools for pilots, not autopilots. Accountability remains with the operator.", icon: User, color: "text-amber-400" }
-                        ].map((item, i) => (
-                            <ScrollReveal key={i} className={`delay-[${i*200}ms]`}>
-                                <div className="h-full bg-[#0a0a0c] border border-white/10 p-10 hover:bg-[#0f0f11] transition-colors group">
-                                    <div className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 mb-8 ${item.color} group-hover:scale-110 transition-transform`}>
-                                        <item.icon size={24} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+                            {[
+                                { title: "Zero Hallucination", desc: "If the AI doesn't know, it says 'I don't know'. Accuracy over fluency. We build tools for engineers, not poets.", icon: FileText, color: "text-red-400" },
+                                { title: "Radical Sovereignty", desc: "Your data never trains our models. It stays in your garden, forever. We sell the engine, not the fuel.", icon: Fingerprint, color: "text-[#69B7B2]" },
+                                { title: "Human Command", desc: "AI suggests; Humans decide. We build tools for pilots, not autopilots. Accountability remains with the operator.", icon: User, color: "text-amber-400" }
+                            ].map((item, i) => (
+                                <ScrollReveal key={i} className={`delay-[${i*200}ms]`}>
+                                    <div className="h-full bg-[#0a0a0c] border border-white/10 p-10 hover:bg-[#0f0f11] transition-colors group">
+                                        <div className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 mb-8 ${item.color} group-hover:scale-110 transition-transform`}>
+                                            <item.icon size={24} />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
+                                        <p className="text-white/50 leading-relaxed text-sm">{item.desc}</p>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
-                                    <p className="text-white/50 leading-relaxed text-sm">{item.desc}</p>
-                                </div>
-                            </ScrollReveal>
-                        ))}
+                                </ScrollReveal>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            </ViewportSlot>
 
             {/* TEAM SECTION */}
-            <section className="py-32 bg-[#020202] border-t border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
-                    <ScrollReveal className="flex justify-between items-end mb-16">
-                        <div>
-                            <div className="text-[#69B7B2] font-mono text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                                <Users size={12} /> Active Personnel
+            <ViewportSlot minHeight="600px">
+                <section className="py-32 bg-[#020202] border-t border-white/5">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <ScrollReveal className="flex justify-between items-end mb-16">
+                            <div>
+                                <div className="text-[#69B7B2] font-mono text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <Users size={12} /> Active Personnel
+                                </div>
+                                <h2 className="text-4xl font-serif text-white">The Architects</h2>
                             </div>
-                            <h2 className="text-4xl font-serif text-white">The Architects</h2>
-                        </div>
-                        <button className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors group">
-                            View Roster <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </ScrollReveal>
+                            <button className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors group">
+                                View Roster <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </ScrollReveal>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {[
-                            { name: "Sarah Chen", role: "Chief Systems Architect", prev: "DARPA", code: "SYS_ADMIN_01" },
-                            { name: "Marcus Thorne", role: "Head of Security", prev: "NSA", code: "SEC_OPS_LEAD" },
-                            { name: "Elena Vos", role: "Product Lead", prev: "SpaceX", code: "PROD_DEV_HEAD" },
-                            { name: "David Kim", role: "Research Director", prev: "DeepMind", code: "R&D_DIRECTOR" },
-                        ].map((member, i) => (
-                            <ScrollReveal key={i} className={`delay-[${i*100}ms]`}>
-                                <AgentDossier member={member} />
-                            </ScrollReveal>
-                        ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[
+                                { name: "Sarah Chen", role: "Chief Systems Architect", prev: "DARPA", code: "SYS_ADMIN_01" },
+                                { name: "Marcus Thorne", role: "Head of Security", prev: "NSA", code: "SEC_OPS_LEAD" },
+                                { name: "Elena Vos", role: "Product Lead", prev: "SpaceX", code: "PROD_DEV_HEAD" },
+                                { name: "David Kim", role: "Research Director", prev: "DeepMind", code: "R&D_DIRECTOR" },
+                            ].map((member, i) => (
+                                <ScrollReveal key={i} className={`delay-[${i*100}ms]`}>
+                                    <AgentDossier member={member} />
+                                </ScrollReveal>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            </ViewportSlot>
 
             {/* FOUNDER'S NOTE */}
             <section className="py-32 bg-[#08080a] border-t border-white/5">

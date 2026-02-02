@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Activity, Shield, FileText, Lock, Brain, Microscope, BarChart3, Users, Clock, AlertCircle, CheckCircle2, ArrowRight, Database, ChevronDown, ArrowLeft, Maximize2, Zap, X, FileWarning, TrendingUp, Scale, ScanLine, ImageIcon, ChevronUp } from 'lucide-react';
 import { HealthcareHeroVisualizer } from './HealthcareHeroVisualizer';
 import { IndustryNavigationFooter } from './IndustryNavigationFooter';
+import { ViewportSlot } from './ViewportSlot';
 
 // --- TEXT FORMATTER ---
 const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
@@ -271,8 +272,12 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY };
+            if (canvasRef.current) {
+                const rect = canvasRef.current.getBoundingClientRect();
+                mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            }
         };
+        // Attach global listener to track mouse even if not over canvas for ambient effects
         window.addEventListener('mousemove', handleMouseMove);
         return () => window.removeEventListener('mousemove', handleMouseMove);
     }, []);
@@ -283,8 +288,8 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let w = canvas.width = window.innerWidth;
-        let h = canvas.height = window.innerHeight;
+        let w = canvas.width;
+        let h = canvas.height;
         let time = 0;
         let animationFrameId: number;
 
@@ -459,13 +464,20 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
             ctx.globalCompositeOperation = 'source-over';
             animationFrameId = requestAnimationFrame(render);
         };
-        render();
-
+        
         const handleResize = () => {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
+            if (canvas.parentElement) {
+                w = canvas.width = canvas.parentElement.clientWidth;
+                h = canvas.height = canvas.parentElement.clientHeight;
+            } else {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
         };
         window.addEventListener('resize', handleResize);
+        handleResize(); // Init size
+        render();
+
         return () => {
             window.removeEventListener('resize', handleResize);
             cancelAnimationFrame(animationFrameId);
@@ -476,214 +488,31 @@ const PillarCanvas: React.FC<{ mode: string, color: string }> = ({ mode, color }
 };
 
 const DomainCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar, onClick }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isHovered, setIsHovered] = useState(false);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let w = canvas.width = canvas.clientWidth;
-        let h = canvas.height = canvas.clientHeight;
-        let frameId: number;
-        let time = 0;
-
-        const drawGrid = () => {
-            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-            ctx.lineWidth = 1;
-            const size = 30;
-            for(let x=0; x<w; x+=size) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-            for(let y=0; y<h; y+=size) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-        };
-
-        const render = () => {
-            time += isHovered ? 0.05 : 0.02;
-            
-            // Re-check size
-            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
-                w = canvas.width = canvas.clientWidth;
-                h = canvas.height = canvas.clientHeight;
-            }
-
-            ctx.clearRect(0, 0, w, h);
-            drawGrid();
-
-            const cx = w/2;
-            const cy = h/2;
-
-            if (pillar.visualMode === 'shield') {
-                // RADAR SCANNER
-                ctx.translate(cx, cy);
-                
-                // Rings
-                ctx.strokeStyle = `rgba(255,255,255,${isHovered ? 0.2 : 0.1})`;
-                ctx.beginPath(); ctx.arc(0,0, 40, 0, Math.PI*2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(0,0, 80, 0, Math.PI*2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(0,0, 120, 0, Math.PI*2); ctx.stroke();
-
-                // Sweep
-                ctx.rotate(time);
-                const grad = ctx.createLinearGradient(0,0, 120, 0);
-                grad.addColorStop(0, 'transparent');
-                grad.addColorStop(1, pillar.color);
-                ctx.fillStyle = grad;
-                ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0, 120, -0.2, 0.2); ctx.fill();
-                
-                // Blips
-                if (Math.random() > 0.95) {
-                    const r = Math.random() * 100;
-                    const a = Math.random() * Math.PI * 2;
-                    ctx.fillStyle = pillar.color;
-                    ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, 2, 0, Math.PI*2); ctx.fill();
-                }
-
-                ctx.setTransform(1,0,0,1,0,0);
-            } 
-            else if (pillar.visualMode === 'pulse') {
-                // EKG MONITOR
-                ctx.strokeStyle = pillar.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                
-                const points = 100;
-                const step = w / points;
-                
-                for(let i=0; i<points; i++) {
-                    const x = i * step;
-                    // Moving pulse window
-                    const offset = (x - (time * 100) % (w + 200));
-                    let y = h/2;
-                    
-                    if (Math.abs(offset) < 50) {
-                        // QRS Complex logic
-                        const t = offset / 50; // -1 to 1
-                        y += Math.sin(t * 10) * Math.exp(-t*t * 5) * 80;
-                    }
-                    
-                    // Random noise
-                    y += (Math.random() - 0.5) * 4;
-
-                    if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                
-                // Scan line
-                const scanX = (time * 100) % w;
-                const g = ctx.createLinearGradient(scanX, 0, scanX-50, 0);
-                g.addColorStop(0, pillar.color);
-                g.addColorStop(1, 'transparent');
-                ctx.fillStyle = g;
-                ctx.fillRect(scanX-50, 0, 50, h);
-            }
-            else if (pillar.visualMode === 'flow') {
-                // DNA HELIX
-                const strands = 2;
-                const amplitude = 40;
-                const frequency = 0.02;
-                const speed = time * 2;
-                
-                for(let s=0; s<strands; s++) {
-                    const phase = s * Math.PI;
-                    ctx.fillStyle = s === 0 ? pillar.color : '#ffffff';
-                    
-                    for(let x=0; x<w; x+=10) {
-                        const y = h/2 + Math.sin(x * frequency + speed + phase) * amplitude;
-                        const size = 2 + Math.cos(x * frequency + speed + phase) * 1;
-                        
-                        ctx.globalAlpha = 0.5 + Math.cos(x * frequency + speed + phase) * 0.4;
-                        ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
-                        
-                        // Connector
-                        if (s===0 && x % 20 === 0) {
-                            const y2 = h/2 + Math.sin(x * frequency + speed + Math.PI) * amplitude;
-                            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                            ctx.lineWidth = 1;
-                            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y2); ctx.stroke();
-                        }
-                    }
-                }
-                ctx.globalAlpha = 1;
-            }
-            else if (pillar.visualMode === 'network') {
-                // SYNAPSE
-                const nodes = 15;
-                const r = 150;
-                
-                ctx.translate(cx, cy);
-                ctx.rotate(time * 0.1);
-                
-                for(let i=0; i<nodes; i++) {
-                    const angle = (i / nodes) * Math.PI * 2;
-                    const rad = r + Math.sin(time * 2 + i) * 20;
-                    const x = Math.cos(angle) * rad;
-                    const y = Math.sin(angle) * rad;
-                    
-                    ctx.fillStyle = pillar.color;
-                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
-                    
-                    // Connections to center or neighbors
-                    ctx.strokeStyle = `rgba(255,255,255,0.1)`;
-                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(0,0); ctx.stroke();
-                    
-                    const nextAngle = ((i+1) / nodes) * Math.PI * 2;
-                    const nextX = Math.cos(nextAngle) * (r + Math.sin(time * 2 + i+1) * 20);
-                    const nextY = Math.sin(nextAngle) * (r + Math.sin(time * 2 + i+1) * 20);
-                    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nextX, nextY); ctx.stroke();
-                }
-                
-                // Central Pulse
-                const pulse = 1 + Math.sin(time * 5) * 0.2;
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(0,0, 5 * pulse, 0, Math.PI*2); ctx.fill();
-                
-                ctx.setTransform(1,0,0,1,0,0);
-            }
-
-            frameId = requestAnimationFrame(render);
-        };
-        render();
-
-        return () => cancelAnimationFrame(frameId);
-    }, [isHovered, pillar]);
-
     return (
         <div 
             onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="group relative h-[420px] bg-[#0c0c0e] border border-white/10 rounded-3xl overflow-hidden cursor-pointer hover:border-white/30 transition-all duration-500 hover:shadow-2xl"
+            className="group relative h-[450px] bg-[#0c0c0e] border border-white/10 rounded-3xl overflow-hidden cursor-pointer hover:border-white/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col"
         >
-            {/* CANVAS LAYER */}
-            <div className="absolute inset-0 opacity-40 group-hover:opacity-100 transition-opacity duration-700">
-                <canvas ref={canvasRef} className="w-full h-full block" />
+            {/* Visualizer Background */}
+            <div className="absolute inset-0 opacity-40 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-screen">
+                <PillarCanvas mode={pillar.visualMode} color={pillar.color} />
             </div>
-            
-            {/* CONTENT LAYER */}
-            <div className="relative z-10 flex flex-col h-full p-8 pointer-events-none">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-auto">
-                    <div 
-                        className="w-12 h-12 rounded-xl bg-[#0a0a0c] border border-white/10 flex items-center justify-center text-white/50 group-hover:scale-110 group-hover:text-white transition-all duration-500 shadow-xl"
-                        style={{ borderColor: isHovered ? pillar.color : 'rgba(255,255,255,0.1)' }}
-                    >
-                        {React.createElement(pillar.icon, { size: 20, color: isHovered ? pillar.color : undefined })}
-                    </div>
+
+            {/* Gradient Overlay for Text Readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-transparent to-transparent opacity-80" />
+
+            {/* Content */}
+            <div className="relative z-10 p-8 flex flex-col h-full pointer-events-none">
+                <div className="w-12 h-12 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center text-white/50 group-hover:text-white group-hover:scale-110 transition-all backdrop-blur-md mb-auto group-hover:bg-white/10 group-hover:border-white/20">
+                    {React.createElement(pillar.icon, { size: 20 })}
                 </div>
 
-                {/* Body */}
-                <div className="mt-auto bg-[#0c0c0e]/80 backdrop-blur-md p-6 -mx-8 -mb-8 border-t border-white/10 group-hover:border-white/20 transition-colors">
-                    <h3 className="text-xl font-serif text-white mb-2 group-hover:translate-x-1 transition-transform">
-                        {pillar.title}
-                    </h3>
-                    <p className="text-xs text-white/50 leading-relaxed mb-4 line-clamp-3">
-                        {pillar.shortDesc}
-                    </p>
-                    
-                    <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest font-bold text-white/40 group-hover:text-white transition-colors">
-                        <span>Initialize</span>
-                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                <div className="bg-[#0c0c0e]/80 backdrop-blur-xl p-6 -mx-8 -mb-8 border-t border-white/10 group-hover:border-white/20 transition-colors">
+                    <h3 className="text-lg font-serif text-white mb-2 group-hover:text-amber-400 transition-colors">{pillar.title}</h3>
+                    <p className="text-xs text-white/50 leading-relaxed mb-4 line-clamp-3">{pillar.shortDesc}</p>
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-white/30 group-hover:text-white transition-colors">
+                        <span>Initialize Protocol</span>
+                        <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                 </div>
             </div>
@@ -779,16 +608,18 @@ export const HealthcarePage: React.FC = () => {
                     </div>
 
                     {/* --- SECTOR CONTEXT --- */}
-                    <section className="py-32 bg-[#050505] border-b border-white/5 relative overflow-hidden animate-in fade-in duration-700">
-                        <div className="absolute top-0 right-0 p-64 bg-teal-500/5 blur-[120px] rounded-full pointer-events-none" />
-                        
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
-                            <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Operational Reality</h2>
-                            <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
-                                Healthcare organizations are operating in an environment of rising scrutiny, constrained labor, and increasing operational complexity. Driven by regulatory complexity, workforce shortages, and fragmented care environments. Care delivery now spans acute, long-term, and specialized settings, where small operational failures can cascade into patient harm, compliance exposure, and financial risk. As systems grow more interconnected, leaders are under pressure to improve visibility, coordination, and continuity without disrupting care or violating regulatory boundaries. Moving forward requires rethinking how operational decisions, documentation, and accountability are supported across the healthcare ecosystem.
-                            </p>
-                        </div>
-                    </section>
+                    <ViewportSlot minHeight="600px">
+                        <section className="py-32 bg-[#050505] border-b border-white/5 relative overflow-hidden animate-in fade-in duration-700">
+                            <div className="absolute top-0 right-0 p-64 bg-teal-500/5 blur-[120px] rounded-full pointer-events-none" />
+                            
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
+                                <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Operational Reality</h2>
+                                <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
+                                    Healthcare organizations are operating in an environment of rising scrutiny, constrained labor, and increasing operational complexity. Driven by regulatory complexity, workforce shortages, and fragmented care environments. Care delivery now spans acute, long-term, and specialized settings, where small operational failures can cascade into patient harm, compliance exposure, and financial risk. As systems grow more interconnected, leaders are under pressure to improve visibility, coordination, and continuity without disrupting care or violating regulatory boundaries. Moving forward requires rethinking how operational decisions, documentation, and accountability are supported across the healthcare ecosystem.
+                                </p>
+                            </div>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- STATS GRID --- */}
                     <section className="py-24 bg-[#08080a] border-b border-white/5 animate-in fade-in duration-700">
@@ -802,24 +633,26 @@ export const HealthcarePage: React.FC = () => {
                     </section>
 
                     {/* --- PILLAR GRID (Selection View) --- */}
-                    <section id="strategic-domains" className="py-24 bg-[#020202] animate-in fade-in zoom-in-95 duration-700 scroll-mt-24">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="text-center mb-20">
-                                <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
-                                <p className="text-white/50 max-w-2xl mx-auto">Select a core operational pillar to explore our specific interventions and technical approach.</p>
-                            </div>
+                    <ViewportSlot minHeight="800px" id="strategic-domains">
+                        <section className="py-24 bg-[#020202] animate-in fade-in zoom-in-95 duration-700 scroll-mt-24">
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12">
+                                <div className="text-center mb-20">
+                                    <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
+                                    <p className="text-white/50 max-w-2xl mx-auto">Select a core operational pillar to explore our specific interventions and technical approach.</p>
+                                </div>
 
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {PILLARS.map((pillar) => (
-                                    <DomainCard 
-                                        key={pillar.id} 
-                                        pillar={pillar} 
-                                        onClick={() => handleExpand(pillar.id)} 
-                                    />
-                                ))}
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {PILLARS.map((pillar) => (
+                                        <DomainCard 
+                                            key={pillar.id} 
+                                            pillar={pillar} 
+                                            onClick={() => handleExpand(pillar.id)} 
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- ECOSYSTEM FOOTER --- */}
                     <section className="py-32 border-t border-white/5 bg-[#050505]">

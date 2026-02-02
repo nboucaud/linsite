@@ -1,17 +1,15 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { MoveRight, Shield, Database, Search, EyeOff, Lock, BarChart3, Shuffle, UserCheck, ChevronDown, Globe, Zap, Fingerprint, Network, FileText, CheckCircle2, Server, Key, Box, Download, Mail, Phone, Terminal, Radio, Building2, Truck, Briefcase, Factory, Activity, ArrowUpRight, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { NeuralBackground } from './NeuralBackground';
+import { MoveRight, Shield, Lock, UserCheck, ChevronDown, Globe, Box, Mail, Terminal, Building2, Truck, Briefcase, Factory, Activity, ArrowUpRight, ChevronLeft, ChevronRight, Loader2, Server, Key, CheckCircle2 } from 'lucide-react';
 import { HeroVisualizer } from './HeroVisualizer'; // Keep Hero synchronous for instant LCP
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
 
 // --- LAZY LOADED COMPONENTS ---
-// We lazy load these so their code isn't even parsed until needed
 const UseCaseShowcase = React.lazy(() => import('./UseCaseShowcase').then(module => ({ default: module.UseCaseShowcase })));
 const FeatureShowcase = React.lazy(() => import('./FeatureShowcase').then(module => ({ default: module.FeatureShowcase })));
 
-// Import Industry Hero Visualizers (Keep these standard imports as they are used in the inline carousel component)
+// Import Industry Hero Visualizers
 import { LogisticsHeroVisualizer } from './LogisticsHeroVisualizer';
 import { SmallBusinessHeroVisualizer } from './SmallBusinessHeroVisualizer';
 import { IndustrialsHeroVisualizer } from './IndustrialsHeroVisualizer';
@@ -35,7 +33,7 @@ const Typewriter: React.FC<{ text: string; delay?: number }> = ({ text, delay = 
     return <span className="font-serif italic text-white/80">{display}</span>;
 };
 
-// --- SHADER 1: CONTACT BACKGROUND ---
+// --- SHADER 1: CONTACT BACKGROUND (Optimized) ---
 const ContactBackgroundShader: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +43,8 @@ const ContactBackgroundShader: React.FC = () => {
         const container = containerRef.current;
         if (!canvas || !container) return;
 
-        const gl = canvas.getContext('webgl2');
+        // Use standard webgl for better compatibility if webgl2 fails, but stick to 2 for shader syntax
+        const gl = canvas.getContext('webgl2', { alpha: false, preserveDrawingBuffer: false });
         if (!gl) return;
 
         const vsSource = `#version 300 es
@@ -56,7 +55,7 @@ const ContactBackgroundShader: React.FC = () => {
         `;
 
         const fsSource = `#version 300 es
-            precision highp float;
+            precision mediump float; // Reduced precision for background
             uniform vec2 resolution;
             uniform float time;
             out vec4 fragColor;
@@ -71,19 +70,22 @@ const ContactBackgroundShader: React.FC = () => {
                 float z = 0.0;
                 float d = 0.0;
                 
-                for(float i=0.0; i<30.0; i++) { // Reduced iterations for perf
+                // Reduced iterations from 30 to 16 for background performance
+                for(float i=0.0; i<16.0; i++) { 
                     vec3 p = z * rd;
                     p.z += 9.0;
                     float nx = atan(p.z, p.x + 1.0) * 2.0;
                     float ny = 0.6 * p.y + t + t;
                     float nz = length(p.xz) - 3.0;
                     vec3 p_loop = vec3(nx, ny, nz);
-                    for(float j=1.0; j<5.0; j++) { // Reduced inner loop
+                    
+                    // Reduced inner loop
+                    for(float j=1.0; j<4.0; j++) { 
                         p_loop += sin(p_loop.yzx * j + t + 0.5 * i) / j;
                     }
                     vec3 v3 = 0.3 * cos(p_loop) - 0.3;
                     d = 0.4 * length(vec4(v3, p_loop.z)); 
-                    d = max(d, 0.002);
+                    d = max(d, 0.02); // Increased min distance to reduce overdraw
                     z += d;
                     o += (cos(p_loop.y + i * 0.4 + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / d;
                 }
@@ -128,7 +130,7 @@ const ContactBackgroundShader: React.FC = () => {
 
         const render = () => {
             if (!canvas || !container) return;
-            // Optimize DPI
+            // Cap DPI for performance on 4k screens
             const dpr = Math.min(window.devicePixelRatio, 1.5); 
             const displayWidth = container.clientWidth;
             const displayHeight = container.clientHeight;
@@ -161,9 +163,8 @@ const ContactBackgroundShader: React.FC = () => {
     );
 };
 
-// --- SHADER 2: ELEMENT SHADER (Dimmed) ---
+// --- SHADER 2: ELEMENT SHADER (Static or Very Simple) ---
 const ContactElementShader: React.FC<{ className?: string }> = ({ className = "" }) => {
-    // ... Keeping logic but assuming it is rendered only when in viewport via slot
     return (
         <div className={`absolute inset-0 w-full h-full bg-[#0c0c0e] ${className}`}>
             <div className="absolute inset-0 bg-black/60" />
@@ -175,6 +176,7 @@ const ContactElementShader: React.FC<{ className?: string }> = ({ className = ""
     );
 };
 
+// --- SECURITY VISUALIZER (Canvas 2D - Optimized) ---
 const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const particlesRef = useRef<any[]>([]);
@@ -182,7 +184,7 @@ const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Optimize compositing
         if (!ctx) return;
 
         let w = canvas.parentElement?.clientWidth || 800;
@@ -194,15 +196,13 @@ const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
         const cy = h / 2;
 
         if (particlesRef.current.length === 0) {
-            for (let i = 0; i < 150; i++) { // Reduced count
+            for (let i = 0; i < 80; i++) { // Reduced count from 150 to 80
                 particlesRef.current.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
                     vx: (Math.random() - 0.5) * 0.5,
                     vy: (Math.random() - 0.5) * 0.5,
                     size: Math.random() * 2 + 1,
-                    color: 'rgba(255, 255, 255, 0.2)',
-                    aesChar: Math.random() > 0.5 ? '1' : '0'
                 });
             }
         }
@@ -211,31 +211,29 @@ const SecurityVisualizer: React.FC<{ mode: string | null }> = ({ mode }) => {
         
         const render = () => {
             // Simplified clear
-            ctx.clearRect(0,0,w,h);
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+            ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, w, h);
             
             const particles = particlesRef.current;
 
-            particles.forEach((p, i) => {
-                // Physics simplified...
+            ctx.fillStyle = mode ? '#69B7B2' : 'rgba(255, 255, 255, 0.2)';
+            
+            particles.forEach((p) => {
                 p.x += p.vx;
                 p.y += p.vy;
                 
                 if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
                 if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
 
-                ctx.fillStyle = mode ? '#69B7B2' : 'rgba(255, 255, 255, 0.2)';
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
                 ctx.fill();
             });
 
-            // --- STATIC OVERLAYS based on Mode ---
             if (mode === 'airgap') {
                 ctx.strokeStyle = '#ef4444';
                 ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(cx, cy, 250, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx, cy, 150, 0, Math.PI*2); ctx.stroke();
             } 
 
             animationFrameId = requestAnimationFrame(render);
@@ -256,7 +254,7 @@ const INDUSTRY_CARDS = [
         id: 'logistics', 
         title: "Logistics", 
         subtitle: "Supply Chain",
-        desc: "Operational decisions shaped by real-time movement, accumulated context, and constrained physical systems.", 
+        desc: "Operational decisions shaped by real-time movement.", 
         icon: Truck, 
         color: "#06b6d4",
         path: "our-clients/industries/logistics",
@@ -266,7 +264,7 @@ const INDUSTRY_CARDS = [
         id: 'smb', 
         title: "SMB Operations", 
         subtitle: "Growth Strategy",
-        desc: "Rapid decision cycles, constrained resources, and the need to scale without enterprise overhead.", 
+        desc: "Rapid decision cycles and resource allocation.", 
         icon: Briefcase, 
         color: "#8b5cf6",
         path: "our-clients/industries/smb-operations",
@@ -276,7 +274,7 @@ const INDUSTRY_CARDS = [
         id: 'industrials', 
         title: "Industrials", 
         subtitle: "Heavy Assets",
-        desc: "Stabilizing complex industrial operations where reliability, safety, and performance are inseparable.", 
+        desc: "Stabilizing complex industrial operations.", 
         icon: Factory, 
         color: "#f59e0b",
         path: "our-clients/industries/industrials",
@@ -286,7 +284,7 @@ const INDUSTRY_CARDS = [
         id: 'healthcare', 
         title: "Healthcare", 
         subtitle: "Clinical Ops",
-        desc: "Reducing operational risk, bottlenecks, and compliance overhead in regulated care environments.", 
+        desc: "Reducing operational risk in regulated care.", 
         icon: Activity, 
         color: "#14b8a6",
         path: "our-clients/industries/healthcare",
@@ -296,7 +294,7 @@ const INDUSTRY_CARDS = [
         id: 'resources', 
         title: "Natural Resources", 
         subtitle: "Energy & Mining",
-        desc: "Operations defined by physical constraints, long time horizons, and irreversible decisions.", 
+        desc: "Operations defined by physical constraints.", 
         icon: Globe, 
         color: "#10b981",
         path: "our-clients/industries/natural-resources",
@@ -317,6 +315,7 @@ const IndustryCarousel: React.FC = () => {
     return (
         <div className="relative w-full h-[700px] flex items-center justify-center overflow-hidden">
             
+            {/* Background Halo for Active Item */}
             <div 
                 className="absolute inset-0 transition-all duration-1000 ease-in-out pointer-events-none"
                 style={{
@@ -331,8 +330,9 @@ const IndustryCarousel: React.FC = () => {
                     if (offset > Math.floor(count / 2)) offset -= count;
                     
                     const isActive = offset === 0;
-                    const isVisible = Math.abs(offset) <= 1; // Only render immediate neighbors
+                    const isVisible = Math.abs(offset) <= 1; 
 
+                    // Strict Optimization: Do not render DOM if far away
                     if (!isVisible) return null;
 
                     const style: React.CSSProperties = {
@@ -343,11 +343,11 @@ const IndustryCarousel: React.FC = () => {
                         height: '500px',
                         transition: 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)',
                         zIndex: isActive ? 20 : 10,
-                        opacity: isActive ? 1 : 0.6, 
+                        opacity: isActive ? 1 : 0.4, 
                         transform: isActive 
                             ? 'translate(-50%, -50%) scale(1)' 
                             : `translate(calc(-50% + ${offset * 110}%), -50%) scale(0.85)`,
-                        filter: isActive ? 'none' : 'grayscale(100%)', 
+                        filter: isActive ? 'none' : 'grayscale(100%) blur(1px)', 
                     };
 
                     return (
@@ -360,28 +360,36 @@ const IndustryCarousel: React.FC = () => {
                                 else setActiveIndex(index);
                             }}
                         >
-                            <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] group shadow-2xl">
-                                <div className="absolute inset-0 rounded-3xl overflow-hidden">
-                                    {/* Visualizer Background - ONLY RENDER IF VISIBLE IN VIEWPORT VIA PARENT SLOT */}
+                            <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] group shadow-2xl overflow-hidden border border-white/10">
+                                
+                                {/* 
+                                    CRITICAL OPTIMIZATION:
+                                    Only mount the Heavy WebGL Visualizer if this card is ACTIVE.
+                                    Neighbors get a static placeholder or just a dark background.
+                                    This saves 4 simultaneous WebGL contexts.
+                                */}
+                                {isActive ? (
                                     <div className="absolute inset-0">
                                         <item.Visualizer />
                                         <div className="absolute inset-0 bg-black/40" />
                                     </div>
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a1a] to-black" />
+                                )}
                                     
-                                    <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/95 to-transparent pointer-events-none" />
+                                <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/95 to-transparent pointer-events-none" />
 
-                                    <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                                        <div className={`transition-all duration-500 relative z-10 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-                                            <div className="flex items-center gap-3 mb-4 text-[var(--card-color)]" style={{'--card-color': item.color} as any}>
-                                                <item.icon size={24} />
-                                                <span className="text-xs font-bold uppercase tracking-widest">{item.subtitle}</span>
-                                            </div>
-                                            <h3 className="text-3xl font-serif text-white mb-4 leading-none">{item.title}</h3>
-                                            <p className="text-sm text-white/60 leading-relaxed mb-6">{item.desc}</p>
-                                            <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:text-[var(--card-color)] transition-colors">
-                                                Explore Sector <ArrowUpRight size={14} />
-                                            </button>
+                                <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                                    <div className={`transition-all duration-500 relative z-10 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                                        <div className="flex items-center gap-3 mb-4 text-[var(--card-color)]" style={{'--card-color': item.color} as any}>
+                                            <item.icon size={24} />
+                                            <span className="text-xs font-bold uppercase tracking-widest">{item.subtitle}</span>
                                         </div>
+                                        <h3 className="text-3xl font-serif text-white mb-4 leading-none">{item.title}</h3>
+                                        <p className="text-sm text-white/60 leading-relaxed mb-6">{item.desc}</p>
+                                        <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:text-[var(--card-color)] transition-colors">
+                                            Explore Sector <ArrowUpRight size={14} />
+                                        </button>
                                     </div>
                                 </div>
 
@@ -443,6 +451,7 @@ export const LandingPage: React.FC = () => {
       {/* --- 1. HERO (IMMEDIATE LOAD) --- */}
       <section className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-[#020202] pt-20">
         <div className="absolute inset-0 opacity-100">
+            {/* Critical LCP Element - kept eager */}
             <HeroVisualizer />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020202_90%)] pointer-events-none" />
@@ -539,6 +548,7 @@ export const LandingPage: React.FC = () => {
                           Deep vertical specialization where generic AI fails. We speak the language of your operations.
                       </p>
                   </div>
+                  {/* Heavy Carousel Component - Now Optimized Internally */}
                   <IndustryCarousel />
               </div>
           </section>

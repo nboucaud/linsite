@@ -7,6 +7,7 @@ import {
     Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
+import { ViewportSlot } from './ViewportSlot';
 
 // Import Industry Hero Visualizers for the Carousel
 import { LogisticsHeroVisualizer } from './LogisticsHeroVisualizer';
@@ -116,7 +117,7 @@ const WebGLHero: React.FC = () => {
 
         const render = () => {
             if (!canvas || !container) return;
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = Math.min(window.devicePixelRatio, 1.5);
             const displayWidth = container.clientWidth;
             const displayHeight = container.clientHeight;
             
@@ -159,10 +160,7 @@ const PartnershipShader: React.FC = () => {
         if (!canvas || !container) return;
 
         const gl = canvas.getContext('webgl2');
-        if (!gl) {
-            console.error("WebGL2 not supported for PartnershipShader");
-            return;
-        }
+        if (!gl) return;
 
         const vsSource = `#version 300 es
             in vec2 position;
@@ -172,7 +170,7 @@ const PartnershipShader: React.FC = () => {
         `;
 
         const fsSource = `#version 300 es
-            precision highp float;
+            precision mediump float; // Optimized precision
             uniform vec2 resolution;
             uniform float time;
             out vec4 fragColor;
@@ -186,42 +184,32 @@ const PartnershipShader: React.FC = () => {
                 vec4 o = vec4(0.0);
                 vec3 p = vec3(0.0);
                 
-                // Normalize UV to preserve aspect ratio
                 vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
-                vec3 rd = normalize(vec3(uv, 1.0)); // Forward ray
+                vec3 rd = normalize(vec3(uv, 1.0)); 
                 
                 float z = 0.0;
                 float f = 0.0;
                 
-                // Raymarching Loop (Simplified from user code)
-                for(float i=0.0; i<30.0; i++) {
+                // Reduced loops for background efficiency
+                for(float i=0.0; i<16.0; i++) {
                     p = z * rd;
                     p.z -= t;
                     f = 1.0;
                     
-                    // Fractal folding
-                    for(int j=0; j<6; j++) {
+                    for(int j=0; j<4; j++) {
                         f += 1.0;
-                        // p += sin(round(p.yxz * PI2) / PI * f) / f;
                         p += sin(floor(p.yxz * PI2 + 0.5) / PI * f) / f;
                     }
                     
-                    // Distance Estimate
-                    // .003 + abs(length(p.xy)-5. + dot(cos(p),sin(p).yzx))/8.
                     float d = 0.003 + abs(length(p.xy) - 5.0 + dot(cos(p), sin(p.yzx))) / 8.0;
                     
                     f = d;
                     z += f;
                     
-                    // Color Accumulation
-                    // o += (1. + sin(i*.3 + z + t + vec4(6,1,2,0))) / f
                     o += (1.0 + sin(i * 0.3 + z + t + vec4(6.0, 1.0, 2.0, 0.0))) / f;
                 }
                 
-                // Tone Mapping & Brightness Adjustment
                 o = tanh(o / 1000.0);
-                
-                // Low brightness request
                 o *= 0.3; 
                 
                 fragColor = vec4(o.rgb, 1.0);
@@ -233,11 +221,6 @@ const PartnershipShader: React.FC = () => {
             if (!shader) return null;
             gl.shaderSource(shader, source);
             gl.compileShader(shader);
-            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error(gl.getShaderInfoLog(shader));
-                gl.deleteShader(shader);
-                return null;
-            }
             return shader;
         };
 
@@ -269,7 +252,7 @@ const PartnershipShader: React.FC = () => {
         const render = () => {
             if (!canvas || !container) return;
             
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = Math.min(window.devicePixelRatio, 1.5);
             const w = container.clientWidth;
             const h = container.clientHeight;
             
@@ -379,21 +362,19 @@ const IndustryCarousel: React.FC = () => {
             {/* Cards Container */}
             <div className="relative w-full max-w-7xl h-full mx-auto">
                 {INDUSTRIES.map((item, index) => {
-                    // Logic to position items relative to active index
                     let offset = (index - activeIndex);
-                    // Handle wrap-around for correct visual positioning
                     if (offset < -Math.floor(count / 2)) offset += count;
                     if (offset > Math.floor(count / 2)) offset -= count;
                     
                     const isActive = offset === 0;
-                    const isVisible = Math.abs(offset) <= 2; // Only render near items
+                    const isVisible = Math.abs(offset) <= 1; // Strict optimization: Only load active and adjacent
 
                     if (!isVisible) return null;
 
                     const zIndex = isActive ? 20 : 10 - Math.abs(offset);
-                    const opacity = isActive ? 1 : Math.max(0.3, 1 - Math.abs(offset) * 0.4);
-                    const scale = isActive ? 1 : Math.max(0.8, 1 - Math.abs(offset) * 0.15);
-                    const translateX = offset * 110; // % distance
+                    const opacity = isActive ? 1 : 0.4;
+                    const scale = isActive ? 1 : 0.85;
+                    const translateX = offset * 110; 
 
                     return (
                         <div 
@@ -411,10 +392,13 @@ const IndustryCarousel: React.FC = () => {
                         >
                             <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] overflow-hidden shadow-2xl group border border-white/10 hover:border-white/20 transition-colors">
                                 
-                                {/* Visualizer (Only render for active/adjacent to save resources, but keep active always on) */}
+                                {/* Visualizer - CONDITIONAL RENDERING */}
                                 <div className={`absolute inset-0 transition-opacity duration-700 ${isActive ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                                    {Math.abs(offset) <= 1 && <item.Visualizer />}
-                                    <div className="absolute inset-0 bg-black/40" />
+                                    {isActive ? (
+                                        <item.Visualizer />
+                                    ) : (
+                                        <div className="absolute inset-0 bg-black/40" /> 
+                                    )}
                                 </div>
 
                                 {/* Content Overlay */}
@@ -439,7 +423,6 @@ const IndustryCarousel: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Active Border Glow */}
                                 {isActive && (
                                     <div 
                                         className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-[var(--card-color)] opacity-50 shadow-[0_0_30px_var(--card-color)] transition-all"
@@ -452,59 +435,21 @@ const IndustryCarousel: React.FC = () => {
                 })}
             </div>
 
-            {/* Navigation Controls */}
-            <button 
-                onClick={prev}
-                className="absolute left-4 md:left-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95"
-            >
+            <button onClick={prev} className="absolute left-4 md:left-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95">
                 <ChevronLeft size={24} />
             </button>
-            <button 
-                onClick={next}
-                className="absolute right-4 md:right-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95"
-            >
+            <button onClick={next} className="absolute right-4 md:right-12 z-30 p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all active:scale-95">
                 <ChevronRight size={24} />
             </button>
-
-            {/* Pagination Dots */}
-            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-30">
-                {INDUSTRIES.map((_, idx) => (
-                    <button 
-                        key={idx}
-                        onClick={() => setActiveIndex(idx)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'w-8 bg-white' : 'w-2 bg-white/20 hover:bg-white/40'}`}
-                    />
-                ))}
-            </div>
         </div>
     );
 };
 
 const PHILOSOPHY = [
-    {
-        title: "Aligned Incentives",
-        desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.",
-        icon: Handshake,
-        color: "#10b981"
-    },
-    {
-        title: "Embedded Engineering",
-        desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.",
-        icon: Users,
-        color: "#3b82f6"
-    },
-    {
-        title: "Data Sovereignty",
-        desc: "Your data remains your asset. Our architecture ensures that models are trained on your context but deployed within your secure perimeter.",
-        icon: ShieldCheck,
-        color: "#8b5cf6"
-    },
-    {
-        title: "Long-Term Reliability",
-        desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.",
-        icon: Target,
-        color: "#f59e0b"
-    }
+    { title: "Aligned Incentives", desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.", icon: Handshake, color: "#10b981" },
+    { title: "Embedded Engineering", desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.", icon: Users, color: "#3b82f6" },
+    { title: "Data Sovereignty", desc: "Your data remains your asset. Our architecture ensures that models are trained on your context but deployed within your secure perimeter.", icon: ShieldCheck, color: "#8b5cf6" },
+    { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
 const IMPACT_METRICS = [
@@ -552,19 +497,13 @@ export const OurClientsPage: React.FC = () => {
                 `}
             </style>
 
-            {/* --- HERO SECTION --- */}
-            <div className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
-                
-                {/* WEBGL ENGINE */}
+            {/* --- HERO SECTION (IMMEDIATE) --- */}
+            <section className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 <div className="absolute inset-0 z-0">
                     <WebGLHero />
                 </div>
-                
-                {/* Vignettes for Readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020202_90%)] z-10 pointer-events-none" />
                 
-                {/* Content */}
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
                     <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#69B7B2]/30 bg-[#69B7B2]/10 backdrop-blur-md animate-in slide-in-from-top-8 duration-1000 shadow-[0_0_20px_rgba(105,183,178,0.2)]">
                         <div className="w-2 h-2 bg-[#69B7B2] rounded-full animate-pulse" />
@@ -587,19 +526,13 @@ export const OurClientsPage: React.FC = () => {
                         >
                             Our Approach
                         </button>
-                        <button 
-                            onClick={() => navigateTo('contact')}
-                            className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold uppercase tracking-widest text-xs rounded transition-colors backdrop-blur-md"
-                        >
-                            Join The Network
-                        </button>
                     </div>
                 </div>
-
+                
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 animate-bounce z-20">
                     <ChevronDown size={24} />
                 </div>
-            </div>
+            </section>
 
             <MarqueeRow />
 
@@ -619,82 +552,79 @@ export const OurClientsPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- MANIFESTO SECTION (REDESIGNED) --- */}
-            <section id="manifesto" className="relative py-32 bg-black overflow-hidden border-b border-white/10">
-                
-                {/* Background Shader */}
-                <div className="absolute inset-0 z-0">
-                    <PartnershipShader />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
-                    <div className="absolute inset-0 bg-black/40" /> {/* Extra dimming for text readability */}
-                </div>
+            {/* --- MANIFESTO SECTION (LAZY LOADED) --- */}
+            <ViewportSlot minHeight="800px" id="manifesto">
+                <section className="relative py-32 bg-black overflow-hidden border-b border-white/10">
+                    <div className="absolute inset-0 z-0">
+                        <PartnershipShader />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+                        <div className="absolute inset-0 bg-black/40" />
+                    </div>
 
-                <div className="relative z-10 max-w-7xl mx-auto px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-                        
-                        {/* Left: Sticky Header */}
-                        <div className="lg:sticky lg:top-32">
-                            <div className="inline-block border-b border-white/20 pb-2 mb-6">
-                                <span className="text-xs font-mono uppercase tracking-widest text-white/60">The Partnership Model</span>
+                    <div className="relative z-10 max-w-7xl mx-auto px-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+                            <div className="lg:sticky lg:top-32">
+                                <div className="inline-block border-b border-white/20 pb-2 mb-6">
+                                    <span className="text-xs font-mono uppercase tracking-widest text-white/60">The Partnership Model</span>
+                                </div>
+                                <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight mb-8">
+                                    We operate as a strategic extension of your team.
+                                </h2>
+                                <p className="text-xl text-white/60 font-light leading-relaxed max-w-lg">
+                                    Traditional vendor relationships are transactional. We build operational capabilities that become a permanent part of your infrastructure.
+                                </p>
                             </div>
-                            <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight mb-8">
-                                We operate as a strategic extension of your team.
-                            </h2>
-                            <p className="text-xl text-white/60 font-light leading-relaxed max-w-lg">
-                                Traditional vendor relationships are transactional. We build operational capabilities that become a permanent part of your infrastructure.
-                            </p>
-                        </div>
 
-                        {/* Right: Philosophy List */}
-                        <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10 bg-black/20 backdrop-blur-sm rounded-xl">
-                            {PHILOSOPHY.map((item, i) => (
-                                <div key={i} className="group py-8 px-6 hover:bg-white/5 transition-all duration-300">
-                                    <div className="flex items-start gap-6">
-                                        <div 
-                                            className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/40 group-hover:text-white group-hover:scale-110 transition-all duration-300 flex-shrink-0"
-                                            style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                                        >
-                                            <item.icon size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[var(--hover-color)] transition-colors" style={{ '--hover-color': item.color } as React.CSSProperties}>
-                                                {item.title}
-                                            </h3>
-                                            <p className="text-white/50 text-base leading-relaxed font-light group-hover:text-white/80 transition-colors">
-                                                {item.desc}
-                                            </p>
+                            <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10 bg-black/20 backdrop-blur-sm rounded-xl">
+                                {PHILOSOPHY.map((item, i) => (
+                                    <div key={i} className="group py-8 px-6 hover:bg-white/5 transition-all duration-300">
+                                        <div className="flex items-start gap-6">
+                                            <div 
+                                                className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/40 group-hover:text-white group-hover:scale-110 transition-all duration-300 flex-shrink-0"
+                                                style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                                            >
+                                                <item.icon size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[var(--hover-color)] transition-colors" style={{ '--hover-color': item.color } as React.CSSProperties}>
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-white/50 text-base leading-relaxed font-light group-hover:text-white/80 transition-colors">
+                                                    {item.desc}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-
-                    </div>
-                </div>
-            </section>
-
-            {/* --- INDUSTRY CAROUSEL SECTION --- */}
-            <section className="py-32 bg-[#08080a] border-t border-white/5 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-                        <div>
-                            <div className="text-[#69B7B2] font-mono text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <Layers size={12} /> Deployment Sectors
+                                ))}
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-serif text-white">Active Verticals</h2>
                         </div>
-                        <button 
-                            onClick={() => navigateTo('our-work')}
-                            className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors group"
-                        >
-                            View Case Studies <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
                     </div>
+                </section>
+            </ViewportSlot>
 
-                    {/* NEW CAROUSEL */}
-                    <IndustryCarousel />
-                </div>
-            </section>
+            {/* --- INDUSTRY CAROUSEL SECTION (LAZY LOADED) --- */}
+            <ViewportSlot minHeight="800px">
+                <section className="py-32 bg-[#08080a] border-t border-white/5 relative overflow-hidden">
+                    <div className="max-w-7xl mx-auto px-6 relative z-10">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+                            <div>
+                                <div className="text-[#69B7B2] font-mono text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <Layers size={12} /> Deployment Sectors
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-serif text-white">Active Verticals</h2>
+                            </div>
+                            <button 
+                                onClick={() => navigateTo('our-work')}
+                                className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors group"
+                            >
+                                View Case Studies <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+
+                        <IndustryCarousel />
+                    </div>
+                </section>
+            </ViewportSlot>
 
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
                 <div className="max-w-3xl mx-auto px-6">

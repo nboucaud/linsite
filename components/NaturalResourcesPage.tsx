@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Pickaxe, Droplets, Zap, Flame, Globe, AlertTriangle, ArrowRight, X, ScanLine, Activity, Mountain, Wind, Cpu, Layers, ImageIcon, ChevronUp } from 'lucide-react';
 import { ResourcesHeroVisualizer } from './ResourcesHeroVisualizer';
 import { IndustryNavigationFooter } from './IndustryNavigationFooter';
+import { ViewportSlot } from './ViewportSlot';
 
 // --- UTILS ---
 const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
@@ -787,24 +788,26 @@ export const NaturalResourcesPage: React.FC = () => {
                     </section>
 
                     {/* --- PILLARS --- */}
-                    <section id="strategic-domains" className="py-24 bg-[#020202] scroll-mt-24">
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12">
-                            <div className="text-center mb-20">
-                                <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
-                                <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
-                            </div>
+                    <ViewportSlot minHeight="800px" id="strategic-domains">
+                        <section className="py-24 bg-[#020202] scroll-mt-24">
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12">
+                                <div className="text-center mb-20">
+                                    <h2 className="text-4xl font-serif text-white mb-6">Strategic Domains</h2>
+                                    <p className="text-white/50 max-w-2xl mx-auto">Core operational pillars where we deploy intelligence.</p>
+                                </div>
 
-                            <div className="grid md:grid-cols-3 gap-8">
-                                {PILLARS.map((pillar) => (
-                                    <TiltPillarCard 
-                                        key={pillar.id}
-                                        pillar={pillar}
-                                        onClick={() => handleExpand(pillar.id)}
-                                    />
-                                ))}
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    {PILLARS.map((pillar) => (
+                                        <TiltPillarCard 
+                                            key={pillar.id}
+                                            pillar={pillar}
+                                            onClick={() => handleExpand(pillar.id)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- ECOSYSTEM FOOTER --- */}
                     <section className="py-32 border-t border-white/5 bg-[#050505]">
