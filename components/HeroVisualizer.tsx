@@ -177,7 +177,8 @@ const HeroVisualizerComponent: React.FC = () => {
             }
             else if (phase === 2) { // FLIGHT
                 phaseTimer += 0.016;
-                planeVel.z += 0.85;
+                // SLOWED DOWN: Reduced acceleration from 0.85 to 0.2
+                planeVel.z += 0.2; 
                 planePos.x += planeVel.x;
                 planePos.y += planeVel.y;
                 planePos.z += planeVel.z;
@@ -194,7 +195,8 @@ const HeroVisualizerComponent: React.FC = () => {
                 if(Math.random() > 0.5) spawnParticle('ember', planePos.x, planePos.y, planePos.z, 10);
                 if(Math.random() > 0.8) spawnParticle('trail', planePos.x, planePos.y, planePos.z, 20);
 
-                if (planePos.z > 3500) { 
+                // Extended distance before reset to allow for slower flight
+                if (planePos.z > 5000) { 
                     phase = 3; 
                     phaseTimer = 0; 
                 }

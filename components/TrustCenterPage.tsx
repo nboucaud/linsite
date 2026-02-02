@@ -11,6 +11,7 @@ import {
     Users
 } from 'lucide-react';
 import { NeuralBackground } from './NeuralBackground';
+import { useNavigation } from '../context/NavigationContext';
 
 // --- VISUALIZER ENGINE: ABSTRACT SECURITY ---
 // Persistent particle system that morphs between security states
@@ -149,12 +150,12 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
                 const p2 = parts[(i+1) % parts.length]; // Array neighbor
                 const p3 = parts[(i+5) % parts.length]; // Distant array neighbor
                 
-                // Check dist
-                if ((p1.x-p2.x)**2 + (p1.y-p2.y)**2 < 4000) {
+                // Increased distance threshold to ensure connections are visible
+                if ((p1.x-p2.x)**2 + (p1.y-p2.y)**2 < 9000) {
                     ctx.moveTo(p1.x, p1.y);
                     ctx.lineTo(p2.x, p2.y);
                 }
-                 if ((p1.x-p3.x)**2 + (p1.y-p3.y)**2 < 4000) {
+                 if ((p1.x-p3.x)**2 + (p1.y-p3.y)**2 < 9000) {
                     ctx.moveTo(p1.x, p1.y);
                     ctx.lineTo(p3.x, p3.y);
                 }
@@ -919,6 +920,8 @@ const EnterpriseSecurityTable = () => {
 };
 
 export const TrustCenterPage: React.FC = () => {
+    const { navigateTo } = useNavigation();
+
     return (
         <div className="relative min-h-screen bg-[#020202] text-white font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
             
@@ -1133,6 +1136,24 @@ export const TrustCenterPage: React.FC = () => {
                     </div>
 
                     <EnterpriseSecurityTable />
+                </div>
+            </section>
+
+            <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
+                <div className="max-w-3xl mx-auto px-6">
+                    <div className="w-20 h-20 mx-auto bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-8 animate-pulse">
+                        <Terminal size={32} />
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-serif text-white mb-8">Ready to Secure Your Operations?</h2>
+                    <p className="text-white/60 text-lg mb-12 max-w-xl mx-auto">
+                        Let's discuss how we can deploy our infrastructure into your operations.
+                    </p>
+                    <button 
+                        onClick={() => navigateTo('contact')}
+                        className="px-12 py-5 bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs rounded-full transition-colors shadow-[0_0_30px_rgba(105,183,178,0.3)] hover:shadow-[0_0_50px_rgba(105,183,178,0.5)] hover:scale-105 transform duration-300"
+                    >
+                        Start the Conversation
+                    </button>
                 </div>
             </section>
 
