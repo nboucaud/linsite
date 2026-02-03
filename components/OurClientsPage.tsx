@@ -224,10 +224,7 @@ export const OurClientsPage: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
                 
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
-                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#69B7B2]/30 bg-[#69B7B2]/10 backdrop-blur-md animate-in slide-in-from-top-8 duration-1000 shadow-[0_0_20px_rgba(105,183,178,0.2)]">
-                        <div className="w-2 h-2 bg-[#69B7B2] rounded-full animate-pulse" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#69B7B2]">Global Operations Network</span>
-                    </div>
+                    {/* TAG REMOVED */}
 
                     <h1 className="text-6xl md:text-8xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         Partners, Not <br/>
