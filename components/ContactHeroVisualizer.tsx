@@ -15,277 +15,256 @@ export const ContactHeroVisualizer: React.FC = () => {
         let frameId: number;
         let time = 0;
 
-        // --- CONFIGURATION ---
-        const SHEET_W = 200;
-        const SHEET_H = 280;
-        const GRID_RES = 12; // Grid density for folding
-        const INK_LINES = 12;
-        const CHARS_PER_LINE = 20;
+        // CONFIG
+        const PAPER_COLS = 30;
+        const PAPER_ROWS = 40;
+        const SHEET_W = 220;
+        const SHEET_H = 320;
         
-        // --- DATA STRUCTURES ---
+        // INK SETTINGS
+        const LINES_OF_TEXT = 14;
+        const CHARS_PER_LINE = 18;
         
-        // 1. PAPER MESH (Grid of points)
-        // We track UVs to handle folding logic
-        const paperNodes: {u: number, v: number, x: number, y: number, z: number}[] = [];
-        for(let y=0; y<=GRID_RES; y++) {
-            for(let x=0; x<=GRID_RES; x++) {
-                paperNodes.push({
-                    u: x/GRID_RES,
-                    v: y/GRID_RES,
-                    x: 0, y: 0, z: 0
-                });
+        // BUFFERS
+        // We have Paper Particles (Grid) and Ink Particles (Text)
+        const paperCount = PAPER_COLS * PAPER_ROWS;
+        const inkCount = LINES_OF_TEXT * CHARS_PER_LINE;
+        const totalCount = paperCount + inkCount;
+        
+        // Layout: [x, y, z, tx, ty, tz, baseU, baseV, type (0=paper, 1=ink)]
+        const STRIDE = 9;
+        const data = new Float32Array(totalCount * STRIDE);
+
+        // --- INIT DATA ---
+        let ptr = 0;
+        
+        // 1. INIT PAPER GRID
+        for(let r=0; r<PAPER_ROWS; r++) {
+            for(let c=0; c<PAPER_COLS; c++) {
+                const u = c / (PAPER_COLS-1);
+                const v = r / (PAPER_ROWS-1);
+                
+                data[ptr++] = 0; // x
+                data[ptr++] = 0; // y
+                data[ptr++] = 0; // z
+                data[ptr++] = 0; // tx
+                data[ptr++] = 0; // ty
+                data[ptr++] = 0; // tz
+                data[ptr++] = u;
+                data[ptr++] = v;
+                data[ptr++] = 0; // Type 0 = Paper
             }
         }
 
-        // 2. INK PARTICLES
-        // Attached to UV space initially, then detach
-        const inkParticles: {u: number, v: number, x: number, y: number, z: number, detached: boolean, dx: number, dy: number, dz: number}[] = [];
-        for(let l=0; l<INK_LINES; l++) {
-            const lineY = 0.15 + (l / INK_LINES) * 0.7;
+        // 2. INIT INK PARTICLES
+        for(let l=0; l<LINES_OF_TEXT; l++) {
+            const lineY = 0.15 + (l / LINES_OF_TEXT) * 0.7; // Text block area
             for(let c=0; c<CHARS_PER_LINE; c++) {
-                if (Math.random() > 0.8) continue; // Random spaces
-                const charX = 0.15 + (c / CHARS_PER_LINE) * 0.7 + (Math.random()-0.5)*0.01;
-                inkParticles.push({
-                    u: charX,
-                    v: lineY,
-                    x: 0, y: 0, z: 0,
-                    detached: false,
-                    dx: 0, dy: 0, dz: 0
-                });
+                const charX = 0.15 + (c / CHARS_PER_LINE) * 0.7; 
+                
+                // Add some randomness to look like handwriting/text blocks
+                if (Math.random() > 0.85) continue; // Random spaces
+
+                const u = charX + (Math.random()-0.5)*0.02;
+                const v = lineY + (Math.random()-0.5)*0.005;
+
+                data[ptr++] = 0;
+                data[ptr++] = 0;
+                data[ptr++] = 0;
+                data[ptr++] = 0;
+                data[ptr++] = 0;
+                data[ptr++] = 0;
+                data[ptr++] = u;
+                data[ptr++] = v;
+                data[ptr++] = 1; // Type 1 = Ink
             }
         }
 
-        // --- STATE MACHINE ---
-        // 0: FLIGHT (Plane moving)
-        // 1: LANDING (Plane stopping)
-        // 2: UNFOLD (Morph to Sheet)
-        // 3: UNWRITE (Ink lifts off)
-        // 4: RESET (Fade out)
+        // STATE MACHINE
+        // 0: Plane Flying
+        // 1: Unfolding (Plane -> Sheet)
+        // 2: Unwriting (Ink lifts off)
+        // 3: Reset/Morph (Chaos -> Plane)
         let phase = 0;
         let phaseTimer = 0;
-        let globalZ = 0; // Movement of the whole object
-
-        // --- TRANSFORM FUNCTIONS ---
-
-        // Maps UV (0-1) to 3D Paper Plane shape
-        const getPlanePosition = (u: number, v: number, out: {x:number, y:number, z:number}) => {
-            // Fold logic: 
-            // Center spine is u=0.5
-            // Wings fold up/out
-            const foldAngle = Math.PI * 0.45; 
-            const center = 0.5;
-            const distFromCenter = Math.abs(u - center) * SHEET_W;
-            const isLeft = u < center;
+        
+        // --- TRANSFORM LOGIC ---
+        const getPlanePos = (u: number, v: number, target: {x:number, y:number, z:number}) => {
+            // Fold logic: Map 2D UV sheet to 3D Paper Plane shape
             
-            // Base Plane coords
-            let x = distFromCenter * Math.cos(foldAngle) * (isLeft ? -1 : 1);
-            let y = distFromCenter * Math.sin(foldAngle); // Wings go up
-            let z = (v - 0.5) * SHEET_H;
+            // Spine is u=0.5. Nose is v=0. Tail is v=1.
+            const foldAngle = Math.PI / 3; // 60 deg wings
+            
+            // Central axis along Z
+            // Shift origin so center of plane is (0,0,0)
+            const spineZ = (v - 0.5) * SHEET_H;
+            
+            // Distance from spine (Width)
+            const dist = Math.abs(u - 0.5) * SHEET_W;
+            
+            // Wing Fold: If u < 0.5 rotate left, else right
+            const angle = (u < 0.5 ? 1 : -1) * foldAngle;
+            
+            // Basic V-shape
+            let x = Math.cos(angle) * dist;
+            let y = Math.sin(angle) * dist; 
+            let z = spineZ;
 
-            // Dart shape taper
-            // Reduce width at nose (v=0)
-            const taper = 0.2 + 0.8 * v; // Nose is narrow
-            x *= taper;
-            y *= taper;
+            // Dart Sweep: Sweep wings back based on distance from spine
+            // This gives it the arrow/fighter jet shape
+            z -= Math.abs(x) * 1.2; 
 
-            out.x = x; 
-            out.y = y; 
-            out.z = z;
+            target.x = x;
+            target.y = y;
+            target.z = z;
         };
 
-        // Maps UV (0-1) to Flat Sheet
-        const getSheetPosition = (u: number, v: number, out: {x:number, y:number, z:number}) => {
-            out.x = (u - 0.5) * SHEET_W;
-            out.y = (v - 0.5) * SHEET_H; // Vertical sheet
-            out.z = 0;
+        const getSheetPos = (u: number, v: number, target: {x:number, y:number, z:number}) => {
+            target.x = (u - 0.5) * SHEET_W;
+            target.y = (v - 0.5) * SHEET_H;
+            target.z = 0;
+        };
+
+        const updateParticles = () => {
+            for(let i=0; i<totalCount; i++) {
+                const idx = i * STRIDE;
+                const u = data[idx+6];
+                const v = data[idx+7];
+                const type = data[idx+8];
+
+                const tObj = {x:0, y:0, z:0};
+
+                if (phase === 0) {
+                    // PHASE: PLANE FLYING
+                    getPlanePos(u, v, tObj);
+                    // Add flight wobble / wind
+                    tObj.y += Math.sin(time * 5 + u * 10) * 5;
+                    tObj.x += Math.cos(time * 3 + v * 10) * 2;
+                } else if (phase === 1) {
+                    // PHASE: SHEET UNFOLDED
+                    getSheetPos(u, v, tObj);
+                } else if (phase === 2) {
+                    // PHASE: UNWRITING
+                    getSheetPos(u, v, tObj);
+                    if (type === 1) { // Ink
+                        // Ink floats away into the ether
+                        const lift = phaseTimer * 0.8; // Speed up lift
+                        
+                        // Noise movement
+                        const noiseX = Math.sin(lift * 0.05 + i) * 20;
+                        const noiseY = Math.cos(lift * 0.05 + i) * 20;
+                        
+                        tObj.z += lift * 3 + Math.random() * 5; // Lift off page
+                        tObj.x += noiseX;
+                        tObj.y += noiseY;
+                    }
+                } else {
+                    // PHASE: RESET (Implode to Plane)
+                    getPlanePos(u, v, tObj);
+                }
+
+                // Interpolation (Smoothing)
+                // Fast reset in phase 3, smooth otherwise
+                const lerp = phase === 3 ? 0.1 : 0.08; 
+                data[idx] += (tObj.x - data[idx]) * lerp;
+                data[idx+1] += (tObj.y - data[idx+1]) * lerp;
+                data[idx+2] += (tObj.z - data[idx+2]) * lerp;
+            }
         };
 
         const render = () => {
             time += 0.01;
             phaseTimer++;
 
-            // Phase Switching
-            if (phase === 0 && phaseTimer > 200) { phase = 1; phaseTimer = 0; } // Fly -> Land
-            if (phase === 1 && phaseTimer > 60) { phase = 2; phaseTimer = 0; } // Land -> Unfold
-            if (phase === 2 && phaseTimer > 120) { phase = 3; phaseTimer = 0; } // Unfold -> Unwrite
-            if (phase === 3 && phaseTimer > 250) { phase = 4; phaseTimer = 0; } // Unwrite -> Reset
-            if (phase === 4 && phaseTimer > 60) { phase = 0; phaseTimer = 0; globalZ = -800; } // Reset -> Fly
+            // Animation Sequencer
+            if (phase === 0 && phaseTimer > 250) { phase = 1; phaseTimer = 0; } // Fly -> Unfold
+            if (phase === 1 && phaseTimer > 100) { phase = 2; phaseTimer = 0; } // Unfold -> Unwrite
+            if (phase === 2 && phaseTimer > 180) { phase = 3; phaseTimer = 0; } // Unwrite -> Reset
+            if (phase === 3 && phaseTimer > 60) { phase = 0; phaseTimer = 0; }  // Reset -> Fly
 
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
+            updateParticles();
+
+            // Responsive Center
             const cx = w > 1024 ? w * 0.75 : w * 0.5;
             const cy = h * 0.5;
 
-            // --- ANIMATION LOGIC ---
-            
-            let morphFactor = 0; // 0 = Plane, 1 = Sheet
-            let globalRotX = 0;
-            let globalRotY = 0;
-            let globalRotZ = 0;
+            // Camera Motion Logic
+            let rotX = 0, rotY = 0, rotZ = 0;
 
-            if (phase === 0) { // FLYING
-                morphFactor = 0;
-                globalZ += 6; // Fly forward
-                globalRotZ = Math.sin(time * 2) * 0.1; // Bank
-                globalRotX = -Math.PI / 2; // Face forward
-            } else if (phase === 1) { // LANDING
-                morphFactor = 0;
-                // Slow down rotation to face camera flat
-                const t = phaseTimer / 60;
-                // Smooth step to orient for unfolding
-                globalRotX = -Math.PI/2 * (1-t); 
-                globalRotZ = 0;
-            } else if (phase === 2) { // UNFOLDING
-                const t = Math.min(1, phaseTimer / 100);
-                // Ease out elastic
-                morphFactor = t;
-            } else if (phase === 3) { // UNWRITING
-                morphFactor = 1;
-            } else { // RESET
-                morphFactor = 1 - (phaseTimer / 60); // Quick fold back?
-                globalZ -= 20; // Fly away backward
+            if (phase === 0) {
+                // Flying: Bank and turn slightly
+                rotX = -0.3; // Pitch down
+                rotY = Math.sin(time * 0.5) * 0.2 + time * 0.2; // Spin slowly
+                rotZ = Math.sin(time) * 0.1; // Bank
+            } else if (phase === 1) {
+                // Unfolding: Stabilize to face camera
+                const t = Math.min(1, phaseTimer / 80);
+                rotX = -0.3 * (1-t);
+                rotY = ((Math.sin(time * 0.5) * 0.2 + time * 0.2) % (Math.PI*2)) * (1-t); // Decelerate spin
+                rotZ = 0;
+            } else if (phase === 2) {
+                // Unwriting: Static flat view
+                rotX = 0; rotY = 0; rotZ = 0;
+            } else {
+                // Reset: Chaos spin
+                rotX = Math.random() * 0.2; rotY = Math.random() * 0.2;
             }
 
-            const planePos = {x:0, y:0, z:0};
-            const sheetPos = {x:0, y:0, z:0};
+            // 3D Projection Matrix (Euler)
+            const cz = Math.cos(rotZ), sz = Math.sin(rotZ);
+            const cx_rot = Math.cos(rotX), sx_rot = Math.sin(rotX);
+            const cy_rot = Math.cos(rotY), sy_rot = Math.sin(rotY);
 
-            // --- UPDATE & DRAW PAPER ---
-            ctx.strokeStyle = `rgba(105, 183, 178, ${0.3})`;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
+            for(let i=0; i<totalCount; i++) {
+                const idx = i * STRIDE;
+                let x = data[idx];
+                let y = data[idx+1];
+                let z = data[idx+2];
+                const type = data[idx+8];
 
-            // Draw as grid lines
-            for(let i=0; i<paperNodes.length; i++) {
-                const n = paperNodes[i];
-                getPlanePosition(n.u, n.v, planePos);
-                getSheetPosition(n.u, n.v, sheetPos);
+                // 1. Rotate Z
+                let x1 = x * cz - y * sz;
+                let y1 = x * sz + y * cz;
+                x = x1; y = y1;
 
-                // Lerp
-                let x = planePos.x + (sheetPos.x - planePos.x) * morphFactor;
-                let y = planePos.y + (sheetPos.y - planePos.y) * morphFactor;
-                let z = planePos.z + (sheetPos.z - planePos.z) * morphFactor;
+                // 2. Rotate X
+                let y2 = y * cx_rot - z * sx_rot;
+                let z2 = y * sx_rot + z * cx_rot;
+                y = y2; z = z2;
 
-                // Global Transform
-                // Rotate
-                const grx = globalRotX;
-                let y1 = y * Math.cos(grx) - z * Math.sin(grx);
-                let z1 = z * Math.cos(grx) + y * Math.sin(grx);
-                y = y1; z = z1;
+                // 3. Rotate Y
+                let x3 = x * cy_rot - z * sy_rot;
+                let z3 = x * sy_rot + z * cy_rot;
+                x = x3; z = z3;
 
-                let x1 = x * Math.cos(globalRotZ) - y * Math.sin(globalRotZ);
-                let y2 = y * Math.cos(globalRotZ) + x * Math.sin(globalRotZ);
-                x = x1; y = y2;
-
-                z += globalZ + 400; // Camera offset
-
-                // Project
-                const scale = 800 / (800 + z);
+                // 4. Perspective Projection
+                const camDist = 1000;
+                const scale = camDist / (camDist + z);
+                
                 const px = cx + x * scale;
                 const py = cy + y * scale;
 
-                n.x = px; n.y = py; n.z = z; // Store projected for lines
-
-                // Draw dots at nodes
-                if (z > -700) {
-                    ctx.fillStyle = `rgba(105, 183, 178, ${0.5 * morphFactor + 0.1})`;
-                    ctx.fillRect(px, py, 1.5, 1.5);
-                }
-            }
-
-            // Connect Grid
-            for(let y=0; y<GRID_RES; y++) {
-                for(let x=0; x<GRID_RES; x++) {
-                    const i = y * (GRID_RES+1) + x;
-                    const right = i + 1;
-                    const down = i + (GRID_RES+1);
-                    
-                    const p1 = paperNodes[i];
-                    if (p1.z < -700) continue;
-
-                    const pRight = paperNodes[right];
-                    const pDown = paperNodes[down];
-
-                    if (x < GRID_RES) {
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(pRight.x, pRight.y);
+                if (scale > 0) {
+                    // Fade logic for ink
+                    let alpha = Math.min(1, scale);
+                    if (phase === 2 && type === 1) {
+                        alpha *= Math.max(0, 1 - phaseTimer/150);
                     }
-                    if (y < GRID_RES) {
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(pDown.x, pDown.y);
+
+                    if (type === 0) {
+                        // Paper Particle (Teal)
+                        ctx.fillStyle = `rgba(105, 183, 178, ${0.4 * alpha})`; 
+                        ctx.fillRect(px, py, 2*scale, 2*scale);
+                    } else {
+                        // Ink Particle (Amber)
+                        ctx.fillStyle = `rgba(251, 191, 36, ${alpha})`; 
+                        ctx.beginPath(); ctx.arc(px, py, 1.5*scale, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
-            ctx.stroke();
-
-            // --- UPDATE & DRAW INK ---
-            ctx.fillStyle = '#fbbf24'; // Amber
-            
-            for(let i=0; i<inkParticles.length; i++) {
-                const p = inkParticles[i];
-                
-                // Base Position (Same interpolation as paper)
-                getPlanePosition(p.u, p.v, planePos);
-                getSheetPosition(p.u, p.v, sheetPos);
-                
-                let x = planePos.x + (sheetPos.x - planePos.x) * morphFactor;
-                let y = planePos.y + (sheetPos.y - planePos.y) * morphFactor;
-                let z = planePos.z + (sheetPos.z - planePos.z) * morphFactor;
-
-                // UNWRITING LOGIC
-                if (phase === 3) {
-                    // Detach logic
-                    if (!p.detached) {
-                        // Start detaching based on time + random variance
-                        if (Math.random() < 0.05) {
-                            p.detached = true;
-                            p.dx = (Math.random()-0.5) * 2;
-                            p.dy = -(Math.random() * 2 + 1); // Float UP
-                            p.dz = (Math.random()-0.5) * 5;
-                        }
-                    }
-                } else if (phase === 4 || phase === 0) {
-                    p.detached = false;
-                    p.dx = 0; p.dy = 0; p.dz = 0;
-                }
-
-                if (p.detached) {
-                    // Add noise movement
-                    x += p.dx * phaseTimer * 0.1 + Math.sin(time * 5 + i) * 5;
-                    y += p.dy * phaseTimer * 0.1;
-                    z += p.dz * phaseTimer * 0.1 + 50; // Lift off surface
-                }
-
-                // Global Transform (Same as Paper)
-                const grx = globalRotX;
-                let y1 = y * Math.cos(grx) - z * Math.sin(grx);
-                let z1 = z * Math.cos(grx) + y * Math.sin(grx);
-                y = y1; z = z1;
-
-                let x1 = x * Math.cos(globalRotZ) - y * Math.sin(globalRotZ);
-                let y2 = y * Math.cos(globalRotZ) + x * Math.sin(globalRotZ);
-                x = x1; y = y2;
-
-                z += globalZ + 400;
-
-                // Project
-                const scale = 800 / (800 + z);
-                const px = cx + x * scale;
-                const py = cy + y * scale;
-
-                if (scale > 0 && z > -700) {
-                    // Fade out as they float away
-                    let alpha = 1;
-                    if (p.detached) alpha = Math.max(0, 1 - (phaseTimer / 200));
-                    
-                    ctx.globalAlpha = alpha;
-                    const size = p.detached ? 2 * scale : 1.5 * scale;
-                    ctx.beginPath();
-                    ctx.arc(px, py, size, 0, Math.PI*2);
-                    ctx.fill();
-                }
-            }
-            ctx.globalAlpha = 1;
 
             frameId = requestAnimationFrame(render);
         };
