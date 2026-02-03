@@ -17,21 +17,7 @@ interface NavSection {
 const SITEMAP: Record<string, NavSection> = {
   "Our Clients": {
     path: "our-clients",
-    children: {
-      "Industries": {
-        path: "our-clients/industries",
-        items: [
-          { label: "Logistics", path: "our-clients/industries/logistics" },
-          { label: "SMB Operations", path: "our-clients/industries/smb-operations" },
-          { label: "Industrials", path: "our-clients/industries/industrials" },
-          { label: "Healthcare", path: "our-clients/industries/healthcare" },
-          { label: "Natural Resources", path: "our-clients/industries/natural-resources" }
-        ]
-      }
-    }
-  },
-  "About": {
-    path: "about"
+    // Removed specific Industry children links to prevent deep navigation
   },
   "Trust Center": {
     path: "trust-center"
@@ -69,7 +55,7 @@ export const GlobalNav: React.FC = () => {
                 {(data.children || data.items) && <ChevronDown size={12} className={`transition-transform duration-300 ${activeDropdown === label ? 'rotate-180' : ''}`} />}
               </button>
 
-              {/* MEGA MENU DROPDOWN */}
+              {/* MEGA MENU DROPDOWN (If items exist) */}
               {(data.children || data.items) && (
                 <div className={`absolute top-full left-0 w-[500px] bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl p-6 grid grid-cols-2 gap-8 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0`}>
                   
@@ -84,7 +70,7 @@ export const GlobalNav: React.FC = () => {
                       </div>
                   )}
 
-                  {/* NESTED CHILDREN (Features, Industries, etc) */}
+                  {/* NESTED CHILDREN */}
                   {data.children && Object.entries(data.children).map(([subLabel, subData]) => (
                     <div key={subLabel}>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3 border-b border-white/5 pb-2">

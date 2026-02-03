@@ -22,18 +22,11 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         let CX = w * 0.5;
         let CY = h * 0.5;
 
-        interface Point3D { x: number; y: number; z: number }
-        
         // Particle State
         const particles = new Float32Array(PARTICLE_COUNT * 9); 
-        // Layout: [curX, curY, curZ, tgtX, tgtY, tgtZ, colorIdx, size, randomOffset]
-        // Storing basic types in TypedArray is faster for math, but we need colors.
-        // We'll use a parallel array for colors to keep it simple or a color palette index.
         const colors = ['#8b5cf6', '#a78bfa', '#22d3ee', '#c4b5fd'];
         const particleColors = new Uint8Array(PARTICLE_COUNT);
 
-        // Pre-allocate Sort Buffer to avoid GC
-        // We store indices here and sort indices based on Z depth
         const renderOrder = new Int32Array(PARTICLE_COUNT);
         const depthBuffer = new Float32Array(PARTICLE_COUNT);
 
@@ -82,8 +75,7 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         // Initialize
         for (let i = 0; i < PARTICLE_COUNT; i++) {
             const idx = i * 9;
-            setCloudTarget(i); // Set initial targets
-            // Set current pos to target initially
+            setCloudTarget(i); 
             particles[idx] = particles[idx+3];
             particles[idx+1] = particles[idx+4];
             particles[idx+2] = particles[idx+5];
@@ -104,7 +96,7 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
         };
 
         const render = () => {
-            time += 0.008;
+            time += 0.007; // SLOWED from 0.008
             phaseTimer++;
 
             if (phaseTimer > PHASE_DURATION) {
@@ -152,16 +144,9 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
 
                 // Store projected Z for sorting
                 depthBuffer[i] = z;
-                
-                // Store projected X/Y temporarily in target slots (optimization hack? No, let's keep array pure)
-                // We'll recalculate projection during draw to save memory bandwidth vs storing a whole new array
-                // Or just store the transformed X/Y/Z back into a buffer? 
-                // Actually, let's just re-project. It's cheap.
-                // We just need Z for sort.
             }
 
             // 2. SORT
-            // Int32Array sort is fast in modern JS engines
             renderOrder.sort((a, b) => depthBuffer[b] - depthBuffer[a]);
 
             // 3. DRAW
@@ -172,8 +157,6 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
 
                 if (scale > 0) {
                     const idx = pIdx * 9;
-                    // Re-calculate X/Y rotation (redundant but avoids allocation)
-                    // Ideally we'd store this in a "renderBuffer"
                     let x = particles[idx];
                     let y = particles[idx+1];
                     let zRaw = particles[idx+2];
@@ -198,20 +181,10 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
                     ctx.fillStyle = colors[particleColors[pIdx]];
                     ctx.globalAlpha = Math.min(1, scale * 0.7);
                     
-                    // Optimization: Use rect for everything. At small sizes, rect ~ circle.
                     ctx.fillRect(px - size/2, py - size/2, size, size);
                 }
             }
             ctx.globalAlpha = 1;
-
-            // Connectivity lines (Optional visual flair - only for top 100 closest to save cycles)
-            /*
-            if (phase !== 0) {
-                ctx.strokeStyle = phase === 2 ? 'rgba(34, 211, 238, 0.15)' : 'rgba(139, 92, 246, 0.1)';
-                ctx.lineWidth = 0.5;
-                // Only connect a subset
-            }
-            */
 
             frameId = requestAnimationFrame(render);
         };

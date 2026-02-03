@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
+import { ClientsHeroVisualizer } from './ClientsHeroVisualizer';
 
 // Import Industry Hero Visualizers for the Carousel
 import { LogisticsHeroVisualizer } from './LogisticsHeroVisualizer';
@@ -15,274 +16,6 @@ import { SmallBusinessHeroVisualizer } from './SmallBusinessHeroVisualizer';
 import { IndustrialsHeroVisualizer } from './IndustrialsHeroVisualizer';
 import { HealthcareHeroVisualizer } from './HealthcareHeroVisualizer';
 import { ResourcesHeroVisualizer } from './ResourcesHeroVisualizer';
-
-// --- WEBGL HERO ENGINE (Main Header) ---
-const WebGLHero: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        const gl = canvas.getContext('webgl');
-        if (!gl) {
-            console.error("WebGL not supported");
-            return;
-        }
-
-        const vsSource = `
-            attribute vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        const fsSource = `
-            precision highp float;
-            uniform vec2 resolution;
-            uniform float time;
-
-            vec3 my_round(vec3 x) { return floor(x + 0.5); }
-
-            void main() {
-                vec2 uv = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-                vec3 col = vec3(0.0);
-                float t = time * 0.4;
-                vec3 ro = vec3(-3.0, 0.0, 9.0);
-                vec3 rd = normalize(vec3(uv, -1.0));
-                float z = 0.0; 
-                float d = 0.0;
-                
-                for(int i = 0; i < 80; i++) {
-                    vec3 p = ro + rd * z;
-                    for(float f = 1.0; f < 5.0; f += 1.0) {
-                        p += sin(my_round(p.zxy * 8.0) * 0.1 * f - t) / f;
-                    }
-                    d = 0.002 + 0.1 * abs(length(p) - 4.5);
-                    if(d < 0.2) {
-                        float density = 1.0 / (d * 10.0 + 0.1);
-                        vec3 teal = vec3(0.41, 0.71, 0.7); 
-                        vec3 cyan = vec3(0.02, 0.71, 0.83);
-                        vec3 tint = mix(teal, cyan, 0.5 + 0.5 * sin(p.x * 0.5));
-                        float sparkle = 1.0 / (abs(sin(p.z * 10.0)) + 0.1);
-                        col += tint * density * 0.0015 * sparkle;
-                    }
-                    z += d * 0.7;
-                    if(z > 20.0) break;
-                }
-                
-                col = smoothstep(0.0, 1.0, col); 
-                col = pow(col, vec3(0.9)); 
-                col *= 0.6;
-                col *= 1.0 - length(uv) * 0.4;
-
-                gl_FragColor = vec4(col, 1.0);
-            }
-        `;
-
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
-
-        let startTime = Date.now();
-        let frameId: number;
-
-        const render = () => {
-            if (!canvas || !container) return;
-            const dpr = Math.min(window.devicePixelRatio, 1.5);
-            const displayWidth = container.clientWidth;
-            const displayHeight = container.clientHeight;
-            
-            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
-                canvas.width = displayWidth * dpr;
-                canvas.height = displayHeight * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
-        };
-    }, []);
-
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#050505]">
-            <canvas ref={canvasRef} className="block w-full h-full opacity-80 mix-blend-screen" />
-        </div>
-    );
-};
-
-// --- PARTNERSHIP SHADER (The "Graphic") ---
-const PartnershipShader: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        const gl = canvas.getContext('webgl2');
-        if (!gl) return;
-
-        const vsSource = `#version 300 es
-            in vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        const fsSource = `#version 300 es
-            precision mediump float; // Optimized precision
-            uniform vec2 resolution;
-            uniform float time;
-            out vec4 fragColor;
-
-            #define PI 3.14159265
-            #define PI2 6.2831853
-
-            void main() {
-                vec2 r = resolution;
-                float t = time * 0.2; // Speed
-                vec4 o = vec4(0.0);
-                vec3 p = vec3(0.0);
-                
-                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
-                vec3 rd = normalize(vec3(uv, 1.0)); 
-                
-                float z = 0.0;
-                float f = 0.0;
-                
-                // Reduced loops for background efficiency
-                for(float i=0.0; i<16.0; i++) {
-                    p = z * rd;
-                    p.z -= t;
-                    f = 1.0;
-                    
-                    for(int j=0; j<4; j++) {
-                        f += 1.0;
-                        p += sin(floor(p.yxz * PI2 + 0.5) / PI * f) / f;
-                    }
-                    
-                    float d = 0.003 + abs(length(p.xy) - 5.0 + dot(cos(p), sin(p.yzx))) / 8.0;
-                    
-                    f = d;
-                    z += f;
-                    
-                    o += (1.0 + sin(i * 0.3 + z + t + vec4(6.0, 1.0, 2.0, 0.0))) / f;
-                }
-                
-                o = tanh(o / 1000.0);
-                o *= 0.3; 
-                
-                fragColor = vec4(o.rgb, 1.0);
-            }
-        `;
-
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
-
-        let startTime = Date.now();
-        let frameId: number;
-
-        const render = () => {
-            if (!canvas || !container) return;
-            
-            const dpr = Math.min(window.devicePixelRatio, 1.5);
-            const w = container.clientWidth;
-            const h = container.clientHeight;
-            
-            if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-                canvas.width = w * dpr;
-                canvas.height = h * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
-        };
-    }, []);
-
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-black">
-            <canvas ref={canvasRef} className="block w-full h-full" />
-        </div>
-    );
-};
 
 const INDUSTRIES = [
     {
@@ -493,7 +226,7 @@ export const OurClientsPage: React.FC = () => {
             {/* --- HERO SECTION (IMMEDIATE) --- */}
             <section className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 <div className="absolute inset-0 z-0">
-                    <WebGLHero />
+                    <ClientsHeroVisualizer />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
                 
@@ -549,7 +282,8 @@ export const OurClientsPage: React.FC = () => {
             <ViewportSlot minHeight="800px" id="manifesto">
                 <section className="relative py-32 bg-black overflow-hidden border-b border-white/10">
                     <div className="absolute inset-0 z-0">
-                        <PartnershipShader />
+                        {/* We use ClientsHeroVisualizer here as well or a static shader, but kept generic for now or reuse ClientsHero */}
+                        <ClientsHeroVisualizer /> 
                         <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
                         <div className="absolute inset-0 bg-black/40" />
                     </div>

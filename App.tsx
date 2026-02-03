@@ -9,7 +9,6 @@ import { CompliancePage } from './components/CompliancePage'; // Serves as Secur
 import { SmallBusinessPage } from './components/SmallBusinessPage'; // Serves as SMB
 import { GenericPage } from './components/GenericPage';
 import { ContactPage } from './components/ContactPage';
-import { AboutPage } from './components/AboutPage';
 import { OurWorkPage } from './components/OurWorkPage';
 import { LogisticsPage } from './components/LogisticsPage';
 import { HealthcarePage } from './components/HealthcarePage';
@@ -72,9 +71,6 @@ const MainContent = () => {
   }
 
   // 3. SECTION ROOTS
-  if (currentPath.startsWith('about')) {
-      return <AboutPage />;
-  }
   if (currentPath.startsWith('our-work')) {
       return <OurWorkPage />;
   }
