@@ -1,24 +1,27 @@
 
 import React from 'react';
-import { Truck, Briefcase, Factory, Activity, Globe } from 'lucide-react';
+import { Truck, Briefcase, Factory, Activity, Globe, ArrowRight } from 'lucide-react';
+import { useNavigation } from '../context/NavigationContext';
 
 interface Industry {
     id: string;
     title: string;
     desc: string;
+    path: string;
     icon: any;
     color: string;
 }
 
 const INDUSTRIES: Industry[] = [
-    { id: 'logistics', title: "Logistics", desc: "Global movement & coordination.", icon: Truck, color: "#06b6d4" },
-    { id: 'smb', title: "SMB Operations", desc: "High-velocity lean tooling.", icon: Briefcase, color: "#8b5cf6" },
-    { id: 'industrials', title: "Industrials", desc: "Heavy asset reliability.", icon: Factory, color: "#f59e0b" },
-    { id: 'healthcare', title: "Healthcare", desc: "Compliance & capacity.", icon: Activity, color: "#14b8a6" },
-    { id: 'resources', title: "Resources", desc: "Physical constraints.", icon: Globe, color: "#10b981" }
+    { id: 'logistics', title: "Logistics", desc: "Global movement & coordination.", path: "our-clients/industries/logistics", icon: Truck, color: "#06b6d4" },
+    { id: 'smb', title: "SMB Operations", desc: "High-velocity lean tooling.", path: "our-clients/industries/smb-operations", icon: Briefcase, color: "#8b5cf6" },
+    { id: 'industrials', title: "Industrials", desc: "Heavy asset reliability.", path: "our-clients/industries/industrials", icon: Factory, color: "#f59e0b" },
+    { id: 'healthcare', title: "Healthcare", desc: "Compliance & capacity.", path: "our-clients/industries/healthcare", icon: Activity, color: "#14b8a6" },
+    { id: 'resources', title: "Resources", desc: "Physical constraints.", path: "our-clients/industries/natural-resources", icon: Globe, color: "#10b981" }
 ];
 
 export const IndustryNavigationFooter: React.FC<{ currentId: string }> = ({ currentId }) => {
+    const { navigateTo } = useNavigation();
     const others = INDUSTRIES.filter(i => i.id !== currentId);
 
     return (
@@ -44,9 +47,10 @@ export const IndustryNavigationFooter: React.FC<{ currentId: string }> = ({ curr
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {others.map((item) => (
-                        <div 
+                        <button 
                             key={item.id}
-                            className="group relative p-6 bg-[#0a0a0c] border border-white/5 rounded-xl text-left transition-all duration-300 overflow-hidden cursor-default"
+                            onClick={() => navigateTo(item.path)}
+                            className="group relative p-6 bg-[#0a0a0c] border border-white/5 hover:border-white/20 rounded-xl text-left transition-all duration-300 hover:-translate-y-1 overflow-hidden"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             
@@ -55,6 +59,7 @@ export const IndustryNavigationFooter: React.FC<{ currentId: string }> = ({ curr
                                     <div className="p-3 rounded-lg bg-white/5 text-white/60 group-hover:text-white group-hover:bg-white/10 transition-colors" style={{ color: item.color }}>
                                         <item.icon size={20} />
                                     </div>
+                                    <ArrowRight size={16} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
                                 </div>
                                 
                                 <div className="mt-auto">
@@ -62,7 +67,7 @@ export const IndustryNavigationFooter: React.FC<{ currentId: string }> = ({ curr
                                     <p className="text-xs text-white/40 group-hover:text-white/60">{item.desc}</p>
                                 </div>
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
                 

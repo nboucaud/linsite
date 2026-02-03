@@ -150,9 +150,9 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
             ctx.fillStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : '#69B7B2';
             
             parts.forEach(p => {
-                // FASTER LERP: Increased from 0.05 to 0.15
-                p.x += (p.tx - p.x) * 0.15;
-                p.y += (p.ty - p.y) * 0.15;
+                // Lerp with damping
+                p.x += (p.tx - p.x) * 0.05;
+                p.y += (p.ty - p.y) * 0.05;
                 
                 ctx.globalAlpha = p.alpha;
                 ctx.beginPath(); 
@@ -504,7 +504,7 @@ const ThreatMap: React.FC = () => {
             
             for (let i = pings.length - 1; i >= 0; i--) {
                 const p = pings[i];
-                p.life -= 0.05; // FASTER DECAY (was 0.02)
+                p.life -= 0.02;
                 if (p.life <= 0) { pings.splice(i, 1); continue; }
                 
                 ctx.strokeStyle = p.color; ctx.lineWidth = 1; ctx.globalAlpha = p.life;
@@ -546,7 +546,7 @@ const LiveGraph: React.FC = () => {
         let t = 0; let frameId: number;
         
         const render = () => {
-            t += 0.3; // FASTER TIME (was 0.1)
+            t += 0.1;
             ctx.clearRect(0,0,w,h);
             
             // Update Data
@@ -603,9 +603,9 @@ const GovernanceWindow = () => {
     ]);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // FASTER SCANLINE: 30ms interval, increment by 2
+    // Scanline progress
     useEffect(() => {
-        const interval = setInterval(() => { setScanProgress(p => (p + 2) % 100); }, 30);
+        const interval = setInterval(() => { setScanProgress(p => (p + 1) % 100); }, 50);
         return () => clearInterval(interval);
     }, []);
 
@@ -755,8 +755,7 @@ const InfrastructureVisualizer: React.FC = () => {
         let w = canvas.width = canvas.parentElement?.clientWidth || 300; let h = canvas.height = canvas.parentElement?.clientHeight || 300;
         let time = 0; let frameId: number;
         const render = () => {
-            time += 0.05; // FASTER ANIMATION (was 0.02)
-            ctx.clearRect(0,0,w,h);
+            time += 0.02; ctx.clearRect(0,0,w,h);
             const size = 30; const rows = Math.ceil(h / (size * 1.5)) + 1; const cols = Math.ceil(w / (size * Math.sqrt(3))) + 1;
             for(let r=0; r<rows; r++) { for(let c=0; c<cols; c++) {
                 const xOffset = (r % 2) * (size * Math.sqrt(3) / 2); const x = c * size * Math.sqrt(3) + xOffset - 20; const y = r * size * 1.5 - 20;
@@ -785,8 +784,7 @@ const BadgeConstellation: React.FC = () => {
         let frameId: number;
         const render = () => {
             ctx.clearRect(0,0,w,h); ctx.fillStyle = '#69B7B2'; ctx.strokeStyle = 'rgba(105, 183, 178, 0.1)';
-            // FASTER PARTICLES (1.5 multiplier, up from 0.5)
-            nodes.forEach(n => { n.x += n.vx * 1.5; n.y += n.vy * 1.5; if(n.x<0||n.x>w) n.vx*=-1; if(n.y<0||n.y>h) n.vy*=-1; ctx.beginPath(); ctx.arc(n.x, n.y, 1.5, 0, Math.PI*2); ctx.fill(); });
+            nodes.forEach(n => { n.x += n.vx * 0.5; n.y += n.vy * 0.5; if(n.x<0||n.x>w) n.vx*=-1; if(n.y<0||n.y>h) n.vy*=-1; ctx.beginPath(); ctx.arc(n.x, n.y, 1.5, 0, Math.PI*2); ctx.fill(); });
             for(let i=0; i<nodes.length; i++) { for(let j=i+1; j<nodes.length; j++) { const d = Math.sqrt((nodes[i].x-nodes[j].x)**2 + (nodes[i].y-nodes[j].y)**2); if(d<100) { ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke(); } } }
             frameId = requestAnimationFrame(render);
         };

@@ -253,8 +253,7 @@ export const LandingPage: React.FC = () => {
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#69B7B2]">Global Operations Network</span>
                     </div>
 
-                    {/* REDUCED HERO TEXT SIZE */}
-                    <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
+                    <h1 className="text-6xl md:text-8xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         Intelligence for <br/>
                         <span className="text-[#69B7B2] italic">The Physical World.</span>
                     </h1>
