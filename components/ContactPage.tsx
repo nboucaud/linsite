@@ -1,300 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, MapPin, Mail, Globe, CheckCircle2, ArrowRight, Radio, Building2, ChevronDown, CheckSquare } from 'lucide-react';
-
-// --- SHADER 1: CONTACT BACKGROUND ---
-const ContactBackgroundShader: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        const gl = canvas.getContext('webgl2');
-        if (!gl) return;
-
-        const vsSource = `#version 300 es
-            in vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        const fsSource = `#version 300 es
-            precision highp float;
-            uniform vec2 resolution;
-            uniform float time;
-            out vec4 fragColor;
-
-            void main() {
-                vec2 r = resolution;
-                float t = time * 0.2; 
-                vec4 o = vec4(0.0);
-                
-                // Centered UVs - Corrected to look into -Z
-                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
-                
-                // ZOOM: Scale UVs down to zoom in (0.75 scale = ~33% zoom in)
-                uv *= 0.75;
-
-                vec3 rd = normalize(vec3(uv, -1.0));
-                
-                float z = 0.0;
-                float d = 0.0;
-                
-                for(float i=0.0; i<40.0; i++) {
-                    vec3 p = z * rd;
-                    
-                    // Domain distortion: p=vec3(atan(p.z+=9.,p.x+1.)*2., .6*p.y+t+t, length(p.xz)-3.)
-                    // p.z += 9.
-                    p.z += 9.0;
-                    
-                    // x' = atan(z, x+1)*2
-                    float nx = atan(p.z, p.x + 1.0) * 2.0;
-                    
-                    // y' = .6y + 2t
-                    float ny = 0.6 * p.y + t + t;
-                    
-                    // z' = length(xz) - 3
-                    float nz = length(p.xz) - 3.0;
-                    
-                    vec3 p_loop = vec3(nx, ny, nz);
-                    
-                    // Inner Loop
-                    for(float j=1.0; j<7.0; j++) {
-                        p_loop += sin(p_loop.yzx * j + t + 0.5 * i) / j;
-                    }
-                    
-                    // Distance field
-                    vec3 v3 = 0.3 * cos(p_loop) - 0.3;
-                    d = 0.4 * length(vec4(v3, p_loop.z)); 
-                    
-                    // Safer d to prevent explosion
-                    d = max(d, 0.002);
-                    
-                    z += d;
-                    
-                    // Color accumulation
-                    // o += (cos(p.y+i*.4+vec4(6,1,2,0))+1.)/d
-                    o += (cos(p_loop.y + i * 0.4 + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / d;
-                }
-                
-                // Tone mapping
-                o = tanh(o * o / 6000.0);
-                
-                // BRIGHTNESS: Decrease by 12.5%
-                o *= 0.875;
-                
-                // Output
-                fragColor = vec4(o.rgb, 1.0);
-            }
-        `;
-
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
-
-        let startTime = Date.now();
-        let frameId: number;
-
-        const render = () => {
-            if (!canvas || !container) return;
-            const dpr = window.devicePixelRatio || 1;
-            const displayWidth = container.clientWidth;
-            const displayHeight = container.clientHeight;
-            
-            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
-                canvas.width = displayWidth * dpr;
-                canvas.height = displayHeight * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
-        };
-    }, []);
-
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
-            <canvas ref={canvasRef} className="block w-full h-full opacity-60 mix-blend-screen" />
-        </div>
-    );
-};
-
-// --- SHADER 2: ELEMENT SHADER (Dimmed) ---
-const ContactElementShader: React.FC<{ className?: string }> = ({ className }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        const gl = canvas.getContext('webgl2');
-        if (!gl) return;
-
-        const vsSource = `#version 300 es
-            in vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        const fsSource = `#version 300 es
-            precision highp float;
-            uniform vec2 resolution;
-            uniform float time;
-            out vec4 fragColor;
-
-            void main() {
-                vec2 r = resolution;
-                float t = time * 0.5;
-                vec4 o = vec4(0.0);
-                
-                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
-                vec3 rd = normalize(vec3(uv, 1.0));
-                
-                vec3 c = vec3(0.0);
-                vec3 p = vec3(0.0);
-                float z = 0.0;
-                float f = 0.0;
-                
-                for(float i=0.0; i<40.0; i++) {
-                    p = z * rd;
-                    p.z -= t;
-                    c = p;
-                    
-                    float f_loop = 0.3;
-                    for(int j=0; j<5; j++) {
-                        f_loop += 1.0;
-                        p += cos(p.yzx * f_loop + i / 0.4) / f_loop;
-                    }
-                    
-                    p = mix(c, p, 0.3);
-                    
-                    float term = dot(cos(p), sin(p.yzx / 0.6)) + abs(p.y) - 3.0;
-                    f = 0.2 * abs(term);
-                    z += f;
-                    
-                    o += (cos(z + vec4(6.0, 1.0, 2.0, 0.0)) + 2.0) / f / z;
-                }
-                
-                o = tanh(o / 800.0);
-                
-                // Dim brightness significantly for text readability
-                // Reduced an additional 33% from 0.25 -> ~0.16
-                o *= 0.16; 
-                
-                fragColor = vec4(o.rgb, 1.0);
-            }
-        `;
-
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
-
-        let startTime = Date.now();
-        let frameId: number;
-
-        const render = () => {
-            if (!canvas || !container) return;
-            const dpr = window.devicePixelRatio || 1;
-            const displayWidth = container.clientWidth;
-            const displayHeight = container.clientHeight;
-            
-            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
-                canvas.width = displayWidth * dpr;
-                canvas.height = displayHeight * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
-        };
-    }, []);
-
-    return (
-        <div ref={containerRef} className={`absolute inset-0 w-full h-full bg-[#0c0c0e] ${className}`}>
-            <canvas ref={canvasRef} className="block w-full h-full opacity-100" />
-            <div className="absolute inset-0 bg-black/60" /> {/* Extra overlay for contrast */}
-        </div>
-    );
-};
+import React, { useState } from 'react';
+import { Mail, Globe, CheckCircle2, ArrowRight, Radio, Building2, ChevronDown, CheckSquare } from 'lucide-react';
+import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 
 export const ContactPage: React.FC = () => {
     const [formState, setFormState] = useState<'idle' | 'sending' | 'sent'>('idle');
@@ -317,7 +24,7 @@ export const ContactPage: React.FC = () => {
             
             {/* Visualizer Background (Global) */}
             <div className="fixed inset-0 z-0">
-                <ContactBackgroundShader />
+                <ContactHeroVisualizer />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#020202] via-[#020202]/80 to-transparent" />
             </div>
 
@@ -341,9 +48,10 @@ export const ContactPage: React.FC = () => {
 
                     {/* MAIN HQ CARD */}
                     <div className="animate-in slide-in-from-bottom-8 duration-700 delay-100">
-                        <div className="relative group overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-                            {/* Card Shader Background */}
-                            <ContactElementShader />
+                        <div className="relative group overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#0c0c0e]">
+                            {/* Card Background Decoration */}
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
+                            <div className="absolute top-0 right-0 p-24 bg-[#69B7B2]/5 blur-[80px] rounded-full pointer-events-none" />
                             
                             <div className="relative p-10 flex items-start justify-between z-10">
                                 <div>
@@ -376,10 +84,12 @@ export const ContactPage: React.FC = () => {
 
                 {/* RIGHT: The Form */}
                 <div className="w-full lg:w-1/2 animate-in fade-in slide-in-from-right duration-700 delay-300">
-                    <div className="relative rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden group border border-white/10">
+                    <div className="relative rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden group border border-white/10 bg-[#0c0c0e]">
                         
-                        {/* Form Shader Background */}
-                        <ContactElementShader />
+                        {/* Static Background Pattern */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                             style={{ backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)', backgroundSize: '30px 30px' }} 
+                        />
 
                         {formState === 'sent' ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c0e]/80 backdrop-blur-xl animate-in fade-in duration-500 z-20">

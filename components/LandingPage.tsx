@@ -4,6 +4,7 @@ import { MoveRight, Shield, Lock, UserCheck, ChevronDown, Globe, Box, Mail, Term
 import { HeroVisualizer } from './HeroVisualizer'; // Keep Hero synchronous for instant LCP
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
+import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 
 // --- LAZY LOADED COMPONENTS ---
 const UseCaseShowcase = React.lazy(() => import('./UseCaseShowcase').then(module => ({ default: module.UseCaseShowcase })));
@@ -31,136 +32,6 @@ const Typewriter: React.FC<{ text: string; delay?: number }> = ({ text, delay = 
         return () => clearTimeout(t);
     }, [text, delay]);
     return <span className="font-serif italic text-white/80">{display}</span>;
-};
-
-// --- SHADER 1: CONTACT BACKGROUND (Optimized) ---
-const ContactBackgroundShader: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        // Use standard webgl for better compatibility if webgl2 fails, but stick to 2 for shader syntax
-        const gl = canvas.getContext('webgl2', { alpha: false, preserveDrawingBuffer: false });
-        if (!gl) return;
-
-        const vsSource = `#version 300 es
-            in vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        const fsSource = `#version 300 es
-            precision mediump float; // Reduced precision for background
-            uniform vec2 resolution;
-            uniform float time;
-            out vec4 fragColor;
-
-            void main() {
-                vec2 r = resolution;
-                float t = time * 0.2; 
-                vec4 o = vec4(0.0);
-                vec2 uv = (gl_FragCoord.xy - r * 0.5) / min(r.x, r.y);
-                uv *= 0.75;
-                vec3 rd = normalize(vec3(uv, -1.0));
-                float z = 0.0;
-                float d = 0.0;
-                
-                // Reduced iterations from 30 to 16 for background performance
-                for(float i=0.0; i<16.0; i++) { 
-                    vec3 p = z * rd;
-                    p.z += 9.0;
-                    float nx = atan(p.z, p.x + 1.0) * 2.0;
-                    float ny = 0.6 * p.y + t + t;
-                    float nz = length(p.xz) - 3.0;
-                    vec3 p_loop = vec3(nx, ny, nz);
-                    
-                    // Reduced inner loop
-                    for(float j=1.0; j<4.0; j++) { 
-                        p_loop += sin(p_loop.yzx * j + t + 0.5 * i) / j;
-                    }
-                    vec3 v3 = 0.3 * cos(p_loop) - 0.3;
-                    d = 0.4 * length(vec4(v3, p_loop.z)); 
-                    d = max(d, 0.02); // Increased min distance to reduce overdraw
-                    z += d;
-                    o += (cos(p_loop.y + i * 0.4 + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / d;
-                }
-                o = tanh(o * o / 6000.0);
-                o *= 0.875;
-                fragColor = vec4(o.rgb, 1.0);
-            }
-        `;
-
-        const createShader = (type: number, source: string) => {
-            const shader = gl.createShader(type);
-            if (!shader) return null;
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            return shader;
-        };
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fsSource);
-        if (!vertexShader || !fragmentShader) return;
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-        const positionLoc = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLoc);
-        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-        const timeLoc = gl.getUniformLocation(program, "time");
-        const resLoc = gl.getUniformLocation(program, "resolution");
-
-        let startTime = Date.now();
-        let frameId: number;
-
-        const render = () => {
-            if (!canvas || !container) return;
-            // Lower DPR slightly for shader performance on high-res
-            const dpr = Math.min(window.devicePixelRatio, 1.5);
-            const displayWidth = container.clientWidth;
-            const displayHeight = container.clientHeight;
-            
-            if (canvas.width !== displayWidth * dpr || canvas.height !== displayHeight * dpr) {
-                canvas.width = displayWidth * dpr;
-                canvas.height = displayHeight * dpr;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, (Date.now() - startTime) * 0.001);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            frameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            cancelAnimationFrame(frameId);
-            gl.deleteProgram(program);
-        };
-    }, []);
-
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
-            <canvas ref={canvasRef} className="block w-full h-full opacity-60 mix-blend-screen" />
-        </div>
-    );
 };
 
 const INDUSTRIES = [
@@ -435,9 +306,9 @@ export const LandingPage: React.FC = () => {
             {/* --- MANIFESTO SECTION --- */}
             <ViewportSlot minHeight="800px" id="manifesto">
                 <section className="relative py-32 bg-black overflow-hidden border-b border-white/10">
-                    {/* Add ContactBackgroundShader equivalent here if needed, keeping simple for now to focus on cards */}
+                    {/* Updated to use new Shared Visualizer instead of WebGL Shader */}
                     <div className="absolute inset-0 z-0 bg-[#020202]">
-                         <ContactBackgroundShader />
+                         <ContactHeroVisualizer />
                          <div className="absolute inset-0 bg-black/60" />
                     </div>
 
