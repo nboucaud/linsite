@@ -109,8 +109,9 @@ const HeroVisualizerComponent: React.FC = () => {
             ctx.fillRect(0, 0, width, height);
 
             // Camera Smoothing
-            targetRotY += (mouseX * 0.5 - targetRotY) * 0.05;
-            targetRotX += (mouseY * 0.5 - targetRotX) * 0.05;
+            // Reduced steering influence to 20% (0.1 instead of 0.5)
+            targetRotY += (mouseX * 0.1 - targetRotY) * 0.05;
+            targetRotX += (mouseY * 0.1 - targetRotX) * 0.05;
 
             const cosY = Math.cos(targetRotX);
             const sinY = Math.sin(targetRotX);

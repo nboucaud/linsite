@@ -15,22 +15,23 @@ import { useNavigation } from '../context/NavigationContext';
 
 // --- VISUALIZER ENGINE: ABSTRACT SECURITY ---
 // Persistent particle system that morphs between security states
-const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({ mode, color }) => {
+const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const particlesRef = useRef<any[]>([]);
     const reqRef = useRef<number>(null);
 
     // Initialize particles once
     useEffect(() => {
-        // Create 150 particles
+        // Create 200 particles
         if (particlesRef.current.length === 0) {
-            for(let i=0; i<150; i++) {
+            for(let i=0; i<200; i++) {
                 particlesRef.current.push({
                     x: Math.random() * 800,
                     y: Math.random() * 600,
                     tx: Math.random() * 800, // Target X
                     ty: Math.random() * 600, // Target Y
-                    r: Math.random() * 2 + 1
+                    r: Math.random() * 2 + 1,
+                    alpha: 0.5 + Math.random() * 0.5
                 });
             }
         }
@@ -39,8 +40,8 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
     // Update Targets based on Mode
     useEffect(() => {
         const canvas = canvasRef.current;
-        const w = canvas?.width || 800;
-        const h = canvas?.height || 500;
+        const w = canvas?.parentElement?.clientWidth || 800;
+        const h = canvas?.parentElement?.clientHeight || 600;
         const particles = particlesRef.current;
         const cx = w/2; 
         const cy = h/2;
@@ -49,57 +50,59 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
             // Two separate clusters (Silo)
             particles.forEach((p, i) => {
                 const cluster = i % 2;
-                const center = cluster === 0 ? {x: w*0.25, y: h*0.5} : {x: w*0.75, y: h*0.5};
+                const center = cluster === 0 ? {x: w*0.3, y: h*0.5} : {x: w*0.7, y: h*0.5};
                 const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * 80;
-                p.tx = center.x + Math.cos(angle) * dist;
-                p.ty = center.y + Math.sin(angle) * dist;
+                // Gaussian-like distribution
+                const r = (Math.random() + Math.random() + Math.random()) / 3 * 150; 
+                p.tx = center.x + Math.cos(angle) * r;
+                p.ty = center.y + Math.sin(angle) * r;
             });
         } else if (mode === 'encryption') {
-            // Grid Matrix (Logic Protection)
-            const cols = 15;
+            // Matrix Grid
+            const cols = 20;
             const rows = 10;
-            const spacingX = w / cols;
-            const spacingY = h / rows;
+            const spacingX = w / (cols + 1);
+            const spacingY = h / (rows + 1);
             particles.forEach((p, i) => {
                 const col = i % cols;
                 const row = Math.floor(i / cols) % rows;
-                // Add some jitter so it's not too rigid
-                p.tx = col * spacingX + spacingX/2 + (Math.random()-0.5)*10;
-                p.ty = row * spacingY + spacingY/2 + (Math.random()-0.5)*10;
+                p.tx = spacingX * (col + 1) + (Math.random()-0.5)*5;
+                p.ty = spacingY * (row + 1) + (Math.random()-0.5)*5;
             });
         } else if (mode === 'redaction') {
-            // Text lines with gaps (Airlock)
-            const lines = 8;
-            const lineHeight = h / (lines + 4);
+            // Lines with gaps
+            const lines = 12;
+            const perLine = Math.floor(particles.length / lines);
+            const lineWidth = w * 0.8;
+            const startX = w * 0.1;
+            
             particles.forEach((p, i) => {
-                const line = i % lines;
-                let tx = Math.random() * (w * 0.8) + (w * 0.1);
-                // Create a "redacted" gap in middle
-                if (tx > w*0.4 && tx < w*0.6) {
-                    tx = tx < w*0.5 ? w*0.38 : w*0.62;
+                const line = Math.floor(i / perLine);
+                const posInLine = (i % perLine) / perLine;
+                
+                // Redact middle section
+                let x = startX + posInLine * lineWidth;
+                if (x > w*0.4 && x < w*0.6) {
+                    x = (x < w*0.5) ? w*0.38 : w*0.62;
                 }
-                p.tx = tx;
-                p.ty = (line + 2) * lineHeight;
+                
+                p.tx = x + (Math.random()-0.5)*5;
+                p.ty = (h/(lines+1)) * (line+1) + (Math.random()-0.5)*2;
             });
         } else if (mode === 'audit') {
-            // Bar graph (Traceability)
-            const bars = 20;
-            const barW = w / (bars + 4);
-            const startX = barW * 2;
+            // Sine wave stream (Log timeline)
             particles.forEach((p, i) => {
-                const bar = i % bars;
-                const barH = Math.abs(Math.sin(bar * 132.1)) * h * 0.6;
-                p.tx = startX + bar * barW + (Math.random() * barW * 0.5);
-                p.ty = h - 50 - (Math.random() * barH);
+                const t = i / particles.length;
+                p.tx = w * 0.1 + t * w * 0.8;
+                p.ty = h/2 + Math.sin(t * Math.PI * 4) * 100 + (Math.random()-0.5)*40;
             });
         } else {
-            // Human/Default - Orbiting Network
+            // Default Cloud
             particles.forEach((p, i) => {
-                const angle = (i / particles.length) * Math.PI * 4;
-                const dist = 60 + Math.random() * 180;
-                p.tx = cx + Math.cos(angle) * dist;
-                p.ty = cy + Math.sin(angle) * dist;
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * 250;
+                p.tx = cx + Math.cos(angle) * r;
+                p.ty = cy + Math.sin(angle) * r;
             });
         }
     }, [mode]);
@@ -112,7 +115,7 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
         if (!ctx) return;
 
         const render = () => {
-            // Resize handling inside loop to stay responsive without flicker
+            // Resize handling inside loop
             const rect = canvas.parentElement?.getBoundingClientRect();
             if (rect && (canvas.width !== rect.width || canvas.height !== rect.height)) {
                 canvas.width = rect.width;
@@ -121,47 +124,41 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
+            // Draw Connections First (Background)
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : '#69B7B2';
+            ctx.globalAlpha = 0.1;
+            ctx.beginPath();
             
-            particlesRef.current.forEach(p => {
-                // Lerp towards target position
-                p.x += (p.tx - p.x) * 0.08;
-                p.y += (p.ty - p.y) * 0.08;
+            const parts = particlesRef.current;
+            // Only connect nearby particles
+            for(let i=0; i<parts.length; i++) {
+                const p1 = parts[i];
+                // Check a few neighbors to simulate connectivity without O(N^2)
+                for(let j=1; j<=3; j++) {
+                    const p2 = parts[(i+j) % parts.length];
+                    const distSq = (p1.x-p2.x)**2 + (p1.y-p2.y)**2;
+                    if (distSq < 2500) { // 50px distance
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                    }
+                }
+            }
+            ctx.stroke();
+
+            // Update & Draw Particles
+            ctx.fillStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : '#69B7B2';
+            
+            parts.forEach(p => {
+                // Lerp with damping
+                p.x += (p.tx - p.x) * 0.05;
+                p.y += (p.ty - p.y) * 0.05;
                 
-                // Draw Particle
-                ctx.globalAlpha = 0.7;
+                ctx.globalAlpha = p.alpha;
                 ctx.beginPath(); 
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); 
                 ctx.fill();
             });
-
-            // Draw Connections (Web Effect)
-            ctx.lineWidth = 0.5;
-            ctx.globalAlpha = 0.15;
-            ctx.beginPath();
-            
-            const parts = particlesRef.current;
-            // Connect close neighbors
-            for(let i=0; i<parts.length; i+=2) {
-                // Connect to a few nearby particles in the array (spatial hashing is overkill here)
-                const p1 = parts[i];
-                const p2 = parts[(i+1) % parts.length]; // Array neighbor
-                const p3 = parts[(i+5) % parts.length]; // Distant array neighbor
-                
-                // Increased distance threshold to ensure connections are visible
-                if ((p1.x-p2.x)**2 + (p1.y-p2.y)**2 < 9000) {
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                }
-                 if ((p1.x-p3.x)**2 + (p1.y-p3.y)**2 < 9000) {
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p3.x, p3.y);
-                }
-            }
-            ctx.stroke();
-            ctx.globalAlpha = 1;
 
             reqRef.current = requestAnimationFrame(render);
         };
@@ -170,138 +167,98 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string; color: string }> = ({
         return () => {
             if (reqRef.current) cancelAnimationFrame(reqRef.current);
         };
-    }, [color]); 
+    }, [mode]); 
 
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-// --- COMPONENT: SECURITY CONSOLE ---
-const SecurityProtocolConsole: React.FC = () => {
-    const [activeIndex, setActiveIndex] = useState(0);
+// --- COMPONENT: DATA SOVEREIGNTY SECTION (Restored) ---
+const DataSovereigntySection: React.FC = () => {
+    const [activeMode, setActiveMode] = useState('isolation');
 
-    const protocols = [
-        { 
-            id: 'silo', 
-            title: "Strict Data Isolation", 
-            subtitle: "Single-Tenant Architecture",
-            desc: "We process client data in strictly isolated containers. There is zero shared memory or cross-pollination between tenant environments. Your data remains physically and logically separated at all times.", 
-            icon: Server, 
-            color: '#69B7B2', 
-            mode: 'isolation'
+    const cards = [
+        {
+            id: 'isolation',
+            title: "Strict Isolation",
+            desc: "Single-tenant architecture ensures zero crossover.",
+            icon: Server
         },
-        { 
-            id: 'advantage', 
-            title: "IP & Logic Protection", 
-            subtitle: "Proprietary Workflow Encryption",
-            desc: "Your business logic is your competitive advantage. We encrypt custom heuristics and decision models at rest and in transit, ensuring your intellectual property is never exposed to the base model or third parties.", 
-            icon: Lock, 
-            color: '#8b5cf6', 
-            mode: 'encryption'
+        {
+            id: 'encryption',
+            title: "Field Encryption",
+            desc: "Data is encrypted at rest and in transit.",
+            icon: Lock
         },
-        { 
-            id: 'anonymity', 
-            title: "PII Redaction Layer", 
-            subtitle: "The 'Airlock' Protocol",
-            desc: "Our localized Model Context Protocol (MCP) acts as a sanitization airlock. Sensitive identifiers (PII/PHI) are stripped and tokenized before any data enters the inference layer.", 
-            icon: Key, 
-            color: '#ef4444', 
-            mode: 'redaction'
+        {
+            id: 'redaction',
+            title: "PII Redaction",
+            desc: "Automatic stripping of sensitive identifiers.",
+            icon: Eye
         },
-        { 
-            id: 'protocol', 
-            title: "Audit & Traceability", 
-            subtitle: "Comprehensive Logging",
-            desc: "Every automated decision is logged with a full chain of custody. You can reconstruct the 'why' behind any system action, providing total defensibility for compliance audits.", 
-            icon: FileCheck, 
-            color: '#f59e0b', 
-            mode: 'audit'
-        },
-        { 
-            id: 'judgment', 
-            title: "Human-in-the-Loop",
-            desc: "We design systems for pilots, not autopilots. Configurable confidence thresholds ensure that high-stakes decisions are always routed to human experts for verification.", 
-            icon: Users, 
-            color: '#22d3ee', 
-            mode: 'human'
+        {
+            id: 'audit',
+            title: "Immutable Logs",
+            desc: "Every action is recorded and traceable.",
+            icon: FileCheck
         }
     ];
 
-    const activeProtocol = protocols[activeIndex];
-
     return (
-        <div className="w-full max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-12 bg-[#0c0c0e] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+        <section className="py-32 bg-[#050505] border-b border-white/5 relative overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6">
                 
-                {/* LEFT: NAVIGATION */}
-                <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-white/10 bg-[#08080a] flex flex-col">
-                    <div className="p-6 border-b border-white/5">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Security Framework</div>
-                        <h3 className="text-xl font-serif text-white">Active Protocols</h3>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        {protocols.map((p, idx) => {
-                            const isActive = idx === activeIndex;
-                            return (
-                                <button
-                                    key={p.id}
-                                    onClick={() => setActiveIndex(idx)}
-                                    className={`w-full text-left p-6 border-b border-white/5 transition-all duration-200 group relative ${isActive ? 'bg-[#151517]' : 'hover:bg-white/5'}`}
-                                >
-                                    {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#69B7B2]" />}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className={`flex items-center gap-3 ${isActive ? 'text-white' : 'text-white/60'}`}>
-                                            <p.icon size={18} className={isActive ? 'text-[#69B7B2]' : 'opacity-50'} />
-                                            <span className="font-bold text-sm">{p.title}</span>
-                                        </div>
-                                        {isActive && <ArrowRight size={14} className="text-[#69B7B2]" />}
-                                    </div>
-                                    <div className="text-xs text-white/40 pl-8 leading-relaxed line-clamp-2">
-                                        {p.desc}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                <div className="mb-16 text-center">
+                    <h2 className="text-4xl md:text-5xl font-serif text-white mb-6">Your Data Stays Yours</h2>
+                    <p className="text-xl text-white/50 max-w-3xl mx-auto leading-relaxed font-light">
+                        Our architecture is built on the principle of radical sovereignty. We do not train on your data, we do not share it, and we do not claim ownership.
+                    </p>
                 </div>
 
-                {/* RIGHT: DETAIL & VISUALIZER */}
-                <div className="lg:col-span-8 flex flex-col min-h-[500px]">
-                    {/* Visualizer Area */}
-                    <div className="flex-1 relative bg-black/20 overflow-hidden border-b border-white/10">
-                        <div className="absolute inset-0">
-                            {/* Key removed to prevent unmounting, allowing particles to morph */}
-                            <AbstractSecurityVisualizer mode={activeProtocol.mode} color={activeProtocol.color} />
-                        </div>
-                        
-                        {/* Overlay Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-transparent to-transparent opacity-50" />
-                        
-                        {/* HUD Elements (Professional) */}
-                        <div className="absolute top-6 left-6">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 border border-white/10 text-[10px] font-mono text-white/50 uppercase tracking-widest backdrop-blur-md">
-                                <Activity size={12} className={activeProtocol.color === '#ef4444' ? 'text-red-500' : 'text-green-500'} />
-                                System Status: Operational
-                            </div>
+                <div className="relative w-full h-[600px] bg-[#0c0c0e] rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col">
+                    
+                    {/* Visualizer Stage */}
+                    <div className="absolute inset-0 z-0">
+                        <AbstractSecurityVisualizer mode={activeMode} color="#69B7B2" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-transparent to-transparent opacity-80" />
+                    </div>
+
+                    {/* Interactive Cards Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {cards.map((card) => {
+                                const isActive = activeMode === card.id;
+                                return (
+                                    <button
+                                        key={card.id}
+                                        onMouseEnter={() => setActiveMode(card.id)}
+                                        className={`group relative p-6 rounded-xl border text-left transition-all duration-300 ${
+                                            isActive 
+                                            ? 'bg-white/10 border-white/20 shadow-lg backdrop-blur-md translate-y-0' 
+                                            : 'bg-black/40 border-white/5 hover:bg-white/5 hover:border-white/10 backdrop-blur-sm translate-y-2 hover:translate-y-0'
+                                        }`}
+                                    >
+                                        <div className={`mb-4 w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isActive ? 'bg-[#69B7B2] text-black' : 'bg-white/5 text-white/50 group-hover:text-white'}`}>
+                                            <card.icon size={20} />
+                                        </div>
+                                        <h3 className={`text-lg font-bold mb-2 transition-colors ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`}>
+                                            {card.title}
+                                        </h3>
+                                        <p className="text-xs text-white/50 leading-relaxed">
+                                            {card.desc}
+                                        </p>
+                                        {isActive && (
+                                            <div className="absolute inset-0 border-2 border-[#69B7B2]/30 rounded-xl pointer-events-none animate-pulse" />
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* Text Details */}
-                    <div className="p-8 md:p-12 bg-[#0c0c0e]">
-                        <div className="flex items-center gap-3 mb-4 text-[#69B7B2] font-mono text-xs uppercase tracking-widest">
-                            {React.createElement(activeProtocol.icon, { size: 16 })}
-                            <span>{activeProtocol.subtitle || "Security Standard"}</span>
-                        </div>
-                        <h2 className="text-3xl font-serif text-white mb-6 leading-tight">
-                            {activeProtocol.title}
-                        </h2>
-                        <p className="text-lg text-white/60 leading-relaxed font-light max-w-3xl">
-                            {activeProtocol.desc}
-                        </p>
-                    </div>
                 </div>
 
             </div>
-        </div>
+        </section>
     );
 };
 
@@ -976,19 +933,8 @@ export const TrustCenterPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- SECTION 1: PLATFORM SECURITY (NEW CONSOLE LAYOUT) --- */}
-            <section className="py-32 bg-[#050505] border-b border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="mb-20 text-center">
-                        <h2 className="text-4xl md:text-5xl font-serif text-white mb-6">The Data-to-Knowledge Pipeline</h2>
-                        <p className="text-xl text-white/50 max-w-4xl mx-auto leading-relaxed font-light">
-                            Security is the cornerstone of our product development. Our tools are built for security-conscious clients who need to handle sensitive workflows using their data as the exclusive source of truth.
-                        </p>
-                    </div>
-
-                    <SecurityProtocolConsole />
-                </div>
-            </section>
+            {/* --- SECTION 1: DATA SOVEREIGNTY (RESTORED) --- */}
+            <DataSovereigntySection />
 
             {/* --- SECTION 2: GOVERNANCE --- */}
             <section className="py-32 bg-[#020202] border-b border-white/5 overflow-hidden">
