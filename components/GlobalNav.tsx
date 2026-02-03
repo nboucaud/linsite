@@ -17,7 +17,13 @@ interface NavSection {
 const SITEMAP: Record<string, NavSection> = {
   "Our Clients": {
     path: "our-clients",
-    // Removed specific Industry children links to prevent deep navigation
+    items: [
+        { label: "Logistics", path: "our-clients/industries/logistics" },
+        { label: "SMB Operations", path: "our-clients/industries/smb-operations" },
+        { label: "Industrial Systems", path: "our-clients/industries/industrials" },
+        { label: "Healthcare", path: "our-clients/industries/healthcare" },
+        { label: "Natural Resources", path: "our-clients/industries/natural-resources" }
+    ]
   },
   "Trust Center": {
     path: "trust-center"
@@ -57,13 +63,13 @@ export const GlobalNav: React.FC = () => {
 
               {/* MEGA MENU DROPDOWN (If items exist) */}
               {(data.children || data.items) && (
-                <div className={`absolute top-full left-0 w-[500px] bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl p-6 grid grid-cols-2 gap-8 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0`}>
+                <div className={`absolute top-full left-0 w-[240px] bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 flex flex-col`}>
                   
                   {/* DIRECT ITEMS */}
                   {data.items && (
-                      <div className="col-span-2 space-y-2">
+                      <div className="space-y-1">
                           {data.items.map(item => (
-                              <button key={item.path} onClick={(e) => { e.stopPropagation(); handleNav(item.path); }} className="block w-full text-left text-white/60 hover:text-[#69B7B2] text-sm hover:bg-white/5 p-2 rounded transition-colors">
+                              <button key={item.path} onClick={(e) => { e.stopPropagation(); handleNav(item.path); }} className="block w-full text-left text-white/60 hover:text-white text-xs hover:bg-white/5 p-3 rounded-lg transition-colors font-medium">
                                   {item.label}
                               </button>
                           ))}
@@ -72,8 +78,8 @@ export const GlobalNav: React.FC = () => {
 
                   {/* NESTED CHILDREN */}
                   {data.children && Object.entries(data.children).map(([subLabel, subData]) => (
-                    <div key={subLabel}>
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3 border-b border-white/5 pb-2">
+                    <div key={subLabel} className="p-2">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2 border-b border-white/5 pb-2">
                         {subLabel}
                       </h4>
                       <div className="space-y-1">

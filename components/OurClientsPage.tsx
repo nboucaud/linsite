@@ -178,13 +178,6 @@ const PHILOSOPHY = [
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
-const IMPACT_METRICS = [
-    { label: "Assets Optimized", value: "$42B+", icon: Database },
-    { label: "Uptime Maintained", value: "99.9%", icon: Activity },
-    { label: "Decisions Supported", value: "1.2M/day", icon: Cpu },
-    { label: "Security Incidents", value: "0", icon: ShieldCheck },
-];
-
 const PARTNER_CODES = [
     "DOE_GRID_SECURE", "NHS_CLINICAL_OPS", "MAERSK_LOG_AI", 
     "RIO_MINING_AUTO", "FEDEX_SORT_OPT", "TESLA_MFG_FLOW",
@@ -261,22 +254,6 @@ export const OurClientsPage: React.FC = () => {
             </section>
 
             <MarqueeRow />
-
-            <section className="py-24 bg-[#050505] border-b border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {IMPACT_METRICS.map((metric, i) => (
-                            <div key={i} className="text-center group cursor-default">
-                                <div className="w-16 h-16 bg-[#0a0a0c] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:border-[#69B7B2]/30 group-hover:text-[#69B7B2] transition-colors shadow-lg">
-                                    <metric.icon size={32} strokeWidth={1} />
-                                </div>
-                                <div className="text-4xl md:text-5xl font-mono font-bold text-white mb-2 tracking-tight group-hover:scale-110 transition-transform duration-500">{metric.value}</div>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{metric.label}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
 
             {/* --- MANIFESTO SECTION (LAZY LOADED) --- */}
             <ViewportSlot minHeight="800px" id="manifesto">

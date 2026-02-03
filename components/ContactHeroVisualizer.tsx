@@ -278,16 +278,7 @@ export const ContactHeroVisualizer: React.FC = () => {
             }
             ctx.globalAlpha = 1;
 
-            // HUD / UI Overlay
-            ctx.fillStyle = 'rgba(105, 183, 178, 0.5)';
-            ctx.font = '10px monospace';
-            ctx.textAlign = 'center';
-            const label = phase === 0 ? "BROADCAST_SIGNAL" : phase === 1 ? "HANDSHAKE_PROTOCOL" : "SECURE_LINK_ESTABLISHED";
-            
-            // Draw HUD near the object (variable Y based on screen height)
-            ctx.fillText(`/// STATUS: ${label} ///`, CX, h - 60);
-            
-            // Progress Bar
+            // Progress Bar (Simplified - No Text)
             const progress = phaseTimer / PHASE_DURATION;
             ctx.fillStyle = 'rgba(255,255,255,0.1)';
             ctx.fillRect(CX - 50, h - 50, 100, 2);

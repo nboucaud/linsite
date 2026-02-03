@@ -438,13 +438,6 @@ const TrustHeroVisualizer: React.FC = () => {
 
             // HUD Elements (Right Side)
             if (w > 1024) {
-                ctx.fillStyle = 'rgba(105, 183, 178, 0.3)';
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
-                const label = phase === 0 ? "SCANNING_VULNERABILITIES" : phase === 1 ? "ANALYZING_STRUCTURE" : "DEFENSE_ACTIVE";
-                ctx.fillText(`/// SYSTEM_STATUS: ${label} ///`, cx, cy + 280);
-                
-                // Progress bar
                 const progress = phaseTimer / (PHASE_DURATION * 2);
                 ctx.fillStyle = 'rgba(105, 183, 178, 0.1)';
                 ctx.fillRect(cx - 50, cy + 290, 100, 2);

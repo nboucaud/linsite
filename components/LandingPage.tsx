@@ -195,13 +195,6 @@ const PHILOSOPHY = [
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
-const IMPACT_METRICS = [
-    { label: "Assets Optimized", value: "$42B+", icon: Database },
-    { label: "Uptime Maintained", value: "99.9%", icon: Activity },
-    { label: "Decisions Supported", value: "1.2M/day", icon: Cpu },
-    { label: "Security Incidents", value: "0", icon: ShieldCheck },
-];
-
 const PARTNER_CODES = [
     "DOE_GRID_SECURE", "NHS_CLINICAL_OPS", "MAERSK_LOG_AI", 
     "RIO_MINING_AUTO", "FEDEX_SORT_OPT", "TESLA_MFG_FLOW",
@@ -253,7 +246,7 @@ export const LandingPage: React.FC = () => {
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#69B7B2]">Global Operations Network</span>
                     </div>
 
-                    <h1 className="text-6xl md:text-8xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
+                    <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         Intelligence for <br/>
                         <span className="text-[#69B7B2] italic">The Physical World.</span>
                     </h1>
@@ -278,22 +271,6 @@ export const LandingPage: React.FC = () => {
             </section>
 
             <MarqueeRow />
-
-            <section className="py-24 bg-[#050505] border-b border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {IMPACT_METRICS.map((metric, i) => (
-                            <div key={i} className="text-center group cursor-default">
-                                <div className="w-16 h-16 bg-[#0a0a0c] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:border-[#69B7B2]/30 group-hover:text-[#69B7B2] transition-colors shadow-lg">
-                                    <metric.icon size={32} strokeWidth={1} />
-                                </div>
-                                <div className="text-4xl md:text-5xl font-mono font-bold text-white mb-2 tracking-tight group-hover:scale-110 transition-transform duration-500">{metric.value}</div>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{metric.label}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
 
             {/* --- MANIFESTO SECTION --- */}
             <ViewportSlot minHeight="800px" id="manifesto">
