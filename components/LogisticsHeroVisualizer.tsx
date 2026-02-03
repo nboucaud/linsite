@@ -22,8 +22,10 @@ export const LogisticsHeroVisualizer: React.FC = () => {
         const ROWS = 24;
         const PARTICLE_COUNT = COLS * ROWS; 
         const CAM_Z = 1200;
-        const PHASE_DURATION = 600;
-        const TRANSITION_SPEED = 0.04;
+        
+        // Slower transitions for smoother feel
+        const PHASE_DURATION = 800; // Increased from 600
+        const TRANSITION_SPEED = 0.025; // Decreased from 0.04
         
         // --- STATE & BUFFERS ---
         // Layout: [x, y, z, tx, ty, tz, colorType]

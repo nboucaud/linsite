@@ -36,8 +36,10 @@ export const SmallBusinessHeroVisualizer: React.FC = () => {
 
         let phase = 0; 
         let phaseTimer = 0;
-        const PHASE_DURATION = 450; 
-        const TRANSITION_SPEED = 0.04;
+        
+        // Smoother, Slower Transition
+        const PHASE_DURATION = 600; // Increased from 450
+        const TRANSITION_SPEED = 0.025; // Decreased from 0.04
 
         // Generators
         const setCloudTargets = () => {
