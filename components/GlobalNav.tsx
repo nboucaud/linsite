@@ -43,13 +43,14 @@ export const GlobalNav: React.FC = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#020202]/90 backdrop-blur-md border-b border-white/10 transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-6 h-32 md:h-44 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between">
         {/* LOGO */}
-        <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group z-50">
+        <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group z-50 h-full overflow-hidden">
+          {/* Scaled image to crop top/bottom whitespace while fitting in standard header */}
           <img 
             src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
             alt="Infogito Logo" 
-            className="h-24 md:h-32 w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
+            className="h-[200%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
           />
         </button>
 

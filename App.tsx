@@ -97,8 +97,8 @@ const App: React.FC = () => {
   return (
     <NavigationProvider>
       <GlobalNav />
-      {/* Spacer for increased header height */}
-      <div className="pt-8 md:pt-20">
+      {/* Standard padding handled by page components */}
+      <div>
         <MainContent />
       </div>
     </NavigationProvider>
