@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 
-const LogisticsHeroVisualizerComponent: React.FC = () => {
+export const LogisticsHeroVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -11,206 +11,212 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        let w = canvas.parentElement?.clientWidth || window.innerWidth;
-        let h = canvas.parentElement?.clientHeight || window.innerHeight;
-        let frame = 0;
+        let width = 0;
+        let height = 0;
         let frameId: number;
-        
-        const PHASE_DURATION = 900; 
-        
-        // --- 1. INDUCTION (Packages) ---
-        interface PackageBox { x: number, y: number, w: number, h: number, speed: number, type: 'standard' | 'priority' | 'hazardous' }
-        const packages: PackageBox[] = [];
-        for(let i=0; i<100; i++) {
-            packages.push({
-                x: Math.random() * w * 1.5,
-                y: Math.random() * h,
-                w: 20 + Math.random() * 30,
-                h: 10 + Math.random() * 20,
-                speed: (1.8 + Math.random() * 2.7) * 0.67, // SLOWED
-                type: Math.random() > 0.9 ? 'hazardous' : Math.random() > 0.8 ? 'priority' : 'standard'
-            });
-        }
+        let frame = 0;
 
-        // --- 2. NETWORK (Globe) ---
-        interface GlobePoint { x: number, y: number, z: number, r: number }
-        const globePoints: GlobePoint[] = [];
-        const count = 600;
-        const r = 250;
-        const phi = Math.PI * (3 - Math.sqrt(5));
-        for(let i=0; i<count; i++) {
-            const y = 1 - (i / (count - 1)) * 2;
-            const radius = Math.sqrt(1 - y * y);
-            const theta = phi * i;
-            const x = Math.cos(theta) * radius;
-            const z = Math.sin(theta) * radius;
-            globePoints.push({ x: x*r, y: y*r, z: z*r, r: Math.random() > 0.95 ? 3 : 1.5 });
-        }
+        // --- CONFIG ---
+        const PARTICLE_COUNT = 800; // Increased count for better density
+        const PHASE_DURATION = 900;
+        
+        // --- STATE MANAGED VIA TYPED ARRAYS (Zero GC) ---
+        // Layout: [x, y, z, vx, vy, vz, type, size, active]
+        const P_STRIDE = 9;
+        const particles = new Float32Array(PARTICLE_COUNT * P_STRIDE);
+        
+        // 0: Standard, 1: Priority, 2: Hazardous
+        const TYPE_STD = 0, TYPE_PRI = 1, TYPE_HAZ = 2;
 
-        // --- 3. SORTATION (Radial) ---
-        interface SortParticle { r: number, angle: number, speed: number, color: string }
-        const sortParticles: SortParticle[] = [];
-        for(let i=0; i<150; i++) {
-            sortParticles.push({
-                r: Math.random() * 50,
-                angle: Math.random() * Math.PI * 2,
-                speed: (1.8 + Math.random() * 3.6) * 0.67, // SLOWED
-                color: Math.random() > 0.5 ? '#10b981' : '#f59e0b'
-            });
-        }
+        const initParticles = (w: number, h: number) => {
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const idx = i * P_STRIDE;
+                resetParticle(idx, w, h);
+            }
+        };
+
+        const resetParticle = (idx: number, w: number, h: number) => {
+            particles[idx] = Math.random() * w;     // x
+            particles[idx+1] = Math.random() * h;   // y
+            particles[idx+2] = (Math.random() - 0.5) * 500; // z
+            
+            // Velocity
+            particles[idx+3] = -(2 + Math.random() * 3); // vx
+            particles[idx+4] = 0; // vy
+            particles[idx+5] = 0; // vz
+
+            // Type & Meta
+            const rand = Math.random();
+            particles[idx+6] = rand > 0.9 ? TYPE_HAZ : rand > 0.75 ? TYPE_PRI : TYPE_STD;
+            particles[idx+7] = 20 + Math.random() * 30; // size (width)
+            particles[idx+8] = 1; // active
+        };
 
         const render = () => {
             frame++;
             const cycle = frame % (PHASE_DURATION * 3);
-            let activePhase = 0;
+            let activePhase = 0; // 0: Induction, 1: Globe, 2: Sort
             
             if (cycle < PHASE_DURATION) activePhase = 0;
             else if (cycle < PHASE_DURATION * 2) activePhase = 1;
             else activePhase = 2;
 
-            ctx.fillStyle = '#020202';
-            ctx.fillRect(0, 0, w, h);
+            // Clear with trail effect for smoother visuals
+            ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
+            ctx.fillRect(0, 0, width, height);
 
-            if (activePhase === 0) {
-                // --- INDUCTION BATCHED ---
-                packages.forEach(p => {
-                    p.x -= p.speed;
-                    if (p.x < -100) { p.x = w + Math.random() * 200; p.y = Math.random() * h; }
-                });
+            const cx = width * 0.75;
+            const cy = height * 0.5;
+            const time = frame * 0.005;
 
-                // Batch 1: Standard (Cyan)
-                ctx.fillStyle = '#06b6d4';
-                ctx.beginPath();
-                for (const p of packages) {
-                    if (p.type === 'standard') ctx.rect(p.x, p.y, p.w, p.h);
-                }
-                ctx.fill();
+            // --- BATCHING ARRAYS ---
+            // We use standard arrays for batching coordinates to pass to path drawing
+            // Clearing length is faster than reallocating
+            const batchBlue: number[] = [];
+            const batchAmber: number[] = [];
+            const batchRed: number[] = [];
+            const batchGreen: number[] = []; // For sortation
 
-                // Batch 2: Priority (Amber)
-                ctx.fillStyle = '#f59e0b';
-                ctx.beginPath();
-                for (const p of packages) {
-                    if (p.type === 'priority') ctx.rect(p.x, p.y, p.w, p.h);
-                }
-                ctx.fill();
-
-                // Batch 3: Hazardous (Red)
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath();
-                for (const p of packages) {
-                    if (p.type === 'hazardous') ctx.rect(p.x, p.y, p.w, p.h);
-                }
-                ctx.fill();
-
-                // 3D Sides (Batch)
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                ctx.beginPath();
-                for (const p of packages) {
-                    ctx.moveTo(p.x, p.y); 
-                    ctx.lineTo(p.x+10, p.y-10); 
-                    ctx.lineTo(p.x+p.w+10, p.y-10); 
-                    ctx.lineTo(p.x+p.w, p.y);
-                }
-                ctx.fill();
-
-            } else if (activePhase === 1) {
-                // --- GLOBE BATCHED ---
-                ctx.save();
-                ctx.translate(w * 0.75, h * 0.5);
-                const time = frame * 0.003; // SLOWED from 0.0045
-                const cosT = Math.cos(time);
-                const sinT = Math.sin(time);
-
-                const bluePoints: number[] = []; 
-                const amberPoints: number[] = []; 
-
-                for (let i = 0; i < globePoints.length; i++) {
-                    const p = globePoints[i];
-                    let x = p.x * cosT - p.z * sinT;
-                    let z = p.z * cosT + p.x * sinT;
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const idx = i * P_STRIDE;
+                
+                // --- PHASE 0: LINEAR INDUCTION ---
+                if (activePhase === 0) {
+                    particles[idx] += particles[idx+3]; // x += vx
                     
-                    if (z > -200) {
-                        const scale = 500 / (500 + z);
-                        const size = p.r * scale;
-                        const px = x * scale;
-                        const py = p.y * scale;
-                        
-                        if (p.r > 2) {
-                            amberPoints.push(px, py, size);
-                        } else {
-                            bluePoints.push(px, py, size);
-                        }
+                    // Reset if off screen
+                    if (particles[idx] < -50) {
+                        particles[idx] = width + 50;
+                        particles[idx+1] = Math.random() * height;
+                    }
+
+                    // Push to batch
+                    const type = particles[idx+6];
+                    const x = particles[idx];
+                    const y = particles[idx+1];
+                    const size = particles[idx+7];
+
+                    // Simple 3D box effect
+                    if (type === TYPE_HAZ) {
+                        batchRed.push(x, y, size);
+                    } else if (type === TYPE_PRI) {
+                        batchAmber.push(x, y, size);
+                    } else {
+                        batchBlue.push(x, y, size);
+                    }
+                } 
+                
+                // --- PHASE 1: GLOBE NETWORK ---
+                else if (activePhase === 1) {
+                    // Parametric Globe Math
+                    // We reuse the index to map to a fibonacci sphere
+                    const phi = Math.acos(1 - 2 * (i / PARTICLE_COUNT));
+                    const theta = Math.sqrt(PARTICLE_COUNT * Math.PI) * phi;
+                    
+                    const r = 250;
+                    let x = r * Math.cos(theta) * Math.sin(phi);
+                    let y = r * Math.sin(theta) * Math.sin(phi);
+                    let z = r * Math.cos(phi);
+
+                    // Rotation
+                    let tx = x * Math.cos(time) - z * Math.sin(time);
+                    let tz = z * Math.cos(time) + x * Math.sin(time);
+                    x = tx; z = tz;
+
+                    const scale = 500 / (500 + z);
+                    
+                    if (z > -200) { // Culling
+                        const px = cx + x * scale;
+                        const py = cy + y * scale;
+                        const pSize = (particles[idx+6] === TYPE_PRI ? 3 : 1.5) * scale;
+
+                        if (particles[idx+6] === TYPE_PRI) batchAmber.push(px, py, pSize);
+                        else batchBlue.push(px, py, pSize);
                     }
                 }
 
-                // Draw Blue
-                ctx.fillStyle = '#06b6d4';
-                ctx.beginPath();
-                for(let i=0; i<bluePoints.length; i+=3) {
-                    ctx.rect(bluePoints[i], bluePoints[i+1], bluePoints[i+2], bluePoints[i+2]);
-                }
-                ctx.fill();
-
-                // Draw Amber
-                ctx.fillStyle = '#f59e0b';
-                ctx.beginPath();
-                for(let i=0; i<amberPoints.length; i+=3) {
-                    ctx.rect(amberPoints[i], amberPoints[i+1], amberPoints[i+2], amberPoints[i+2]);
-                }
-                ctx.fill();
-
-                ctx.restore();
-
-            } else {
-                // --- SORTATION BATCHED ---
-                ctx.save();
-                ctx.translate(w * 0.75, h * 0.5);
-                
-                const greenParticles: number[] = [];
-                const amberParticles: number[] = [];
-
-                for (let i = 0; i < sortParticles.length; i++) {
-                    const p = sortParticles[i];
-                    p.r += p.speed;
-                    p.angle += 0.03; // SLOWED from 0.045
-                    if (p.r > 300) { p.r = 60; p.angle = Math.random() * Math.PI * 2; }
+                // --- PHASE 2: RADIAL SORTATION ---
+                else {
+                    // Reuse x/y storage for polar coords: x=radius, y=angle
+                    // Re-initialize for this phase if needed (simplified logic here uses stateless projection)
                     
-                    const px = Math.cos(p.angle) * p.r;
-                    const py = Math.sin(p.angle) * p.r;
-                    
-                    if (p.color === '#10b981') greenParticles.push(px, py);
-                    else amberParticles.push(px, py);
-                }
+                    // Calculate dynamic spiral
+                    const speed = particles[idx+3] * -1; // reuse velocity magnitude
+                    const r = (frame * speed + i * 5) % (Math.min(width, height) * 0.6);
+                    const angle = i * 0.1 + frame * 0.02;
 
-                // Draw Green
-                ctx.fillStyle = '#10b981';
-                ctx.beginPath();
-                for(let i=0; i<greenParticles.length; i+=2) {
-                    ctx.rect(greenParticles[i], greenParticles[i+1], 3, 3);
-                }
-                ctx.fill();
+                    const px = cx + Math.cos(angle) * r;
+                    const py = cy + Math.sin(angle) * r;
 
-                // Draw Amber
-                ctx.fillStyle = '#f59e0b';
-                ctx.beginPath();
-                for(let i=0; i<amberParticles.length; i+=2) {
-                    ctx.rect(amberParticles[i], amberParticles[i+1], 3, 3);
+                    const type = particles[idx+6];
+                    if (type === TYPE_STD) batchGreen.push(px, py, 2);
+                    else batchAmber.push(px, py, 2);
                 }
-                ctx.fill();
-
-                ctx.restore();
             }
+
+            // --- RENDER BATCHES ---
+            
+            // Helper for rectangles (Phase 0) or Circles (Phase 1/2)
+            const drawBatch = (list: number[], color: string, isRect: boolean) => {
+                if (list.length === 0) return;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                for (let k = 0; k < list.length; k+=3) {
+                    if (isRect) {
+                        // Draw box + 3D side
+                        ctx.rect(list[k], list[k+1], list[k+2], 10);
+                    } else {
+                        ctx.moveTo(list[k], list[k+1]);
+                        ctx.arc(list[k], list[k+1], list[k+2], 0, Math.PI * 2);
+                    }
+                }
+                ctx.fill();
+                
+                // Add detail for rects
+                if (isRect) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.beginPath();
+                    for (let k = 0; k < list.length; k+=3) {
+                        const x = list[k], y = list[k+1], w = list[k+2];
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x+5, y-5);
+                        ctx.lineTo(x+w+5, y-5);
+                        ctx.lineTo(x+w, y);
+                    }
+                    ctx.fill();
+                }
+            };
+
+            const isRect = activePhase === 0;
+            drawBatch(batchBlue, '#06b6d4', isRect);
+            drawBatch(batchAmber, '#f59e0b', isRect);
+            drawBatch(batchRed, '#ef4444', isRect);
+            drawBatch(batchGreen, '#10b981', isRect);
 
             frameId = requestAnimationFrame(render);
         };
 
         const handleResize = () => {
             if (canvas.parentElement) {
-                w = canvas.width = canvas.parentElement.clientWidth;
-                h = canvas.height = canvas.parentElement.clientHeight;
+                const rect = canvas.parentElement.getBoundingClientRect();
+                // DPR Handling for sharp text/lines on Retina
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                
+                // Scale context to match
+                ctx.scale(dpr, dpr);
+                
+                // Logical Size
+                width = rect.width;
+                height = rect.height;
+                
+                initParticles(width, height);
             }
         };
+
         window.addEventListener('resize', handleResize);
+        handleResize(); // Init
         render();
 
         return () => {
@@ -219,7 +225,5 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
+    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ width: '100%', height: '100%' }} />;
 };
-
-export const LogisticsHeroVisualizer = React.memo(LogisticsHeroVisualizerComponent);

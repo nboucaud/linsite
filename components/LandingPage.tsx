@@ -5,6 +5,7 @@ import { HeroVisualizer } from './HeroVisualizer'; // Keep Hero synchronous for 
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
+import { PhilosophyHeroVisualizer } from './PhilosophyHeroVisualizer';
 
 // --- LAZY LOADED COMPONENTS ---
 const UseCaseShowcase = React.lazy(() => import('./UseCaseShowcase').then(module => ({ default: module.UseCaseShowcase })));
@@ -292,9 +293,9 @@ export const LandingPage: React.FC = () => {
             {/* --- MANIFESTO SECTION --- */}
             <ViewportSlot minHeight="800px" id="manifesto">
                 <section className="relative py-32 bg-black overflow-hidden border-b border-white/10">
-                    {/* Updated to use new Shared Visualizer instead of WebGL Shader */}
+                    {/* NEW VISUALIZER: Philosophy (Smooth 3-Phase Animation) */}
                     <div className="absolute inset-0 z-0 bg-[#020202]">
-                         <ContactHeroVisualizer />
+                         <PhilosophyHeroVisualizer />
                          <div className="absolute inset-0 bg-black/60" />
                     </div>
 
