@@ -8,215 +8,220 @@ export const LogisticsHeroVisualizer: React.FC = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         
+        // Alpha: false for performance (no composition with background)
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
         let width = 0;
         let height = 0;
         let frameId: number;
-        let frame = 0;
+        let time = 0;
 
         // --- CONFIG ---
-        const PARTICLE_COUNT = 800; // Increased count for better density
-        const PHASE_DURATION = 900;
+        const COLS = 50; 
+        const ROWS = 24;
+        const PARTICLE_COUNT = COLS * ROWS; 
+        const CAM_Z = 1200;
+        const PHASE_DURATION = 600;
+        const TRANSITION_SPEED = 0.04;
         
-        // --- STATE MANAGED VIA TYPED ARRAYS (Zero GC) ---
-        // Layout: [x, y, z, vx, vy, vz, type, size, active]
-        const P_STRIDE = 9;
-        const particles = new Float32Array(PARTICLE_COUNT * P_STRIDE);
+        // --- STATE & BUFFERS ---
+        // Layout: [x, y, z, tx, ty, tz, colorType]
+        const P_STRIDE = 7;
+        const data = new Float32Array(PARTICLE_COUNT * P_STRIDE);
         
-        // 0: Standard, 1: Priority, 2: Hazardous
-        const TYPE_STD = 0, TYPE_PRI = 1, TYPE_HAZ = 2;
+        // Project buffers (Allocated ONCE to avoid GC)
+        const projX = new Float32Array(PARTICLE_COUNT);
+        const projY = new Float32Array(PARTICLE_COUNT);
+        const projScale = new Float32Array(PARTICLE_COUNT);
 
-        const initParticles = (w: number, h: number) => {
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Initialize state
+        for(let i=0; i<PARTICLE_COUNT; i++) {
+            const idx = i * P_STRIDE;
+            data[idx] = (Math.random() - 0.5) * 2000;
+            data[idx+1] = (Math.random() - 0.5) * 2000;
+            data[idx+2] = (Math.random() - 0.5) * 2000;
+            
+            // Color: 0=Cyan, 1=Amber, 2=White
+            const rand = Math.random();
+            data[idx+6] = rand > 0.9 ? 1 : (rand > 0.7 ? 2 : 0);
+        }
+
+        let phase = 0; 
+        let phaseTimer = 0;
+
+        // --- GEOMETRY GENERATORS ---
+        const setTargetPlane = () => {
+            const spacingX = 35;
+            const spacingY = 35;
+            const offsetX = (COLS * spacingX) / 2;
+            const offsetY = (ROWS * spacingY) / 2;
+            for(let i=0; i<PARTICLE_COUNT; i++) {
                 const idx = i * P_STRIDE;
-                resetParticle(idx, w, h);
+                const col = i % COLS;
+                const row = Math.floor(i / COLS);
+                data[idx+3] = col * spacingX - offsetX;
+                data[idx+4] = row * spacingY - offsetY;
+                data[idx+5] = Math.sin(col * 0.2) * 40 + Math.cos(row * 0.2) * 40;
             }
         };
 
-        const resetParticle = (idx: number, w: number, h: number) => {
-            particles[idx] = Math.random() * w;     // x
-            particles[idx+1] = Math.random() * h;   // y
-            particles[idx+2] = (Math.random() - 0.5) * 500; // z
-            
-            // Velocity
-            particles[idx+3] = -(2 + Math.random() * 3); // vx
-            particles[idx+4] = 0; // vy
-            particles[idx+5] = 0; // vz
-
-            // Type & Meta
-            const rand = Math.random();
-            particles[idx+6] = rand > 0.9 ? TYPE_HAZ : rand > 0.75 ? TYPE_PRI : TYPE_STD;
-            particles[idx+7] = 20 + Math.random() * 30; // size (width)
-            particles[idx+8] = 1; // active
+        const setTargetSphere = () => {
+            const radius = 300;
+            for(let i=0; i<PARTICLE_COUNT; i++) {
+                const idx = i * P_STRIDE;
+                const col = i % COLS;
+                const row = Math.floor(i / COLS);
+                const lat = (row / (ROWS - 1)) * Math.PI - Math.PI / 2;
+                const lon = (col / (COLS - 1)) * Math.PI * 2;
+                data[idx+3] = radius * Math.cos(lat) * Math.cos(lon);
+                data[idx+4] = radius * Math.sin(lat);
+                data[idx+5] = radius * Math.cos(lat) * Math.sin(lon);
+            }
         };
 
-        const render = () => {
-            frame++;
-            const cycle = frame % (PHASE_DURATION * 3);
-            let activePhase = 0; // 0: Induction, 1: Globe, 2: Sort
-            
-            if (cycle < PHASE_DURATION) activePhase = 0;
-            else if (cycle < PHASE_DURATION * 2) activePhase = 1;
-            else activePhase = 2;
+        const setTargetTorus = () => {
+            const R = 260; const r = 90;
+            for(let i=0; i<PARTICLE_COUNT; i++) {
+                const idx = i * P_STRIDE;
+                const col = i % COLS;
+                const row = Math.floor(i / COLS);
+                const u = (col / COLS) * Math.PI * 2;
+                const v = (row / ROWS) * Math.PI * 2;
+                data[idx+3] = (R + r * Math.cos(v)) * Math.cos(u);
+                data[idx+4] = (R + r * Math.cos(v)) * Math.sin(u);
+                data[idx+5] = r * Math.sin(v);
+            }
+        };
 
-            // Clear with trail effect for smoother visuals
-            ctx.fillStyle = 'rgba(2, 2, 2, 0.3)';
+        const updateTargets = () => {
+            if (phase === 0) setTargetPlane();
+            else if (phase === 1) setTargetSphere();
+            else setTargetTorus();
+        };
+        setTargetPlane();
+
+        // --- RENDER LOOP ---
+        const render = () => {
+            time += 0.015;
+            phaseTimer++;
+            if (phaseTimer > PHASE_DURATION) {
+                phaseTimer = 0;
+                phase = (phase + 1) % 3;
+                updateTargets();
+            }
+
+            ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, width, height);
 
             const cx = width * 0.75;
             const cy = height * 0.5;
-            const time = frame * 0.005;
 
-            // --- BATCHING ARRAYS ---
-            // We use standard arrays for batching coordinates to pass to path drawing
-            // Clearing length is faster than reallocating
-            const batchBlue: number[] = [];
-            const batchAmber: number[] = [];
-            const batchRed: number[] = [];
-            const batchGreen: number[] = []; // For sortation
+            // Camera Matrices
+            const rotY = time * 0.2;
+            const rotX = Math.sin(time * 0.15) * 0.2;
+            const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+            const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
 
+            // 1. UPDATE & PROJECT
             for (let i = 0; i < PARTICLE_COUNT; i++) {
                 const idx = i * P_STRIDE;
                 
-                // --- PHASE 0: LINEAR INDUCTION ---
-                if (activePhase === 0) {
-                    particles[idx] += particles[idx+3]; // x += vx
-                    
-                    // Reset if off screen
-                    if (particles[idx] < -50) {
-                        particles[idx] = width + 50;
-                        particles[idx+1] = Math.random() * height;
-                    }
+                // LERP
+                const tx = data[idx+3], ty = data[idx+4], tz = data[idx+5];
+                data[idx] += (tx - data[idx]) * TRANSITION_SPEED;
+                data[idx+1] += (ty - data[idx+1]) * TRANSITION_SPEED;
+                data[idx+2] += (tz - data[idx+2]) * TRANSITION_SPEED;
 
-                    // Push to batch
-                    const type = particles[idx+6];
-                    const x = particles[idx];
-                    const y = particles[idx+1];
-                    const size = particles[idx+7];
+                let x = data[idx];
+                let y = data[idx+1];
+                let z = data[idx+2];
 
-                    // Simple 3D box effect
-                    if (type === TYPE_HAZ) {
-                        batchRed.push(x, y, size);
-                    } else if (type === TYPE_PRI) {
-                        batchAmber.push(x, y, size);
-                    } else {
-                        batchBlue.push(x, y, size);
-                    }
-                } 
+                // Wave effect (only phase 0)
+                if (phase === 0) z += Math.sin(x * 0.03 + time * 4) * 20;
+
+                // 3D Rotation
+                let x1 = x * cosY - z * sinY;
+                let z1 = z * cosY + x * sinY;
+                let y1 = y * cosX - z1 * sinX;
+                let z2 = z1 * cosX + y * sinX;
+
+                const scale = CAM_Z / (CAM_Z + z2);
+                projScale[i] = scale;
                 
-                // --- PHASE 1: GLOBE NETWORK ---
-                else if (activePhase === 1) {
-                    // Parametric Globe Math
-                    // We reuse the index to map to a fibonacci sphere
-                    const phi = Math.acos(1 - 2 * (i / PARTICLE_COUNT));
-                    const theta = Math.sqrt(PARTICLE_COUNT * Math.PI) * phi;
-                    
-                    const r = 250;
-                    let x = r * Math.cos(theta) * Math.sin(phi);
-                    let y = r * Math.sin(theta) * Math.sin(phi);
-                    let z = r * Math.cos(phi);
-
-                    // Rotation
-                    let tx = x * Math.cos(time) - z * Math.sin(time);
-                    let tz = z * Math.cos(time) + x * Math.sin(time);
-                    x = tx; z = tz;
-
-                    const scale = 500 / (500 + z);
-                    
-                    if (z > -200) { // Culling
-                        const px = cx + x * scale;
-                        const py = cy + y * scale;
-                        const pSize = (particles[idx+6] === TYPE_PRI ? 3 : 1.5) * scale;
-
-                        if (particles[idx+6] === TYPE_PRI) batchAmber.push(px, py, pSize);
-                        else batchBlue.push(px, py, pSize);
-                    }
-                }
-
-                // --- PHASE 2: RADIAL SORTATION ---
-                else {
-                    // Reuse x/y storage for polar coords: x=radius, y=angle
-                    // Re-initialize for this phase if needed (simplified logic here uses stateless projection)
-                    
-                    // Calculate dynamic spiral
-                    const speed = particles[idx+3] * -1; // reuse velocity magnitude
-                    const r = (frame * speed + i * 5) % (Math.min(width, height) * 0.6);
-                    const angle = i * 0.1 + frame * 0.02;
-
-                    const px = cx + Math.cos(angle) * r;
-                    const py = cy + Math.sin(angle) * r;
-
-                    const type = particles[idx+6];
-                    if (type === TYPE_STD) batchGreen.push(px, py, 2);
-                    else batchAmber.push(px, py, 2);
+                if (scale > 0) {
+                    projX[i] = cx + x1 * scale;
+                    projY[i] = cy + y1 * scale;
                 }
             }
 
-            // --- RENDER BATCHES ---
-            
-            // Helper for rectangles (Phase 0) or Circles (Phase 1/2)
-            const drawBatch = (list: number[], color: string, isRect: boolean) => {
-                if (list.length === 0) return;
+            // 2. DRAW CONNECTIONS (Single Batch Path)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)'; // Cyan lines
+            ctx.lineWidth = 0.8; 
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const i = r * COLS + c;
+                    if (projScale[i] <= 0) continue;
+
+                    // Right Neighbor
+                    if (c < COLS - 1) {
+                        const right = i + 1;
+                        if (projScale[right] > 0) {
+                            ctx.moveTo(projX[i], projY[i]);
+                            ctx.lineTo(projX[right], projY[right]);
+                        }
+                    }
+                    // Down Neighbor
+                    if (r < ROWS - 1) {
+                        const down = i + COLS;
+                        if (projScale[down] > 0) {
+                            ctx.moveTo(projX[i], projY[i]);
+                            ctx.lineTo(projX[down], projY[down]);
+                        }
+                    }
+                }
+            }
+            ctx.stroke();
+
+            // 3. DRAW NODES (Batch By Color)
+            // Function to draw all nodes of a specific color type
+            const drawBatch = (color: string, typeVal: number) => {
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                for (let k = 0; k < list.length; k+=3) {
-                    if (isRect) {
-                        // Draw box + 3D side
-                        ctx.rect(list[k], list[k+1], list[k+2], 10);
-                    } else {
-                        ctx.moveTo(list[k], list[k+1]);
-                        ctx.arc(list[k], list[k+1], list[k+2], 0, Math.PI * 2);
-                    }
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    // Fast check for color type
+                    if (Math.abs(data[i * P_STRIDE + 6] - typeVal) > 0.1) continue;
+                    if (projScale[i] <= 0) continue;
+
+                    const size = (1.5 + Math.sin(time * 5 + i) * 0.5) * projScale[i];
+                    ctx.rect(projX[i] - size/2, projY[i] - size/2, size, size);
                 }
                 ctx.fill();
-                
-                // Add detail for rects
-                if (isRect) {
-                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    ctx.beginPath();
-                    for (let k = 0; k < list.length; k+=3) {
-                        const x = list[k], y = list[k+1], w = list[k+2];
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x+5, y-5);
-                        ctx.lineTo(x+w+5, y-5);
-                        ctx.lineTo(x+w, y);
-                    }
-                    ctx.fill();
-                }
             };
 
-            const isRect = activePhase === 0;
-            drawBatch(batchBlue, '#06b6d4', isRect);
-            drawBatch(batchAmber, '#f59e0b', isRect);
-            drawBatch(batchRed, '#ef4444', isRect);
-            drawBatch(batchGreen, '#10b981', isRect);
+            drawBatch('#06b6d4', 0); // Cyan
+            drawBatch('#f59e0b', 1); // Amber
+            drawBatch('#ffffff', 2); // White
 
             frameId = requestAnimationFrame(render);
         };
 
         const handleResize = () => {
             if (canvas.parentElement) {
-                const rect = canvas.parentElement.getBoundingClientRect();
-                // DPR Handling for sharp text/lines on Retina
                 const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.parentElement.getBoundingClientRect();
                 canvas.width = rect.width * dpr;
                 canvas.height = rect.height * dpr;
-                
-                // Scale context to match
                 ctx.scale(dpr, dpr);
-                
-                // Logical Size
                 width = rect.width;
                 height = rect.height;
-                
-                initParticles(width, height);
+                updateTargets();
             }
         };
-
         window.addEventListener('resize', handleResize);
-        handleResize(); // Init
+        handleResize();
         render();
 
         return () => {
