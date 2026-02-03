@@ -46,11 +46,11 @@ export const GlobalNav: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between">
         {/* LOGO */}
         <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group z-50 h-full overflow-hidden">
-          {/* Scaled image to crop top/bottom whitespace. 150% is 0.75x of previous 200% */}
+          {/* Scaled image to crop top/bottom whitespace. Reduced to 115% (approx 0.75x of previous 150%) */}
           <img 
             src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
             alt="Infogito Logo" 
-            className="h-[150%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
+            className="h-[115%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
           />
         </button>
 

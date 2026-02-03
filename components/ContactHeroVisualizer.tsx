@@ -3,19 +3,6 @@ import React, { useEffect, useRef } from 'react';
 
 export const ContactHeroVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            const { innerWidth, innerHeight } = window;
-            mouseRef.current = {
-                x: (e.clientX - innerWidth / 2) / (innerWidth / 2),
-                y: (e.clientY - innerHeight / 2) / (innerHeight / 2)
-            };
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -23,267 +10,282 @@ export const ContactHeroVisualizer: React.FC = () => {
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        let w = canvas.width = canvas.parentElement?.clientWidth || 800;
-        let h = canvas.height = canvas.parentElement?.clientHeight || 600;
+        let w = canvas.width;
+        let h = canvas.height;
         let frameId: number;
         let time = 0;
 
-        // --- ENGINE CONFIG ---
-        const PARTICLE_COUNT = 600;
-        const CAM_Z = 1200;
+        // --- CONFIGURATION ---
+        const SHEET_W = 200;
+        const SHEET_H = 280;
+        const GRID_RES = 12; // Grid density for folding
+        const INK_LINES = 12;
+        const CHARS_PER_LINE = 20;
         
-        // --- DATA LAYOUT ---
-        // Using Float32Array for performance (cache locality)
-        // [currentX, currentY, currentZ, targetX, targetY, targetZ, velocityX, velocityY, velocityZ, size, colorIdx]
-        const P_STRIDE = 11;
-        const data = new Float32Array(PARTICLE_COUNT * P_STRIDE);
+        // --- DATA STRUCTURES ---
         
-        // Color Palette: Teal (System), Amber (Active), White (Data), Red (Alert)
-        const PALETTE = ['#69B7B2', '#f59e0b', '#ffffff', '#ef4444'];
-        
-        // Render Buffers for Depth Sorting
-        const renderOrder = new Int32Array(PARTICLE_COUNT);
-        const depthBuffer = new Float32Array(PARTICLE_COUNT);
-
-        // --- INITIALIZATION ---
-        for(let i=0; i<PARTICLE_COUNT; i++) {
-            const idx = i * P_STRIDE;
-            // Start at random positions
-            data[idx] = (Math.random() - 0.5) * 1000;
-            data[idx+1] = (Math.random() - 0.5) * 1000;
-            data[idx+2] = (Math.random() - 0.5) * 1000;
-            
-            // Random attributes
-            data[idx+9] = 1.5 + Math.random(); // Size
-            data[idx+10] = Math.floor(Math.random() * 3); // Color (0-2)
-            
-            renderOrder[i] = i;
+        // 1. PAPER MESH (Grid of points)
+        // We track UVs to handle folding logic
+        const paperNodes: {u: number, v: number, x: number, y: number, z: number}[] = [];
+        for(let y=0; y<=GRID_RES; y++) {
+            for(let x=0; x<=GRID_RES; x++) {
+                paperNodes.push({
+                    u: x/GRID_RES,
+                    v: y/GRID_RES,
+                    x: 0, y: 0, z: 0
+                });
+            }
         }
 
-        let phase = 0; // 0: Broadcast, 1: Handshake, 2: Link
+        // 2. INK PARTICLES
+        // Attached to UV space initially, then detach
+        const inkParticles: {u: number, v: number, x: number, y: number, z: number, detached: boolean, dx: number, dy: number, dz: number}[] = [];
+        for(let l=0; l<INK_LINES; l++) {
+            const lineY = 0.15 + (l / INK_LINES) * 0.7;
+            for(let c=0; c<CHARS_PER_LINE; c++) {
+                if (Math.random() > 0.8) continue; // Random spaces
+                const charX = 0.15 + (c / CHARS_PER_LINE) * 0.7 + (Math.random()-0.5)*0.01;
+                inkParticles.push({
+                    u: charX,
+                    v: lineY,
+                    x: 0, y: 0, z: 0,
+                    detached: false,
+                    dx: 0, dy: 0, dz: 0
+                });
+            }
+        }
+
+        // --- STATE MACHINE ---
+        // 0: FLIGHT (Plane moving)
+        // 1: LANDING (Plane stopping)
+        // 2: UNFOLD (Morph to Sheet)
+        // 3: UNWRITE (Ink lifts off)
+        // 4: RESET (Fade out)
+        let phase = 0;
         let phaseTimer = 0;
-        const PHASE_DURATION = 500;
+        let globalZ = 0; // Movement of the whole object
 
-        // --- GEOMETRY GENERATORS ---
+        // --- TRANSFORM FUNCTIONS ---
 
-        const setTargetBroadcast = (i: number) => {
-            const idx = i * P_STRIDE;
-            // Expanding Sphere with Noise
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const r = 350 + Math.random() * 200; // Wide scatter
+        // Maps UV (0-1) to 3D Paper Plane shape
+        const getPlanePosition = (u: number, v: number, out: {x:number, y:number, z:number}) => {
+            // Fold logic: 
+            // Center spine is u=0.5
+            // Wings fold up/out
+            const foldAngle = Math.PI * 0.45; 
+            const center = 0.5;
+            const distFromCenter = Math.abs(u - center) * SHEET_W;
+            const isLeft = u < center;
             
-            data[idx+3] = r * Math.sin(phi) * Math.cos(theta);
-            data[idx+4] = r * Math.sin(phi) * Math.sin(theta);
-            data[idx+5] = r * Math.cos(phi);
+            // Base Plane coords
+            let x = distFromCenter * Math.cos(foldAngle) * (isLeft ? -1 : 1);
+            let y = distFromCenter * Math.sin(foldAngle); // Wings go up
+            let z = (v - 0.5) * SHEET_H;
+
+            // Dart shape taper
+            // Reduce width at nose (v=0)
+            const taper = 0.2 + 0.8 * v; // Nose is narrow
+            x *= taper;
+            y *= taper;
+
+            out.x = x; 
+            out.y = y; 
+            out.z = z;
         };
 
-        const setTargetHandshake = (i: number) => {
-            const idx = i * P_STRIDE;
-            // Three Interlocking Gyroscopic Rings
-            const ringIdx = i % 3;
-            const angle = (i / PARTICLE_COUNT) * Math.PI * 2 * 3; // Spread around rings
-            const r = 250;
-            
-            let tx, ty, tz;
-            
-            if (ringIdx === 0) { // Flat Ring
-                tx = Math.cos(angle) * r;
-                ty = Math.sin(angle) * r;
-                tz = Math.sin(angle * 6) * 20; // Ripple
-            } else if (ringIdx === 1) { // Vertical Ring
-                tx = Math.cos(angle) * r;
-                ty = Math.sin(angle * 6) * 20;
-                tz = Math.sin(angle) * r;
-            } else { // Cross Ring
-                tx = Math.sin(angle * 6) * 20;
-                ty = Math.cos(angle) * r;
-                tz = Math.sin(angle) * r;
-            }
-            
-            data[idx+3] = tx;
-            data[idx+4] = ty;
-            data[idx+5] = tz;
+        // Maps UV (0-1) to Flat Sheet
+        const getSheetPosition = (u: number, v: number, out: {x:number, y:number, z:number}) => {
+            out.x = (u - 0.5) * SHEET_W;
+            out.y = (v - 0.5) * SHEET_H; // Vertical sheet
+            out.z = 0;
         };
 
-        const setTargetNetwork = (i: number) => {
-            const idx = i * P_STRIDE;
-            // Fibonacci Sphere (Perfect Uniform Distribution)
-            const samples = PARTICLE_COUNT;
-            const phi = Math.acos(1 - 2 * (i + 0.5) / samples);
-            const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
-            const r = 220;
-
-            data[idx+3] = Math.cos(theta) * Math.sin(phi) * r;
-            data[idx+4] = Math.sin(theta) * Math.sin(phi) * r;
-            data[idx+5] = Math.cos(phi) * r;
-        };
-
-        const updateTargets = () => {
-            for(let i=0; i<PARTICLE_COUNT; i++) {
-                if (phase === 0) setTargetBroadcast(i);
-                else if (phase === 1) setTargetHandshake(i);
-                else setTargetNetwork(i);
-            }
-        };
-        updateTargets(); // Initial state
-
-        // --- RENDER LOOP ---
         const render = () => {
             time += 0.01;
             phaseTimer++;
 
-            // Cycle Phases
-            if (phaseTimer > PHASE_DURATION) {
-                phaseTimer = 0;
-                phase = (phase + 1) % 3;
-                updateTargets();
-            }
+            // Phase Switching
+            if (phase === 0 && phaseTimer > 200) { phase = 1; phaseTimer = 0; } // Fly -> Land
+            if (phase === 1 && phaseTimer > 60) { phase = 2; phaseTimer = 0; } // Land -> Unfold
+            if (phase === 2 && phaseTimer > 120) { phase = 3; phaseTimer = 0; } // Unfold -> Unwrite
+            if (phase === 3 && phaseTimer > 250) { phase = 4; phaseTimer = 0; } // Unwrite -> Reset
+            if (phase === 4 && phaseTimer > 60) { phase = 0; phaseTimer = 0; globalZ = -800; } // Reset -> Fly
 
-            // Responsive Center: Shift right on large screens to avoid text overlap
-            const CX = w > 1024 ? w * 0.75 : w * 0.5;
-            const CY = h * 0.5;
-
-            // Input & Auto Rotation
-            const targetRotX = mouseRef.current.y * 0.5;
-            const targetRotY = mouseRef.current.x * 0.5;
-            const autoRotY = time * 0.2;
-            const rotX = targetRotX;
-            const rotY = targetRotY + autoRotY;
-
-            const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-            const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-
-            // Physics Constants
-            const SPRING = 0.03;
-            const DAMPING = 0.92;
-
-            // 1. UPDATE PHYSICS & TRANSFORM
-            for(let i=0; i<PARTICLE_COUNT; i++) {
-                const idx = i * P_STRIDE;
-
-                // Spring Force Calculation
-                const dx = data[idx+3] - data[idx];
-                const dy = data[idx+4] - data[idx+1];
-                const dz = data[idx+5] - data[idx+2];
-
-                data[idx+6] += dx * SPRING; // vx
-                data[idx+7] += dy * SPRING; // vy
-                data[idx+8] += dz * SPRING; // vz
-
-                data[idx+6] *= DAMPING;
-                data[idx+7] *= DAMPING;
-                data[idx+8] *= DAMPING;
-
-                // Update Position
-                data[idx] += data[idx+6];
-                data[idx+1] += data[idx+7];
-                data[idx+2] += data[idx+8];
-
-                // Temporary Vars for Projection
-                let x = data[idx];
-                let y = data[idx+1];
-                let z = data[idx+2];
-
-                // Add "Signal Noise" during Broadcast phase
-                if (phase === 0) {
-                    x += Math.sin(time * 5 + i) * 8;
-                    y += Math.cos(time * 3 + i) * 8;
-                }
-
-                // 3D Rotation Matrix
-                let tx = x * cosY - z * sinY;
-                let tz = z * cosY + x * sinY;
-                x = tx; z = tz;
-
-                let ty = y * cosX - z * sinX;
-                let tz2 = z * cosX + y * sinX;
-                y = ty; z = tz2;
-
-                // Store Depth for Sorting
-                depthBuffer[i] = z;
-            }
-
-            // 2. SORT (Painter's Algorithm)
-            renderOrder.sort((a, b) => depthBuffer[b] - depthBuffer[a]);
-
-            // Clear Canvas
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);
 
-            // 3. DRAW
-            ctx.lineWidth = 1;
+            const cx = w > 1024 ? w * 0.75 : w * 0.5;
+            const cy = h * 0.5;
+
+            // --- ANIMATION LOGIC ---
             
-            for(let i=0; i<PARTICLE_COUNT; i++) {
-                const pIdx = renderOrder[i]; // Index of particle to draw
-                const idx = pIdx * P_STRIDE;
-                const z = depthBuffer[pIdx]; // Rotated Z
-                
-                const scale = CAM_Z / (CAM_Z + z);
-                
-                // Culling
-                if (z > -CAM_Z + 50 && scale > 0) {
-                    // Re-rotate to get Screen X/Y (faster than storing in 2nd buffer)
-                    let x = data[idx]; let y = data[idx+1]; let zRaw = data[idx+2];
-                    if (phase === 0) { x += Math.sin(time*5+pIdx)*8; y += Math.cos(time*3+pIdx)*8; }
+            let morphFactor = 0; // 0 = Plane, 1 = Sheet
+            let globalRotX = 0;
+            let globalRotY = 0;
+            let globalRotZ = 0;
+
+            if (phase === 0) { // FLYING
+                morphFactor = 0;
+                globalZ += 6; // Fly forward
+                globalRotZ = Math.sin(time * 2) * 0.1; // Bank
+                globalRotX = -Math.PI / 2; // Face forward
+            } else if (phase === 1) { // LANDING
+                morphFactor = 0;
+                // Slow down rotation to face camera flat
+                const t = phaseTimer / 60;
+                // Smooth step to orient for unfolding
+                globalRotX = -Math.PI/2 * (1-t); 
+                globalRotZ = 0;
+            } else if (phase === 2) { // UNFOLDING
+                const t = Math.min(1, phaseTimer / 100);
+                // Ease out elastic
+                morphFactor = t;
+            } else if (phase === 3) { // UNWRITING
+                morphFactor = 1;
+            } else { // RESET
+                morphFactor = 1 - (phaseTimer / 60); // Quick fold back?
+                globalZ -= 20; // Fly away backward
+            }
+
+            const planePos = {x:0, y:0, z:0};
+            const sheetPos = {x:0, y:0, z:0};
+
+            // --- UPDATE & DRAW PAPER ---
+            ctx.strokeStyle = `rgba(105, 183, 178, ${0.3})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            // Draw as grid lines
+            for(let i=0; i<paperNodes.length; i++) {
+                const n = paperNodes[i];
+                getPlanePosition(n.u, n.v, planePos);
+                getSheetPosition(n.u, n.v, sheetPos);
+
+                // Lerp
+                let x = planePos.x + (sheetPos.x - planePos.x) * morphFactor;
+                let y = planePos.y + (sheetPos.y - planePos.y) * morphFactor;
+                let z = planePos.z + (sheetPos.z - planePos.z) * morphFactor;
+
+                // Global Transform
+                // Rotate
+                const grx = globalRotX;
+                let y1 = y * Math.cos(grx) - z * Math.sin(grx);
+                let z1 = z * Math.cos(grx) + y * Math.sin(grx);
+                y = y1; z = z1;
+
+                let x1 = x * Math.cos(globalRotZ) - y * Math.sin(globalRotZ);
+                let y2 = y * Math.cos(globalRotZ) + x * Math.sin(globalRotZ);
+                x = x1; y = y2;
+
+                z += globalZ + 400; // Camera offset
+
+                // Project
+                const scale = 800 / (800 + z);
+                const px = cx + x * scale;
+                const py = cy + y * scale;
+
+                n.x = px; n.y = py; n.z = z; // Store projected for lines
+
+                // Draw dots at nodes
+                if (z > -700) {
+                    ctx.fillStyle = `rgba(105, 183, 178, ${0.5 * morphFactor + 0.1})`;
+                    ctx.fillRect(px, py, 1.5, 1.5);
+                }
+            }
+
+            // Connect Grid
+            for(let y=0; y<GRID_RES; y++) {
+                for(let x=0; x<GRID_RES; x++) {
+                    const i = y * (GRID_RES+1) + x;
+                    const right = i + 1;
+                    const down = i + (GRID_RES+1);
                     
-                    let tx = x * cosY - zRaw * sinY;
-                    let tz = zRaw * cosY + x * sinY;
-                    x = tx; zRaw = tz;
-                    let ty = y * cosX - zRaw * sinX;
-                    y = ty;
+                    const p1 = paperNodes[i];
+                    if (p1.z < -700) continue;
 
-                    const px = CX + x * scale;
-                    const py = CY + y * scale;
-                    const size = data[idx+9] * scale;
-                    const colorIdx = data[idx+10];
-                    const alpha = Math.min(1, scale * 0.8);
+                    const pRight = paperNodes[right];
+                    const pDown = paperNodes[down];
 
-                    // NETWORK CONNECTIONS (Link Phase)
-                    // Connect to nearby particles in the sorted Z-list (Pseudo-spatial)
-                    if ((phase === 2 || phase === 1) && i % 4 === 0 && i < PARTICLE_COUNT - 1) {
-                        const nextPIdx = renderOrder[i+1];
-                        // We approximate neighbor pos based on Z-proximity for efficiency
-                        // This creates a cool "depth-slice" connection effect
-                        const nIdx = nextPIdx * P_STRIDE;
-                        let nx = data[nIdx]; let ny = data[nIdx+1]; let nz = data[nIdx+2];
-                        
-                        let ntx = nx * cosY - nz * sinY;
-                        let ntz = nz * cosY + nx * sinY;
-                        nx = ntx; nz = ntz;
-                        let nty = ny * cosX - nz * sinX;
-                        ny = nty;
-                        
-                        const nScale = CAM_Z / (CAM_Z + nz);
-                        const nPx = CX + nx * nScale;
-                        const nPy = CY + ny * nScale;
+                    if (x < GRID_RES) {
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(pRight.x, pRight.y);
+                    }
+                    if (y < GRID_RES) {
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(pDown.x, pDown.y);
+                    }
+                }
+            }
+            ctx.stroke();
 
-                        const dist = Math.abs(px - nPx) + Math.abs(py - nPy);
-                        if (dist < 100 * scale) {
-                            ctx.strokeStyle = `rgba(105, 183, 178, ${0.2 * alpha})`;
-                            ctx.beginPath();
-                            ctx.moveTo(px, py);
-                            ctx.lineTo(nPx, nPy);
-                            ctx.stroke();
+            // --- UPDATE & DRAW INK ---
+            ctx.fillStyle = '#fbbf24'; // Amber
+            
+            for(let i=0; i<inkParticles.length; i++) {
+                const p = inkParticles[i];
+                
+                // Base Position (Same interpolation as paper)
+                getPlanePosition(p.u, p.v, planePos);
+                getSheetPosition(p.u, p.v, sheetPos);
+                
+                let x = planePos.x + (sheetPos.x - planePos.x) * morphFactor;
+                let y = planePos.y + (sheetPos.y - planePos.y) * morphFactor;
+                let z = planePos.z + (sheetPos.z - planePos.z) * morphFactor;
+
+                // UNWRITING LOGIC
+                if (phase === 3) {
+                    // Detach logic
+                    if (!p.detached) {
+                        // Start detaching based on time + random variance
+                        if (Math.random() < 0.05) {
+                            p.detached = true;
+                            p.dx = (Math.random()-0.5) * 2;
+                            p.dy = -(Math.random() * 2 + 1); // Float UP
+                            p.dz = (Math.random()-0.5) * 5;
                         }
                     }
+                } else if (phase === 4 || phase === 0) {
+                    p.detached = false;
+                    p.dx = 0; p.dy = 0; p.dz = 0;
+                }
 
-                    // Draw Particle
-                    ctx.fillStyle = PALETTE[colorIdx];
+                if (p.detached) {
+                    // Add noise movement
+                    x += p.dx * phaseTimer * 0.1 + Math.sin(time * 5 + i) * 5;
+                    y += p.dy * phaseTimer * 0.1;
+                    z += p.dz * phaseTimer * 0.1 + 50; // Lift off surface
+                }
+
+                // Global Transform (Same as Paper)
+                const grx = globalRotX;
+                let y1 = y * Math.cos(grx) - z * Math.sin(grx);
+                let z1 = z * Math.cos(grx) + y * Math.sin(grx);
+                y = y1; z = z1;
+
+                let x1 = x * Math.cos(globalRotZ) - y * Math.sin(globalRotZ);
+                let y2 = y * Math.cos(globalRotZ) + x * Math.sin(globalRotZ);
+                x = x1; y = y2;
+
+                z += globalZ + 400;
+
+                // Project
+                const scale = 800 / (800 + z);
+                const px = cx + x * scale;
+                const py = cy + y * scale;
+
+                if (scale > 0 && z > -700) {
+                    // Fade out as they float away
+                    let alpha = 1;
+                    if (p.detached) alpha = Math.max(0, 1 - (phaseTimer / 200));
+                    
                     ctx.globalAlpha = alpha;
+                    const size = p.detached ? 2 * scale : 1.5 * scale;
                     ctx.beginPath();
-                    ctx.arc(px, py, size, 0, Math.PI * 2);
+                    ctx.arc(px, py, size, 0, Math.PI*2);
                     ctx.fill();
                 }
             }
             ctx.globalAlpha = 1;
-
-            // Progress Bar (Simplified - No Text)
-            const progress = phaseTimer / PHASE_DURATION;
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.fillRect(CX - 50, h - 50, 100, 2);
-            ctx.fillStyle = '#69B7B2';
-            ctx.fillRect(CX - 50, h - 50, 100 * progress, 2);
 
             frameId = requestAnimationFrame(render);
         };
@@ -295,6 +297,7 @@ export const ContactHeroVisualizer: React.FC = () => {
             }
         };
         window.addEventListener('resize', handleResize);
+        handleResize();
         render();
 
         return () => {
@@ -303,5 +306,5 @@ export const ContactHeroVisualizer: React.FC = () => {
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="block w-full h-full opacity-70 mix-blend-screen" />;
+    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full mix-blend-screen opacity-90" />;
 };
