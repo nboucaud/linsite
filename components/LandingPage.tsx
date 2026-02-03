@@ -196,19 +196,24 @@ const PHILOSOPHY = [
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
-const PARTNER_CODES = [
-    "DOE_GRID_SECURE", "NHS_CLINICAL_OPS", "MAERSK_LOG_AI", 
-    "RIO_MINING_AUTO", "FEDEX_SORT_OPT", "TESLA_MFG_FLOW",
-    "SHELL_ASSET_INT", "PFIZER_COMP_TRK", "JP_MORGAN_RISK"
+const CLIENTS = [
+    "Department of Energy", 
+    "National Health Service", 
+    "Maersk", 
+    "Rio Tinto", 
+    "FedEx", 
+    "Tesla",
+    "Shell", 
+    "Pfizer", 
+    "J.P. Morgan"
 ];
 
 const MarqueeRow: React.FC = () => (
     <div className="w-full overflow-hidden bg-[#08080a] border-y border-white/5 py-6 flex relative">
-        <div className="flex w-max animate-marquee gap-16">
-            {[...PARTNER_CODES, ...PARTNER_CODES].map((code, i) => (
-                <div key={i} className="flex items-center gap-3 opacity-30 hover:opacity-100 transition-opacity cursor-default group">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="font-mono text-xs tracking-[0.2em] text-white group-hover:text-[#69B7B2]">{code}</span>
+        <div className="flex w-max animate-marquee gap-24">
+            {[...CLIENTS, ...CLIENTS, ...CLIENTS].map((client, i) => (
+                <div key={i} className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity cursor-default group">
+                    <span className="font-serif text-xl text-white group-hover:text-[#69B7B2] transition-colors tracking-wide whitespace-nowrap">{client}</span>
                 </div>
             ))}
         </div>

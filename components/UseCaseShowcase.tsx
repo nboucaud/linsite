@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users } from 'lucide-react';
+import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight } from 'lucide-react';
 import { SectionVisualizer } from './SectionVisualizer';
 
 const SOLUTIONS = [
@@ -11,7 +11,8 @@ const SOLUTIONS = [
         icon: Database,
         color: "#69B7B2", 
         tag: "EXTRACT",
-        mode: 'search'
+        mode: 'search',
+        output: "Structured Knowledge Graph"
     },
     {
         id: 'capture',
@@ -20,7 +21,8 @@ const SOLUTIONS = [
         icon: Scan,
         color: "#f59e0b",
         tag: "FORMALIZE",
-        mode: 'translation'
+        mode: 'translation',
+        output: "Operational Rulebook v1.0"
     },
     {
         id: 'trees',
@@ -29,7 +31,8 @@ const SOLUTIONS = [
         icon: Network,
         color: "#ef4444", 
         tag: "STRUCTURE",
-        mode: 'core'
+        mode: 'core',
+        output: "Decision Tree Logic"
     },
     {
         id: 'bridge',
@@ -38,7 +41,8 @@ const SOLUTIONS = [
         icon: Bot,
         color: "#8b5cf6", 
         tag: "DEPLOY",
-        mode: 'swarm'
+        mode: 'swarm',
+        output: "Agent Swarm Active"
     },
     {
         id: 'strategy',
@@ -47,7 +51,8 @@ const SOLUTIONS = [
         icon: BarChart3,
         color: "#06b6d4",
         tag: "MODEL",
-        mode: 'logic'
+        mode: 'logic',
+        output: "Scenario Forecast Report"
     },
     {
         id: 'workforce',
@@ -56,7 +61,8 @@ const SOLUTIONS = [
         icon: Users,
         color: "#ec4899",
         tag: "AUGMENT",
-        mode: 'identity'
+        mode: 'identity',
+        output: "Workforce Capacity +40%"
     }
 ];
 
@@ -65,13 +71,14 @@ export const UseCaseShowcase: React.FC = () => {
     const [isPaused, setIsPaused] = useState(false);
     const [progress, setProgress] = useState(0);
     const [beamSourceY, setBeamSourceY] = useState(0);
+    const listRef = useRef<HTMLDivElement>(null);
     
     // Auto-cycle logic
     useEffect(() => {
         if (isPaused) return;
         
-        const duration = 5000; // 5 seconds per slide
-        const interval = 50;   // Update freq
+        const duration = 5000; 
+        const interval = 50;   
         
         const timer = setInterval(() => {
             setProgress(prev => {
@@ -87,39 +94,35 @@ export const UseCaseShowcase: React.FC = () => {
         return () => clearInterval(timer);
     }, [isPaused, activeIndex]);
 
-    // Dynamic Beam Positioning
+    // Dynamic Beam Source Positioning
     useEffect(() => {
         const updateBeam = () => {
-            // Get root font size for rem calculation stability
-            const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
+            if (!listRef.current) return;
+            const buttons = listRef.current.children;
+            const activeButton = buttons[activeIndex] as HTMLElement;
             
-            // Dimensions based on Tailwind classes:
-            // Inactive Item: h-16 (4rem)
-            // Active Item: h-32 (8rem)
-            // Gap: space-y-4 (1rem)
-            const inactiveHeight = 4 * rootFontSize;
-            const activeHeight = 8 * rootFontSize;
-            const gap = 1 * rootFontSize;
-
-            // Calculate Y position relative to the top of the container
-            // The active item is at index `activeIndex`.
-            // All items BEFORE it are inactive.
-            // Y = (Sum of previous items & gaps) + (Half of active item height)
-            const topPosition = activeIndex * (inactiveHeight + gap);
-            const centerPosition = topPosition + (activeHeight / 2);
-            
-            setBeamSourceY(centerPosition);
+            if (activeButton) {
+                // Calculate center Y of active button relative to container
+                const containerTop = listRef.current.offsetTop;
+                const buttonTop = activeButton.offsetTop;
+                const buttonHeight = activeButton.offsetHeight;
+                setBeamSourceY(buttonTop + buttonHeight / 2);
+            }
         };
 
         updateBeam();
+        // Recalculate after render/transition
+        const t = setTimeout(updateBeam, 350); 
         window.addEventListener('resize', updateBeam);
-        return () => window.removeEventListener('resize', updateBeam);
+        return () => {
+            window.removeEventListener('resize', updateBeam);
+            clearTimeout(t);
+        };
     }, [activeIndex]);
 
     const activeItem = SOLUTIONS[activeIndex];
-
-    const beamTargetY = 300; // Center of the 600px visualizer
-    const beamWidth = 48;
+    const beamTargetY = 300; // Center of iPhone/Container
+    const beamWidth = 60; // Width of SVG area
 
     return (
         <div className="py-32 bg-[#030303] border-b border-white/5 relative overflow-hidden">
@@ -131,7 +134,7 @@ export const UseCaseShowcase: React.FC = () => {
                 }} 
             />
 
-            <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="max-w-[1400px] mx-auto px-6 relative z-10">
                 
                 {/* Section Header */}
                 <div className="mb-20 text-center md:text-left">
@@ -141,11 +144,11 @@ export const UseCaseShowcase: React.FC = () => {
                 </div>
 
                 {/* --- THE PIPELINE INTERFACE --- */}
-                {/* Explicit 3-Column Grid for perfect alignment: [List: 5fr] [Connector: 48px] [Visualizer: 7fr] */}
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_48px_minmax(0,7fr)] gap-0 relative">
+                {/* Grid: [List 400px] [Beam 60px] [Phone 320px] [Beam 60px] [Output Rest] */}
+                <div className="flex flex-col lg:flex-row gap-0 relative items-start lg:items-center justify-center">
                     
-                    {/* LEFT: THE LIST (Input Stream) */}
-                    <div className="lg:col-auto relative z-20 flex flex-col space-y-4">
+                    {/* SECTION 1: INPUT LIST */}
+                    <div ref={listRef} className="w-full lg:w-[400px] relative z-20 flex flex-col space-y-3 shrink-0">
                         {SOLUTIONS.map((item, idx) => {
                             const isActive = idx === activeIndex;
                             return (
@@ -155,160 +158,207 @@ export const UseCaseShowcase: React.FC = () => {
                                     onMouseEnter={() => setIsPaused(true)}
                                     onMouseLeave={() => setIsPaused(false)}
                                     className={`
-                                        group relative w-full text-left transition-all duration-500 rounded-xl border overflow-hidden
+                                        group relative w-full text-left transition-all duration-300 rounded-xl border overflow-hidden
                                         ${isActive 
-                                            ? 'bg-[#151517] border-white/20 h-32' 
-                                            : 'bg-[#0a0a0c] border-white/5 h-16 hover:border-white/10 hover:bg-[#111]'
+                                            ? 'bg-[#151517] border-white/20 shadow-lg' 
+                                            : 'bg-[#0a0a0c] border-white/5 h-14 hover:border-white/10 hover:bg-[#111]'
                                         }
                                     `}
                                 >
-                                    {/* Progress Bar Background (Active Only) */}
+                                    {/* Progress Bar (Active Only) */}
                                     {isActive && (
-                                        <div className="absolute bottom-0 left-0 h-0.5 bg-current transition-all duration-100 ease-linear" 
-                                             style={{ width: `${progress}%`, color: item.color }} 
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-current transition-all duration-100 ease-linear" 
+                                             style={{ height: `${progress}%`, color: item.color }} 
                                         />
                                     )}
 
-                                    <div className="relative p-4 flex items-center h-full">
-                                        {/* Number / Status */}
-                                        <div className="w-12 flex-shrink-0 flex flex-col items-center justify-center border-r border-white/5 mr-4 h-full">
+                                    <div className={`relative px-4 py-3 flex h-full ${isActive ? 'items-start' : 'items-center'}`}>
+                                        {/* Number */}
+                                        <div className="w-8 flex-shrink-0 text-right mr-4">
                                             <span className={`font-mono text-xs ${isActive ? 'text-white' : 'text-white/20'}`}>
                                                 0{idx + 1}
                                             </span>
-                                            {isActive && <div className="w-1.5 h-1.5 rounded-full mt-2 animate-pulse" style={{ backgroundColor: item.color }} />}
                                         </div>
 
-                                        {/* Text Content */}
+                                        {/* Content */}
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <h3 className={`font-bold transition-colors ${isActive ? 'text-white text-lg' : 'text-white/50 text-sm group-hover:text-white/80'}`}>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className={`font-bold transition-colors ${isActive ? 'text-white text-base mb-2' : 'text-white/50 text-sm group-hover:text-white/80'}`}>
                                                     {item.title}
                                                 </h3>
-                                                <span 
-                                                    className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                                                    style={{ borderColor: item.color, color: item.color }}
-                                                >
-                                                    {item.tag}
-                                                </span>
+                                                {!isActive && <ChevronRight size={14} className="text-white/10 group-hover:text-white/30" />}
                                             </div>
                                             
-                                            <div className={`transition-all duration-500 overflow-hidden ${isActive ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                                                <p className="text-white/50 text-xs leading-relaxed line-clamp-2">
-                                                    {item.desc}
-                                                </p>
-                                            </div>
+                                            {/* EXPANDED TEXT: No truncation */}
+                                            {isActive && (
+                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <p className="text-white/60 text-xs leading-relaxed pb-2">
+                                                        {item.desc}
+                                                    </p>
+                                                    <span 
+                                                        className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border inline-block mt-2"
+                                                        style={{ borderColor: item.color, color: item.color }}
+                                                    >
+                                                        {item.tag}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Arrow Hint */}
-                                        {!isActive && (
-                                            <div className="ml-4 text-white/10 group-hover:text-white/30 transition-colors">
-                                                <ChevronRight size={16} />
-                                            </div>
-                                        )}
                                     </div>
                                 </button>
                             );
                         })}
                     </div>
 
-                    {/* CENTER: THE CONNECTION BEAM (Desktop Only) */}
-                    <div className="hidden lg:block relative z-10 w-full h-full">
+                    {/* PIPE 1: LIST TO PHONE */}
+                    <div className="hidden lg:block relative w-[60px] h-[600px] shrink-0">
                         <svg className="w-full h-full overflow-visible absolute top-0 left-0">
-                            {/* The Beam Path */}
+                            {/* Static Track */}
                             <path 
-                                d={`M 0,${beamSourceY} C ${beamWidth/2},${beamSourceY} ${beamWidth/2},${beamTargetY} ${beamWidth},${beamTargetY}`}
+                                d={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
+                                fill="none"
+                                stroke="rgba(255,255,255,0.05)"
+                                strokeWidth="3"
+                            />
+                            {/* Active Beam */}
+                            <path 
+                                d={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
                                 fill="none"
                                 stroke={activeItem.color}
-                                strokeWidth="3"
-                                className="transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                                strokeWidth="2"
+                                className="transition-all duration-500 ease-out"
                                 style={{ filter: `drop-shadow(0 0 8px ${activeItem.color})` }}
                             />
-                            
-                            {/* Source Dot */}
-                            <circle 
-                                cx="0" 
-                                cy={beamSourceY} 
-                                r="4" 
-                                fill={activeItem.color}
-                                className="transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                            />
-
-                            {/* Target Dot */}
-                            <circle 
-                                cx={beamWidth} 
-                                cy={beamTargetY} 
-                                r="4" 
-                                fill={activeItem.color} 
-                            />
-
-                            {/* Moving Packet */}
-                            <circle r="4" fill="#fff">
+                            {/* Pulse Packet */}
+                            <circle r="3" fill="#fff">
                                 <animateMotion 
-                                    dur="1.5s" 
+                                    dur="1s" 
                                     repeatCount="indefinite"
-                                    path={`M 0,${beamSourceY} C ${beamWidth/2},${beamSourceY} ${beamWidth/2},${beamTargetY} ${beamWidth},${beamTargetY}`}
-                                    calcMode="spline"
-                                    keyTimes="0;1"
-                                    keySplines="0.4 0 0.2 1"
+                                    path={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
                                 />
                             </circle>
                         </svg>
                     </div>
 
-                    {/* RIGHT: THE PROCESSING CORE (Visualizer) */}
-                    <div className="lg:col-auto relative h-[500px] lg:h-[600px] mt-8 lg:mt-0">
-                        {/* The Monitor Frame */}
-                        <div className="absolute inset-0 bg-[#0c0c0e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col group">
+                    {/* SECTION 2: IPHONE INTERFACE */}
+                    <div className="relative w-[320px] h-[640px] shrink-0 mt-8 lg:mt-0 transform transition-transform hover:scale-[1.02] duration-500">
+                        {/* Frame */}
+                        <div className="absolute inset-0 bg-[#1a1a1a] rounded-[3rem] shadow-2xl border-[6px] border-[#2a2a2a] ring-1 ring-white/10 z-20 pointer-events-none">
+                            {/* Buttons */}
+                            <div className="absolute top-24 -left-2 w-1 h-8 bg-[#2a2a2a] rounded-l-md" />
+                            <div className="absolute top-36 -left-2 w-1 h-12 bg-[#2a2a2a] rounded-l-md" />
+                            <div className="absolute top-28 -right-2 w-1 h-16 bg-[#2a2a2a] rounded-r-md" />
+                        </div>
+
+                        {/* Screen */}
+                        <div className="absolute inset-[6px] bg-black rounded-[2.5rem] overflow-hidden z-10 flex flex-col relative">
                             
-                            {/* Monitor Header (Minimalist) */}
-                            <div className="h-12 bg-white/5 border-b border-white/5 flex items-center justify-between px-6">
-                                <div className="flex gap-1.5">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/50" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50" />
+                            {/* Dynamic Island */}
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-50 flex items-center justify-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-[#111]" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#050505] border border-white/10" />
+                            </div>
+
+                            {/* Status Bar */}
+                            <div className="h-12 w-full flex justify-between items-center px-6 pt-2 z-40 text-white select-none">
+                                <span className="text-[10px] font-bold">9:41</span>
+                                <div className="flex gap-1">
+                                    <div className="w-4 h-2.5 bg-white rounded-[2px]" />
                                 </div>
                             </div>
 
-                            {/* Main Display Area */}
-                            <div className="flex-1 relative bg-black/50">
+                            {/* App Header */}
+                            <div className="px-6 pt-2 pb-4 z-30">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                                        <activeItem.icon size={20} color={activeItem.color} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Running Module</div>
+                                        <h3 className="text-xl font-serif text-white">{activeItem.title.split(' ')[0]}</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Visualizer Area */}
+                            <div className="flex-1 relative mx-2 rounded-2xl overflow-hidden bg-[#0c0c0e] border border-white/10">
                                 <div className="absolute inset-0">
                                     <SectionVisualizer mode={activeItem.mode as any} color={activeItem.color} />
                                 </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                                 
-                                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[length:100%_2px,3px_100%] opacity-20" />
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.6)_100%)] z-10 pointer-events-none" />
-
-                                <div className="absolute bottom-8 left-8 z-20">
-                                    <div className="flex items-end gap-4">
-                                        <div 
-                                            className="w-16 h-16 rounded-xl bg-black/50 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-lg transition-all duration-500"
-                                            style={{ 
-                                                borderColor: activeItem.color,
-                                                boxShadow: `0 0 30px ${activeItem.color}20` 
-                                            }}
-                                        >
-                                            <activeItem.icon size={32} />
-                                        </div>
-                                        <div>
-                                            <div className="text-3xl font-serif text-white leading-none mb-1">{activeItem.title}</div>
-                                            <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
-                                                Tool {activeIndex + 1} / {SOLUTIONS.length}
+                                {/* Floating Overlay Data */}
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-xl flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeItem.color }} />
+                                        <div className="flex-1">
+                                            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                                <div className="h-full bg-white animate-[dash_2s_ease-in-out_infinite]" style={{ width: '60%' }} />
                                             </div>
                                         </div>
+                                        <span className="text-[9px] font-mono text-white/70">PROCCESSING</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="absolute top-4 left-4 w-4 h-4 border-t border-l border-white/30 z-20" />
-                                <div className="absolute top-4 right-4 w-4 h-4 border-t border-r border-white/30 z-20" />
-                                <div className="absolute bottom-4 left-4 w-4 h-4 border-b border-l border-white/30 z-20" />
-                                <div className="absolute bottom-4 right-4 w-4 h-4 border-b border-r border-white/30 z-20" />
+                            {/* App Footer */}
+                            <div className="h-20 px-6 flex items-center justify-between z-30 bg-black">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-white/30 uppercase">Latency</span>
+                                    <span className="text-xs font-mono text-white">12ms</span>
+                                </div>
+                                <div className="w-px h-8 bg-white/10" />
+                                <div className="flex flex-col text-right">
+                                    <span className="text-[9px] text-white/30 uppercase">Status</span>
+                                    <span className="text-xs font-bold text-green-400">Optimal</span>
+                                </div>
+                            </div>
+
+                            {/* Home Indicator */}
+                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-50" />
+                        </div>
+                    </div>
+
+                    {/* PIPE 2: PHONE TO OUTPUT */}
+                    <div className="hidden lg:flex relative w-[60px] items-center justify-center">
+                        <div className="w-full h-[2px] bg-white/5 relative overflow-hidden">
+                            <div 
+                                className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent to-white/50 animate-[shimmer_1.5s_infinite]"
+                                style={{ backgroundColor: activeItem.color }} 
+                            />
+                        </div>
+                        <ArrowRight className="absolute text-white/20" size={16} />
+                    </div>
+
+                    {/* SECTION 3: OUTPUT CARD */}
+                    <div className="lg:w-[300px] relative z-20 mt-8 lg:mt-0">
+                        <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
+                            {/* Glow */}
+                            <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors" />
+                            
+                            <div className="relative z-10">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
+                                    <FileJson size={12} /> System Output
+                                </div>
+                                
+                                <div className="h-32 bg-[#050505] rounded-lg border border-white/5 p-4 font-mono text-[10px] text-white/60 leading-relaxed overflow-hidden">
+                                    <span className="text-[#69B7B2]">root@infogito:~$</span> ./verify_integrity<br/>
+                                    <span className="text-green-400">✓</span> Analysis Complete<br/>
+                                    <span className="text-green-400">✓</span> {activeItem.output}<br/>
+                                    <span className="animate-pulse">_</span>
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
+                                        <CheckCircle2 size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-white">Action Ready</div>
+                                        <div className="text-[10px] text-white/40">Integrated into workflow</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div 
-                            className="absolute -inset-4 blur-3xl opacity-20 -z-10 transition-colors duration-700"
-                            style={{ backgroundColor: activeItem.color }} 
-                        />
                     </div>
 
                 </div>
