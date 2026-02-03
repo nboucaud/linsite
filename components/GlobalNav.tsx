@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigation } from '../context/NavigationContext';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown, Menu, X, Beaker } from 'lucide-react';
 
 interface NavItem {
   label: string;
@@ -46,11 +46,11 @@ export const GlobalNav: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between">
         {/* LOGO */}
         <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group z-50 h-full overflow-hidden">
-          {/* Scaled image to crop top/bottom whitespace. 150% is 0.75x of previous 200% */}
+          {/* Scaled image to crop top/bottom whitespace. Reduced to 115% */}
           <img 
             src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
             alt="Infogito Logo" 
-            className="h-[150%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
+            className="h-[115%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
           />
         </button>
 
@@ -97,10 +97,22 @@ export const GlobalNav: React.FC = () => {
               )}
             </div>
           ))}
+
+          {/* INFOGITO LABS - Special Item */}
+          <button 
+            onClick={() => handleNav('about/careers')} 
+            className="group relative flex items-center gap-2 px-4 py-2 rounded-full overflow-hidden transition-all duration-300 hover:bg-white/5"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+            <Beaker size={14} className="text-purple-400 group-hover:text-purple-300 transition-colors group-hover:rotate-12" />
+            <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent font-bold tracking-wide group-hover:from-purple-300 group-hover:to-indigo-300">
+                Infogito Labs
+            </span>
+          </button>
           
           <button 
             onClick={() => handleNav('contact')} 
-            className="px-6 py-2 rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 active:scale-95"
+            className="px-6 py-2 rounded-full bg-white/5 hover:bg-white hover:text-black text-white transition-all duration-300 hover:scale-105 active:scale-95 font-medium"
           >
             Get In Touch
           </button>
@@ -142,6 +154,14 @@ export const GlobalNav: React.FC = () => {
                     )}
                 </div>
             ))}
+            
+            <button 
+                onClick={() => handleNav('about/careers')} 
+                className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500"
+            >
+                Infogito Labs
+            </button>
+
             <button 
                 onClick={() => handleNav('contact')} 
                 className="w-full py-4 bg-[#69B7B2] text-black font-bold uppercase tracking-widest text-sm rounded-lg"

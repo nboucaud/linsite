@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mail, Globe, CheckCircle2, ArrowRight, Radio, Building2, ChevronDown, CheckSquare } from 'lucide-react';
+import { Mail, Globe, CheckCircle2, ArrowRight, Radio, Building2, ChevronDown, CheckSquare, ScanLine } from 'lucide-react';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 
 export const ContactPage: React.FC = () => {
@@ -92,20 +92,33 @@ export const ContactPage: React.FC = () => {
                         />
 
                         {formState === 'sent' ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c0e]/80 backdrop-blur-xl animate-in fade-in duration-500 z-20">
-                                <div className="w-24 h-24 bg-[#69B7B2]/10 rounded-full flex items-center justify-center text-[#69B7B2] mb-8 border border-[#69B7B2]/20 shadow-[0_0_30px_rgba(105,183,178,0.2)]">
-                                    <CheckCircle2 size={48} />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c0e] z-30 animate-in fade-in duration-700 p-8">
+                                <div className="w-full max-w-sm bg-[#151517] border border-[#69B7B2]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(105,183,178,0.1)] relative overflow-hidden">
+                                    
+                                    {/* Scan Effect */}
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-[#69B7B2] shadow-[0_0_15px_#69B7B2] animate-[scan_2s_ease-in-out_infinite] opacity-50" />
+
+                                    <div className="flex flex-col items-center text-center space-y-6">
+                                        <div className="w-16 h-16 bg-[#69B7B2]/10 rounded-full flex items-center justify-center text-[#69B7B2] border border-[#69B7B2]/20 animate-in zoom-in duration-500">
+                                            <CheckCircle2 size={32} />
+                                        </div>
+                                        
+                                        <div>
+                                            <h3 className="text-xl font-serif text-white mb-2 tracking-wide">Transmission Received</h3>
+                                            <div className="h-px w-12 bg-[#69B7B2]/50 mx-auto my-4" />
+                                            <p className="text-white/60 text-sm leading-relaxed">
+                                                Your message has been securely logged in our system. A member of our team is reviewing your inquiry and will establish contact shortly.
+                                            </p>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => setFormState('idle')}
+                                            className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center gap-2 mt-4"
+                                        >
+                                            <Globe size={14} /> Return to Platform
+                                        </button>
+                                    </div>
                                 </div>
-                                <h3 className="text-3xl font-serif text-white mb-2">Message Sent</h3>
-                                <p className="text-white/50 text-sm max-w-xs text-center leading-relaxed">
-                                    Your message has been logged. An engineer will get back to you shortly.
-                                </p>
-                                <button 
-                                    onClick={() => setFormState('idle')}
-                                    className="mt-12 text-xs font-bold uppercase tracking-widest text-[#69B7B2] hover:text-white transition-colors flex items-center gap-2"
-                                >
-                                    <Globe size={14} /> Send Another
-                                </button>
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-8 relative z-10">

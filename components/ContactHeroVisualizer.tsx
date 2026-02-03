@@ -1,289 +1,353 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const ContactHeroVisualizer: React.FC = () => {
+const ContactHeroVisualizerComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
+        const container = containerRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d', { alpha: false });
+        
+        // Changed to alpha: true to allow CSS background layering
+        const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) return;
 
-        let w = canvas.width;
-        let h = canvas.height;
+        let width = canvas.width;
+        let height = canvas.height;
+        let cx = width / 2;
+        let cy = height / 2;
+        
         let frameId: number;
-        let time = 0;
+        let isVisible = true;
 
-        // CONFIG
-        const PAPER_COLS = 30;
-        const PAPER_ROWS = 40;
-        const SHEET_W = 220;
-        const SHEET_H = 320;
-        
-        // INK SETTINGS
-        const LINES_OF_TEXT = 14;
-        const CHARS_PER_LINE = 18;
-        
-        // BUFFERS
-        // We have Paper Particles (Grid) and Ink Particles (Text)
-        const paperCount = PAPER_COLS * PAPER_ROWS;
-        const inkCount = LINES_OF_TEXT * CHARS_PER_LINE;
-        const totalCount = paperCount + inkCount;
-        
-        // Layout: [x, y, z, tx, ty, tz, baseU, baseV, type (0=paper, 1=ink)]
-        const STRIDE = 9;
-        const data = new Float32Array(totalCount * STRIDE);
+        // --- 3D ENGINE SETTINGS ---
+        const FL = 800;
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetRotX = 0;
+        let targetRotY = 0;
 
-        // --- INIT DATA ---
-        let ptr = 0;
-        
-        // 1. INIT PAPER GRID
-        for(let r=0; r<PAPER_ROWS; r++) {
-            for(let c=0; c<PAPER_COLS; c++) {
-                const u = c / (PAPER_COLS-1);
-                const v = r / (PAPER_ROWS-1);
-                
-                data[ptr++] = 0; // x
-                data[ptr++] = 0; // y
-                data[ptr++] = 0; // z
-                data[ptr++] = 0; // tx
-                data[ptr++] = 0; // ty
-                data[ptr++] = 0; // tz
-                data[ptr++] = u;
-                data[ptr++] = v;
-                data[ptr++] = 0; // Type 0 = Paper
-            }
-        }
-
-        // 2. INIT INK PARTICLES
-        for(let l=0; l<LINES_OF_TEXT; l++) {
-            const lineY = 0.15 + (l / LINES_OF_TEXT) * 0.7; // Text block area
-            for(let c=0; c<CHARS_PER_LINE; c++) {
-                const charX = 0.15 + (c / CHARS_PER_LINE) * 0.7; 
-                
-                // Add some randomness to look like handwriting/text blocks
-                if (Math.random() > 0.85) continue; // Random spaces
-
-                const u = charX + (Math.random()-0.5)*0.02;
-                const v = lineY + (Math.random()-0.5)*0.005;
-
-                data[ptr++] = 0;
-                data[ptr++] = 0;
-                data[ptr++] = 0;
-                data[ptr++] = 0;
-                data[ptr++] = 0;
-                data[ptr++] = 0;
-                data[ptr++] = u;
-                data[ptr++] = v;
-                data[ptr++] = 1; // Type 1 = Ink
-            }
-        }
-
-        // STATE MACHINE
-        // 0: Plane Flying
-        // 1: Unfolding (Plane -> Sheet)
-        // 2: Unwriting (Ink lifts off)
-        // 3: Reset/Morph (Chaos -> Plane)
-        let phase = 0;
+        // --- ANIMATION STATE ---
+        let phase = 0; 
         let phaseTimer = 0;
+        let globalTime = 0;
+        let loopSeed = 0; 
+        let meshOpacity = 1; 
         
-        // --- TRANSFORM LOGIC ---
-        const getPlanePos = (u: number, v: number, target: {x:number, y:number, z:number}) => {
-            // Fold logic: Map 2D UV sheet to 3D Paper Plane shape
-            
-            // Spine is u=0.5. Nose is v=0. Tail is v=1.
-            const foldAngle = Math.PI / 3; // 60 deg wings
-            
-            // Central axis along Z
-            // Shift origin so center of plane is (0,0,0)
-            const spineZ = (v - 0.5) * SHEET_H;
-            
-            // Distance from spine (Width)
-            const dist = Math.abs(u - 0.5) * SHEET_W;
-            
-            // Wing Fold: If u < 0.5 rotate left, else right
-            const angle = (u < 0.5 ? 1 : -1) * foldAngle;
-            
-            // Basic V-shape
-            let x = Math.cos(angle) * dist;
-            let y = Math.sin(angle) * dist; 
-            let z = spineZ;
+        // --- GEOMETRY DATA STRUCTURES ---
+        const SHEET_SIZE = 150; 
+        
+        const createVec = (x: number, y: number, z: number) => ({ x, y, z });
+        
+        const flatVerts = [
+            createVec(-SHEET_SIZE, -SHEET_SIZE * 1.4, 0), createVec(0, -SHEET_SIZE * 1.4, 0), createVec(SHEET_SIZE, -SHEET_SIZE * 1.4, 0),
+            createVec(-SHEET_SIZE, 0, 0),                 createVec(0, 0, 0),                 createVec(SHEET_SIZE, 0, 0),
+            createVec(-SHEET_SIZE, SHEET_SIZE * 1.4, 0),  createVec(0, SHEET_SIZE * 1.4, 0),  createVec(SHEET_SIZE, SHEET_SIZE * 1.4, 0)
+        ];
 
-            // Dart Sweep: Sweep wings back based on distance from spine
-            // This gives it the arrow/fighter jet shape
-            z -= Math.abs(x) * 1.2; 
+        const planeVerts = [
+            createVec(0, -SHEET_SIZE * 1.8, -20),   createVec(0, -SHEET_SIZE * 1.8, -20),   createVec(0, -SHEET_SIZE * 1.8, -20),
+            createVec(-SHEET_SIZE * 1.2, SHEET_SIZE, 20), createVec(0, -SHEET_SIZE * 0.5, -50), createVec(SHEET_SIZE * 1.2, SHEET_SIZE, 20),
+            createVec(-20, SHEET_SIZE * 1.4, 0),     createVec(0, SHEET_SIZE * 1.4, 0),      createVec(20, SHEET_SIZE * 1.4, 0)
+        ];
 
-            target.x = x;
-            target.y = y;
-            target.z = z;
-        };
+        // START AS PLANE
+        const currentVerts = planeVerts.map(v => ({...v}));
+        const worldVertsBuffer = flatVerts.map(() => ({ x: 0, y: 0, z: 0, px: 0, py: 0, scale: 0 }));
+        
+        // Start far away for fly-in
+        const planePos = { x: 0, y: 0, z: 2500 };
+        const planeVel = { x: 0, y: 0, z: -15 }; 
+        const planeRot = { x: 0, y: 0, z: 0 };
 
-        const getSheetPos = (u: number, v: number, target: {x:number, y:number, z:number}) => {
-            target.x = (u - 0.5) * SHEET_W;
-            target.y = (v - 0.5) * SHEET_H;
-            target.z = 0;
-        };
+        // --- PARTICLES ---
+        const MAX_PARTICLES = 60;
+        const particles = Array.from({ length: MAX_PARTICLES }, () => ({
+            x: 0, y: 0, z: 0,
+            vx: 0, vy: 0, vz: 0,
+            life: 0,
+            color: '#fff',
+            type: 'ember' as 'data' | 'trail' | 'ember',
+            active: false
+        }));
 
-        const updateParticles = () => {
-            for(let i=0; i<totalCount; i++) {
-                const idx = i * STRIDE;
-                const u = data[idx+6];
-                const v = data[idx+7];
-                const type = data[idx+8];
+        const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
 
-                const tObj = {x:0, y:0, z:0};
-
-                if (phase === 0) {
-                    // PHASE: PLANE FLYING
-                    getPlanePos(u, v, tObj);
-                    // Add flight wobble / wind
-                    tObj.y += Math.sin(time * 5 + u * 10) * 5;
-                    tObj.x += Math.cos(time * 3 + v * 10) * 2;
-                } else if (phase === 1) {
-                    // PHASE: SHEET UNFOLDED
-                    getSheetPos(u, v, tObj);
-                } else if (phase === 2) {
-                    // PHASE: UNWRITING
-                    getSheetPos(u, v, tObj);
-                    if (type === 1) { // Ink
-                        // Ink floats away into the ether
-                        const lift = phaseTimer * 0.8; // Speed up lift
-                        
-                        // Noise movement
-                        const noiseX = Math.sin(lift * 0.05 + i) * 20;
-                        const noiseY = Math.cos(lift * 0.05 + i) * 20;
-                        
-                        tObj.z += lift * 3 + Math.random() * 5; // Lift off page
-                        tObj.x += noiseX;
-                        tObj.y += noiseY;
-                    }
-                } else {
-                    // PHASE: RESET (Implode to Plane)
-                    getPlanePos(u, v, tObj);
+        const spawnParticle = (type: 'data' | 'trail' | 'ember', ox: number, oy: number, oz: number, spread: number) => {
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                const p = particles[i];
+                if (!p.active) {
+                    p.active = true;
+                    p.x = ox + (Math.random() - 0.5) * spread;
+                    p.y = oy + (Math.random() - 0.5) * spread;
+                    p.z = oz + (Math.random() - 0.5) * spread;
+                    p.vx = (Math.random() - 0.5) * (type === 'ember' ? 5 : 2);
+                    p.vy = (Math.random() - 0.5) * (type === 'ember' ? 5 : 2);
+                    p.vz = type === 'trail' ? 10 : (Math.random() - 0.5) * 5;
+                    p.life = 1.0;
+                    p.color = type === 'data' ? '#FACC15' : type === 'ember' ? '#fbbf24' : '#ffffff';
+                    p.type = type;
+                    break; 
                 }
-
-                // Interpolation (Smoothing)
-                // Fast reset in phase 3, smooth otherwise
-                const lerp = phase === 3 ? 0.1 : 0.08; 
-                data[idx] += (tObj.x - data[idx]) * lerp;
-                data[idx+1] += (tObj.y - data[idx+1]) * lerp;
-                data[idx+2] += (tObj.z - data[idx+2]) * lerp;
             }
         };
 
         const render = () => {
-            time += 0.01;
-            phaseTimer++;
+            frameId = requestAnimationFrame(render);
+            if (!isVisible) return;
 
-            // Animation Sequencer
-            if (phase === 0 && phaseTimer > 250) { phase = 1; phaseTimer = 0; } // Fly -> Unfold
-            if (phase === 1 && phaseTimer > 100) { phase = 2; phaseTimer = 0; } // Unfold -> Unwrite
-            if (phase === 2 && phaseTimer > 180) { phase = 3; phaseTimer = 0; } // Unwrite -> Reset
-            if (phase === 3 && phaseTimer > 60) { phase = 0; phaseTimer = 0; }  // Reset -> Fly
+            globalTime += 0.016;
 
-            ctx.fillStyle = '#020202';
-            ctx.fillRect(0, 0, w, h);
+            ctx.clearRect(0, 0, width, height);
 
-            updateParticles();
+            targetRotY += (mouseX * 0.1 - targetRotY) * 0.05;
+            targetRotX += (mouseY * 0.1 - targetRotX) * 0.05;
 
-            // Responsive Center
-            const cx = w > 1024 ? w * 0.75 : w * 0.5;
-            const cy = h * 0.5;
+            const cosY = Math.cos(targetRotX);
+            const sinY = Math.sin(targetRotX);
+            const cosX = Math.cos(targetRotY); 
+            const sinX = Math.sin(targetRotY);
 
-            // Camera Motion Logic
-            let rotX = 0, rotY = 0, rotZ = 0;
+            // --- PHASE LOGIC (REVERSED) ---
+            if (phase === 0) { // FLIGHT IN
+                phaseTimer += 0.01;
+                planePos.z += planeVel.z;
+                
+                planeRot.z = Math.sin(globalTime) * 0.1;
+                planeRot.y = Math.cos(globalTime * 0.5) * 0.1;
 
-            if (phase === 0) {
-                // Flying: Bank and turn slightly
-                rotX = -0.3; // Pitch down
-                rotY = Math.sin(time * 0.5) * 0.2 + time * 0.2; // Spin slowly
-                rotZ = Math.sin(time) * 0.1; // Bank
-            } else if (phase === 1) {
-                // Unfolding: Stabilize to face camera
-                const t = Math.min(1, phaseTimer / 80);
-                rotX = -0.3 * (1-t);
-                rotY = ((Math.sin(time * 0.5) * 0.2 + time * 0.2) % (Math.PI*2)) * (1-t); // Decelerate spin
-                rotZ = 0;
-            } else if (phase === 2) {
-                // Unwriting: Static flat view
-                rotX = 0; rotY = 0; rotZ = 0;
-            } else {
-                // Reset: Chaos spin
-                rotX = Math.random() * 0.2; rotY = Math.random() * 0.2;
+                meshOpacity = Math.min(1, (3000 - planePos.z) / 1000);
+
+                if(Math.random() > 0.5) spawnParticle('ember', planePos.x, planePos.y, planePos.z, 50);
+                
+                if (planePos.z <= 0) {
+                    planePos.z = 0;
+                    phase = 1;
+                    phaseTimer = 0;
+                }
+            }
+            else if (phase === 1) { // UNFOLD
+                phaseTimer += 0.015;
+                const t = Math.min(1, phaseTimer);
+                const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+                for(let i=0; i<9; i++) {
+                    currentVerts[i].x = lerp(planeVerts[i].x, flatVerts[i].x, ease);
+                    currentVerts[i].y = lerp(planeVerts[i].y, flatVerts[i].y, ease);
+                    currentVerts[i].z = lerp(planeVerts[i].z, flatVerts[i].z, ease);
+                }
+                
+                planeRot.x *= 0.95;
+                planeRot.y *= 0.95;
+                planeRot.z *= 0.95;
+
+                if (t >= 1) {
+                    phase = 2;
+                    phaseTimer = 0;
+                }
+            }
+            else if (phase === 2) { // DISSOLVE
+                phaseTimer += 0.01;
+                meshOpacity = Math.max(0, 1 - phaseTimer); 
+                
+                for(let i=0; i<9; i++) {
+                    const noiseX = (Math.random() - 0.5) * 10 * phaseTimer;
+                    const noiseY = (Math.random() - 0.5) * 10 * phaseTimer;
+                    currentVerts[i].x += noiseX;
+                    currentVerts[i].y += noiseY;
+                    currentVerts[i].z += (Math.random()) * 5; 
+                }
+
+                if (Math.random() > 0.8) spawnParticle('data', 0, 0, 0, 200 * phaseTimer);
+
+                if (phaseTimer > 1.5) { 
+                    phase = 3; 
+                    phaseTimer = 0; 
+                }
+            }
+            else if (phase === 3) { // RESET
+                loopSeed += 13.7;
+                meshOpacity = 0;
+                
+                planePos.x = 0; planePos.y = 0; planePos.z = 2500;
+                planeRot.x = 0; planeRot.y = 0; planeRot.z = 0;
+                
+                for(let i=0; i<9; i++) {
+                    currentVerts[i].x = planeVerts[i].x;
+                    currentVerts[i].y = planeVerts[i].y;
+                    currentVerts[i].z = planeVerts[i].z;
+                }
+                
+                phase = 0;
             }
 
-            // 3D Projection Matrix (Euler)
-            const cz = Math.cos(rotZ), sz = Math.sin(rotZ);
-            const cx_rot = Math.cos(rotX), sx_rot = Math.sin(rotX);
-            const cy_rot = Math.cos(rotY), sy_rot = Math.sin(rotY);
+            // --- TRANSFORM & PROJECT ---
+            for(let i=0; i<9; i++) {
+                const v = currentVerts[i];
+                
+                let x = v.x; let y = v.y; let z = v.z;
+                
+                const cosRY = Math.cos(planeRot.y); const sinRY = Math.sin(planeRot.y);
+                const cosRX = Math.cos(planeRot.x); const sinRX = Math.sin(planeRot.x);
+                const cosRZ = Math.cos(planeRot.z); const sinRZ = Math.sin(planeRot.z);
 
-            for(let i=0; i<totalCount; i++) {
-                const idx = i * STRIDE;
-                let x = data[idx];
-                let y = data[idx+1];
-                let z = data[idx+2];
-                const type = data[idx+8];
-
-                // 1. Rotate Z
-                let x1 = x * cz - y * sz;
-                let y1 = x * sz + y * cz;
+                let x1 = x * cosRZ - y * sinRZ;
+                let y1 = x * sinRZ + y * cosRZ;
                 x = x1; y = y1;
 
-                // 2. Rotate X
-                let y2 = y * cx_rot - z * sx_rot;
-                let z2 = y * sx_rot + z * cx_rot;
-                y = y2; z = z2;
+                let x2 = x * cosRY - z * sinRY;
+                let z2 = z * cosRY + x * sinRY;
+                x = x2; z = z2;
 
-                // 3. Rotate Y
-                let x3 = x * cy_rot - z * sy_rot;
-                let z3 = x * sy_rot + z * cy_rot;
-                x = x3; z = z3;
+                let y2 = y * cosRX - z * sinRX;
+                let z3 = z * cosRX + y * sinRX;
+                y = y2; z = z3;
 
-                // 4. Perspective Projection
-                const camDist = 1000;
-                const scale = camDist / (camDist + z);
+                x += planePos.x;
+                y += planePos.y;
+                z += planePos.z;
+
+                let y3 = y * cosY - z * sinY;
+                let z4 = z * cosY + y * sinY;
+                let x3 = x * cosX - z4 * sinX;
+                let z5 = z4 * cosX + x * sinX;
+
+                const scale = FL / (FL + z5);
+                const buff = worldVertsBuffer[i];
+                buff.x = x3; buff.y = y3; buff.z = z5;
+                buff.px = cx + x3 * scale;
+                buff.py = cy + y3 * scale;
+                buff.scale = scale;
+            }
+
+            if (meshOpacity > 0.01) {
+                const accentFill = `rgba(250, 204, 21, ${meshOpacity * 0.25})`; 
+                const baseFill = `rgba(255, 255, 255, ${meshOpacity * 0.05})`;
                 
-                const px = cx + x * scale;
-                const py = cy + y * scale;
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = `rgba(250, 204, 21, ${0.4 * meshOpacity})`; 
 
-                if (scale > 0) {
-                    // Fade logic for ink
-                    let alpha = Math.min(1, scale);
-                    if (phase === 2 && type === 1) {
-                        alpha *= Math.max(0, 1 - phaseTimer/150);
-                    }
+                const addTri = (i1: number, i2: number, i3: number) => {
+                    const p1 = worldVertsBuffer[i1];
+                    const p2 = worldVertsBuffer[i2];
+                    const p3 = worldVertsBuffer[i3];
+                    if (p1.z < -FL+10 || p2.z < -FL+10 || p3.z < -FL+10) return;
+                    
+                    ctx.moveTo(p1.px, p1.py);
+                    ctx.lineTo(p2.px, p2.py);
+                    ctx.lineTo(p3.px, p3.py);
+                    ctx.lineTo(p1.px, p1.py);
+                };
 
-                    if (type === 0) {
-                        // Paper Particle (Teal)
-                        ctx.fillStyle = `rgba(105, 183, 178, ${0.4 * alpha})`; 
-                        ctx.fillRect(px, py, 2*scale, 2*scale);
-                    } else {
-                        // Ink Particle (Amber)
-                        ctx.fillStyle = `rgba(251, 191, 36, ${alpha})`; 
-                        ctx.beginPath(); ctx.arc(px, py, 1.5*scale, 0, Math.PI*2); ctx.fill();
-                    }
+                ctx.beginPath();
+                addTri(0, 1, 3);
+                addTri(1, 2, 5);
+                addTri(3, 4, 6);
+                addTri(4, 5, 8);
+                ctx.fillStyle = baseFill;
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                addTri(1, 4, 3);
+                addTri(1, 4, 5);
+                addTri(4, 7, 6);
+                addTri(4, 7, 8);
+                ctx.fillStyle = accentFill;
+                ctx.fill();
+                ctx.stroke();
+                
+                const p1 = worldVertsBuffer[1]; const p4 = worldVertsBuffer[4]; const p7 = worldVertsBuffer[7];
+                if(p1.z > -FL) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#FBBF24'; 
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(p1.px, p1.py); ctx.lineTo(p4.px, p4.py); ctx.lineTo(p7.px, p7.py); 
+                    ctx.stroke();
                 }
             }
 
-            frameId = requestAnimationFrame(render);
+            for(let i=0; i<MAX_PARTICLES; i++) {
+                const p = particles[i];
+                if (!p.active) continue;
+
+                p.x += p.vx; p.y += p.vy; p.z += p.vz;
+                p.life -= 0.02;
+
+                if (p.life <= 0 || p.z > 3000) {
+                    p.active = false;
+                    continue;
+                }
+
+                let y1 = p.y * cosY - p.z * sinY;
+                let z1 = p.z * cosY + p.y * sinY;
+                let x1 = p.x * cosX - z1 * sinX;
+                let z2 = z1 * cosX + p.x * sinX;
+
+                const scale = FL / (FL + z2);
+                if (scale > 0) {
+                    const px = cx + x1 * scale;
+                    const py = cy + y1 * scale;
+                    
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life * meshOpacity;
+                    
+                    if (p.type === 'data') {
+                        ctx.font = '10px monospace';
+                        ctx.fillText("1", px, py);
+                    } else {
+                        const size = (p.type === 'trail' ? 3 : 6) * scale;
+                        ctx.fillRect(px - size/2, py - size/2, size, size);
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         };
 
         const handleResize = () => {
-            if (canvas.parentElement) {
-                w = canvas.width = canvas.parentElement.clientWidth;
-                h = canvas.height = canvas.parentElement.clientHeight;
+            if (containerRef.current && canvasRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                canvasRef.current.width = rect.width;
+                canvasRef.current.height = rect.height;
+                width = rect.width;
+                height = rect.height;
+                cx = width / 2;
+                cy = height / 2;
             }
         };
+
+        const observer = new IntersectionObserver(([entry]) => {
+            isVisible = entry.isIntersecting;
+        }, { threshold: 0.01 });
+        
+        if (containerRef.current) observer.observe(containerRef.current);
+
+        window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('resize', handleResize);
         handleResize();
         render();
 
         return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('resize', handleResize);
+            if (containerRef.current) observer.unobserve(containerRef.current);
             cancelAnimationFrame(frameId);
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full mix-blend-screen opacity-90" />;
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#020202]">
+            <canvas ref={canvasRef} className="block w-full h-full" />
+        </div>
+    );
 };
+
+export const ContactHeroVisualizer = React.memo(ContactHeroVisualizerComponent);
