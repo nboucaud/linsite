@@ -37,7 +37,8 @@ export const ContactPage: React.FC = () => {
                             <Radio size={12} className="animate-pulse" />
                             <span>Contact Us</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-serif text-white mb-8 leading-[0.9] tracking-tighter drop-shadow-2xl">
+                        {/* REDUCED HERO TEXT SIZE */}
+                        <h1 className="text-4xl md:text-6xl font-serif text-white mb-8 leading-[0.9] tracking-tighter drop-shadow-2xl">
                             Get In <br/>
                             <span className="text-[#69B7B2] italic">Touch.</span>
                         </h1>

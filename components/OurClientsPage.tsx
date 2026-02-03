@@ -340,7 +340,6 @@ const INDUSTRIES = [
 // --- CAROUSEL COMPONENT ---
 const IndustryCarousel: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
-    const { navigateTo } = useNavigation();
     const count = INDUSTRIES.length;
 
     const next = () => setActiveIndex((prev) => (prev + 1) % count);
@@ -386,8 +385,7 @@ const IndustryCarousel: React.FC = () => {
                                 opacity
                             }}
                             onClick={() => {
-                                if (isActive) navigateTo(item.path);
-                                else setActiveIndex(index);
+                                if (!isActive) setActiveIndex(index);
                             }}
                         >
                             <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] overflow-hidden shadow-2xl group border border-white/10 hover:border-white/20 transition-colors">
@@ -415,11 +413,6 @@ const IndustryCarousel: React.FC = () => {
                                         <p className="text-sm text-white/70 leading-relaxed mb-8 line-clamp-3">
                                             {item.desc}
                                         </p>
-                                        
-                                        <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}>
-                                            <span>Explore Sector</span>
-                                            <ArrowUpRight size={14} />
-                                        </div>
                                     </div>
                                 </div>
 
@@ -510,7 +503,8 @@ export const OurClientsPage: React.FC = () => {
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#69B7B2]">Global Operations Network</span>
                     </div>
 
-                    <h1 className="text-7xl md:text-9xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
+                    {/* REDUCED HERO TEXT SIZE */}
+                    <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         Partners, Not <br/>
                         <span className="text-[#69B7B2] italic">Vendors.</span>
                     </h1>
@@ -613,12 +607,6 @@ export const OurClientsPage: React.FC = () => {
                                 </div>
                                 <h2 className="text-4xl md:text-5xl font-serif text-white">Active Verticals</h2>
                             </div>
-                            <button 
-                                onClick={() => navigateTo('our-work')}
-                                className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors group"
-                            >
-                                View Case Studies <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                            </button>
                         </div>
 
                         <IndustryCarousel />
