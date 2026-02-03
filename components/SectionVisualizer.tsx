@@ -27,7 +27,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             r: Math.random() * 150,
             theta: Math.random() * Math.PI * 2,
             phi: Math.random() * Math.PI,
-            speed: (Math.random() - 0.5) * 0.02
+            speed: (Math.random() - 0.5) * 0.013 // SLOWED from 0.02
         }));
 
         // REDACTION (Document Scanner)
@@ -62,7 +62,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         ];
         const logicPackets: { from: number, to: number, progress: number, speed: number }[] = [];
 
-        // CORE (Reactor)
+        // CORE (Reactor) - SPEED UNCHANGED
         const coreRings = [0.2, 0.4, 0.6, 0.8];
         
         // SHIELD (Hex)
@@ -94,7 +94,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         const transParticles = Array.from({length: 60}, () => ({
             x: Math.random() * w,
             y: Math.random() * h,
-            speed: 2 + Math.random() * 3,
+            speed: (2 + Math.random() * 3) * 0.67, // SLOWED
             char: String.fromCharCode(0x30A0 + Math.random() * 96) // Katakana
         }));
 
@@ -106,7 +106,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         }));
 
         const render = () => {
-            time += 0.01;
+            time += 0.0067; // SLOWED from 0.01 (Global Base Speed)
             
             // Fade clear
             ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; 
@@ -152,7 +152,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             }
 
             else if (mode === 'redaction') {
-                const scanSpeed = 150;
+                const scanSpeed = 100; // SLOWED from 150
                 const scanY = (time * scanSpeed) % (h + 100) - 50;
                 
                 // Draw Blocks
@@ -200,10 +200,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             }
 
             else if (mode === 'logic') {
-                // Spawn packets randomly
-                if (Math.random() > 0.92) {
+                // Spawn packets randomly (Slower rate)
+                if (Math.random() > 0.94) { // Was 0.92
                     const path = logicPaths[Math.floor(Math.random() * logicPaths.length)];
-                    logicPackets.push({ from: path.from, to: path.to, progress: 0, speed: 0.01 + Math.random()*0.02 });
+                    logicPackets.push({ from: path.from, to: path.to, progress: 0, speed: (0.01 + Math.random()*0.02) * 0.67 }); // SLOWED
                 }
 
                 // Draw Paths
@@ -265,8 +265,12 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             else if (mode === 'core') {
                 ctx.translate(cx, cy);
                 
-                // Reactor Core
-                const pulse = 1 + Math.sin(time * 5) * 0.1;
+                // Reactor Core - KEEP FAST for "Knowledge Trees"
+                const coreTime = time * 1.5; // Compensate for global slow down to keep original speed (0.01 * 1.5 = 0.015 approx original was 0.01 but visually seems fine to boost back)
+                // Actually original was 0.01 global. So (time * 1 / 0.67) restores it.
+                const restoreSpeed = time * 1.5;
+
+                const pulse = 1 + Math.sin(restoreSpeed * 5) * 0.1;
                 ctx.fillStyle = color;
                 ctx.shadowBlur = 30 * pulse;
                 ctx.shadowColor = color;
@@ -280,7 +284,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.save();
                     const radius = 60 + i * 30;
                     // Rotate alternating directions
-                    ctx.rotate(time * (i % 2 === 0 ? 1 : -1) * (1 - i * 0.1));
+                    ctx.rotate(restoreSpeed * (i % 2 === 0 ? 1 : -1) * (1 - i * 0.1));
                     
                     ctx.strokeStyle = color;
                     ctx.globalAlpha = 0.3;
@@ -306,7 +310,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 shieldHexes.forEach(h => {
                     // Random activation
                     if (Math.random() > 0.99) h.active = 1;
-                    h.active *= 0.95;
+                    h.active *= 0.96; // Slower decay (was 0.95)
 
                     ctx.strokeStyle = color;
                     ctx.fillStyle = color;
@@ -330,7 +334,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
 
             else if (mode === 'swarm') {
                 // Spawn new pings
-                if (Math.random() > 0.95) {
+                if (Math.random() > 0.96) { // Less frequent (was 0.95)
                     swarmPings.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
@@ -342,7 +346,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 // Process Pings
                 for (let i = swarmPings.length - 1; i >= 0; i--) {
                     const p = swarmPings[i];
-                    p.life += 0.01;
+                    p.life += 0.0067; // Slower growth (was 0.01)
                     if (p.life > 1) {
                         swarmPings.splice(i, 1);
                         continue;
@@ -399,7 +403,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
                 
                 // Vertical analysis scanner
-                const scanX = (time * 150) % w;
+                const scanX = (time * 100) % w; // Slower scan (was 150)
                 ctx.fillStyle = color;
                 ctx.globalAlpha = 0.1;
                 ctx.fillRect(scanX, 0, 30, h);

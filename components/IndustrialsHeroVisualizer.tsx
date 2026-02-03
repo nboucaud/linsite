@@ -51,7 +51,7 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
                 pts.push({ x: Math.cos(angle) * 40 * MODEL_SCALE, y: Math.sin(angle) * 40 * MODEL_SCALE, z });
                 pts.push({ x: Math.cos(angle + 0.3) * rOuter, y: Math.sin(angle + 0.3) * rOuter, z });
             }
-            parts.push({ points: pts, rotationSpeed: 0.13 * (i%2===0?1:-1), color: 'rgba(245, 158, 11, 0.8)', type: 'rotor' }); // SLOWED from 0.15
+            parts.push({ points: pts, rotationSpeed: 0.08 * (i%2===0?1:-1), color: 'rgba(245, 158, 11, 0.8)', type: 'rotor' }); // SLOWED from 0.13
         }
 
         const render = (timestamp: number) => {
@@ -61,7 +61,7 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
             if (deltaTime < FRAME_INTERVAL) return;
             lastTime = timestamp - (deltaTime % FRAME_INTERVAL);
 
-            time += 0.009; // SLOWED from 0.01
+            time += 0.006; // SLOWED from 0.009
             
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, w, h);

@@ -27,7 +27,7 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
                 y: Math.random() * h,
                 w: 20 + Math.random() * 30,
                 h: 10 + Math.random() * 20,
-                speed: 1.8 + Math.random() * 2.7, // SLOWED from 2 + ... * 3
+                speed: (1.8 + Math.random() * 2.7) * 0.67, // SLOWED
                 type: Math.random() > 0.9 ? 'hazardous' : Math.random() > 0.8 ? 'priority' : 'standard'
             });
         }
@@ -54,7 +54,7 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
             sortParticles.push({
                 r: Math.random() * 50,
                 angle: Math.random() * Math.PI * 2,
-                speed: 1.8 + Math.random() * 3.6, // SLOWED
+                speed: (1.8 + Math.random() * 3.6) * 0.67, // SLOWED
                 color: Math.random() > 0.5 ? '#10b981' : '#f59e0b'
             });
         }
@@ -117,7 +117,7 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
                 // --- GLOBE BATCHED ---
                 ctx.save();
                 ctx.translate(w * 0.75, h * 0.5);
-                const time = frame * 0.0045; // SLOWED from 0.005
+                const time = frame * 0.003; // SLOWED from 0.0045
                 const cosT = Math.cos(time);
                 const sinT = Math.sin(time);
 
@@ -172,7 +172,7 @@ const LogisticsHeroVisualizerComponent: React.FC = () => {
                 for (let i = 0; i < sortParticles.length; i++) {
                     const p = sortParticles[i];
                     p.r += p.speed;
-                    p.angle += 0.045; // SLOWED from 0.05
+                    p.angle += 0.03; // SLOWED from 0.045
                     if (p.r > 300) { p.r = 60; p.angle = Math.random() * Math.PI * 2; }
                     
                     const px = Math.cos(p.angle) * p.r;
