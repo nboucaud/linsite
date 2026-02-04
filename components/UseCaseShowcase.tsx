@@ -1,120 +1,94 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight, Radio } from 'lucide-react';
+import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight, Radio, Sparkles, Layout } from 'lucide-react';
 import { SectionVisualizer } from './SectionVisualizer';
 
 const SOLUTIONS = [
     {
         id: 'daas',
-        title: "Data-as-a-Service (DaaS)",
-        desc: "This service works directly with your organization to locate and extract hard-to-reach knowledge, including tribal knowledge, operational memory, contextual practices, regulatory constraints, competitive intelligence, and experiential reasoning.",
+        title: "Data Strategy & Modernization",
+        shortDesc: "Organizing fragmented data landscapes into an intentional foundation that supports real workflows.",
+        longContent: [
+            "Teams operate across multiple systems, spreadsheets, software platforms, documents, and tacit operational knowledge that rarely align into a coherent structure. Data Strategy and Modernization focuses on organizing this fragmented landscape into an intentional foundation that supports how work actually happens.",
+            "We work with organizations to identify internal and external data sources, design structured data architectures aligned to real workflows, and build and modernize data pipelines that connect legacy systems with modern platforms. This includes establishing governance, traceability, and compliance layers while preparing environments for analytics, automation, and AI deployment.",
+            "The result goes beyond cleaned data and key performance indicators. When information flows are structured correctly, teams gain visibility across handoffs, reduce friction between departments, and create a scalable base for decision systems and intelligent tools."
+        ],
         icon: Database,
         color: "#69B7B2", 
-        tag: "EXTRACT",
-        mode: 'search',
-        output: "Structured Knowledge Graph"
+        tag: "MODERNIZE",
+        mode: 'search'
     },
     {
         id: 'capture',
         title: "Knowledge Capture",
-        desc: "We identify and formalize the rules, assumptions, constraints, and potential failure points embedded in your operations. Capturing how work is actually governed, not just how it is documented.",
+        shortDesc: "Surfacing tacit expertise and translating regulatory requirements into structured frameworks.",
+        longContent: [
+            "Even the best teams carry splintered knowledge. It lives in the tribe: in seasoned operators, in side conversations, in inbox threads, in sticky notes, in “how we usually handle it,” and in the quiet rules people follow without writing them down.",
+            "Knowledge Capture is about bringing that lived intelligence into the open. We work with teams to surface tacit expertise, clarify unwritten rules, document decision logic, and translate regulatory and compliance requirements into structured, usable frameworks that reflect how work actually gets done.",
+            "When knowledge is formalized without stripping away its context, organizations reduce single points of failure and protect themselves from risk. Tribal expertise becomes institutional memory, compliance becomes operationalized rather than reactive, and teams gain clarity without losing their hard-earned practical wisdom."
+        ],
         icon: Scan,
         color: "#f59e0b",
         tag: "FORMALIZE",
-        mode: 'translation',
-        output: "Operational Rulebook v1.0"
+        mode: 'translation'
     },
     {
         id: 'trees',
         title: "Knowledge Trees",
-        desc: "This tool designs and structures representations of your knowledge that preserve relationships, dependencies, and rules, enabling operational logic, traceability, and reasoning across people, roles, systems, rules, and procedures.",
+        shortDesc: "Linking information to action: connecting datasets, workflows, rules, and decisions.",
+        longContent: [
+            "Data lives in one system, policies in another, workflows in people’s habits, and outcomes in reports that rarely explain how they were produced. Teams sense that everything is connected, but the relationships between data, rules, decisions, and results are rarely mapped in a coherent or navigable way.",
+            "We build structured frameworks that link information to action: connecting datasets to workflows, workflows to rules, rules to decisions, and decisions to measurable impact. This architecture allows organizations to analyze dependencies, anticipate ripple effects, and understand how changes in one area influence the system as a whole.",
+            "When these relationships are explicit, prediction becomes more reliable and analysis becomes contextual rather than isolated. Knowledge Trees provide the structural layer that enables agents, analytics systems, and human teams to operate with shared intelligence instead of fragmented insight."
+        ],
         icon: Network,
         color: "#ef4444", 
         tag: "STRUCTURE",
-        mode: 'core',
-        output: "Decision Tree Logic"
+        mode: 'core'
     },
     {
         id: 'bridge',
         title: "Bridge AI",
-        desc: "This tool deploys purpose-built agents that operate on shared knowledge trees, allowing agents to reason within defined workflows, understand their roles, and coordinate with other agents based on shared operational context.",
+        shortDesc: "Connecting intelligent agents directly to specific teams, grounded in operational reality.",
+        longContent: [
+            "Most teams are told to “use AI,” but the tools they’re given don’t understand their role, their constraints, or the rules they operate under. People end up copying and pasting context, double-checking outputs against policy, and quietly deciding not to trust systems that weren’t built around how they actually work.",
+            "Bridge AI connects intelligent agents directly to specific teams and responsibilities. Each staff member receives an AI agent mapped to their function, drawing from structured Knowledge Trees, approved data sources, workflow logic, and compliance boundaries so support is grounded in operational reality rather than generic outputs.",
+            "The result is not a chatbot floating above the organization, but embedded intelligence that understands handoffs, dependencies, and risk. Teams move faster because the agent already knows the rules, the context, and the downstream impact of a decision. Making AI feel less like an experiment and more like a reliable sidekick in the work you do."
+        ],
         icon: Bot,
         color: "#8b5cf6", 
         tag: "DEPLOY",
-        mode: 'swarm',
-        output: "Agent Swarm Active"
+        mode: 'swarm'
     },
     {
         id: 'strategy',
         title: "Strategy Builder",
-        desc: "This tool uses structured organizational knowledge to enable decision-makers to model scenarios, test assumptions, and explore the operational consequences of different strategies through predictive and prescriptive analysis.",
+        shortDesc: "Structuring decision pathways to generate strategies grounded in real constraints.",
+        longContent: [
+            "There are moments when the numbers shift and no one immediately knows why. Revenue drops without warning, a compliance exposure surfaces, a contract is at risk, a safety threshold is crossed, or a decision made months ago starts cascading into consequences that were never fully mapped. Leaders are expected to respond instantly. Even when the logic chain behind the problem doesn’t make sense.",
+            "Strategy Builder structures the decision pathways that most organizations carry informally in their heads. By connecting live data, operational rules, and Knowledge Trees, it builds traceable chains of logic that map triggers to impact and impact to coordinated response, generating prescriptive and reactive strategies grounded in real constraints rather than guesswork.",
+            "When something critical happens, teams are no longer navigating blind or relying on individual heroics. The system outlines consequences, surfaces trade-offs, and provides structured response pathways so leaders are not carrying the weight of uncertainty alone."
+        ],
         icon: BarChart3,
         color: "#06b6d4",
         tag: "MODEL",
-        mode: 'logic',
-        output: "Scenario Forecast Report"
+        mode: 'logic'
     },
     {
         id: 'workforce',
         title: "Workforce Augmentation",
-        desc: "This tool supports teams by embedding knowledge into workflows, helping junior staff learn faster, senior staff offload cognitive burden, and organizations sustain expertise as people and roles change.",
+        shortDesc: "Contextual capability development grounded in your own knowledge structures.",
+        longContent: [
+            "Organizations spend heavily on training programs, certifications, and workshops. Yet employees often return to their desks unchanged. Whether it is SQL, analytics, compliance literacy, leadership development, workflow systems, or AI usage, training is frequently generic and disconnected from the knowledge structures, constraints, and pressures that define real work.",
+            "Workforce Augmentation makes capability development contextual and role-specific by grounding it in your own Knowledge Capture and Knowledge Trees. Each employee is paired with a personalized AI sidekick aligned to their function, drawing from structured internal knowledge, operational rules, and workflow logic, while managers curate and design targeted learning pathways tied directly to performance gaps and strategic priorities.",
+            "Training is no longer imported from outside or detached from reality. It emerges from your own data, your own knowledge, and your own systems. Surfacing development moments in real time and strengthening capability exactly where operational intelligence requires it most."
+        ],
         icon: Users,
         color: "#ec4899",
         tag: "AUGMENT",
-        mode: 'identity',
-        output: "Workforce Capacity +40%"
+        mode: 'identity'
     }
 ];
-
-const TerminalOutput: React.FC<{ output: string; color: string }> = ({ output, color }) => {
-    const [lines, setLines] = useState<string[]>([]);
-    
-    useEffect(() => {
-        setLines([]);
-        const steps = [
-            "Initializing handshake...",
-            "Decrypting stream...",
-            "Parsing structure...",
-            "Optimizing...",
-            `>> ${output}`
-        ];
-        
-        const timeouts: any[] = [];
-        let accumulatedDelay = 0;
-
-        steps.forEach((step, i) => {
-            accumulatedDelay += Math.random() * 300 + 200;
-            const t = setTimeout(() => {
-                setLines(prev => {
-                    const newLines = [...prev, step];
-                    return newLines.slice(-6); // Keep last 6 lines
-                });
-            }, accumulatedDelay);
-            timeouts.push(t);
-        });
-
-        return () => timeouts.forEach(clearTimeout);
-    }, [output]);
-
-    return (
-        <div className="font-mono text-[10px] space-y-2 h-full flex flex-col justify-end pb-2">
-            {lines.map((line, i) => (
-                <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-                    <span className="text-white/20 shrink-0 select-none">
-                        {new Date().toLocaleTimeString([], {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}
-                    </span>
-                    <span 
-                        className={`break-words ${line.startsWith('>>') ? 'text-white font-bold bg-white/10 px-2 py-1 rounded w-full border-l-2 shadow-lg' : 'text-white/60'}`} 
-                        style={{ borderColor: line.startsWith('>>') ? color : 'transparent' }}
-                    >
-                        {line}
-                    </span>
-                </div>
-            ))}
-            <div className="animate-pulse text-[#69B7B2] font-bold">_</div>
-        </div>
-    );
-};
 
 export const UseCaseShowcase: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -127,7 +101,7 @@ export const UseCaseShowcase: React.FC = () => {
     useEffect(() => {
         if (isPaused) return;
         
-        const duration = 5000; 
+        const duration = 8000; // Increased duration for reading time
         const interval = 50;   
         
         const timer = setInterval(() => {
@@ -172,7 +146,6 @@ export const UseCaseShowcase: React.FC = () => {
 
     const activeItem = SOLUTIONS[activeIndex];
     const beamTargetY = 300; // Center of iPhone/Container
-    const beamWidth = 60; // Width of SVG area
 
     return (
         <div className="py-32 bg-[#030303] border-b border-white/5 relative overflow-hidden">
@@ -198,7 +171,7 @@ export const UseCaseShowcase: React.FC = () => {
                 <div className="flex flex-col lg:flex-row gap-0 relative items-start lg:items-center justify-center">
                     
                     {/* SECTION 1: INPUT LIST */}
-                    <div ref={listRef} className="w-full lg:w-[400px] relative z-20 flex flex-col space-y-3 shrink-0">
+                    <div ref={listRef} className="w-full lg:w-[380px] relative z-20 flex flex-col space-y-3 shrink-0">
                         {SOLUTIONS.map((item, idx) => {
                             const isActive = idx === activeIndex;
                             return (
@@ -239,11 +212,11 @@ export const UseCaseShowcase: React.FC = () => {
                                                 {!isActive && <ChevronRight size={14} className="text-white/10 group-hover:text-white/30" />}
                                             </div>
                                             
-                                            {/* EXPANDED TEXT: No truncation, full height */}
+                                            {/* EXPANDED TEXT: Short desc for list view */}
                                             {isActive && (
                                                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <p className="text-white/60 text-xs leading-relaxed pb-2 whitespace-normal h-auto">
-                                                        {item.desc}
+                                                        {item.shortDesc}
                                                     </p>
                                                     <span 
                                                         className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border inline-block mt-2"
@@ -294,7 +267,6 @@ export const UseCaseShowcase: React.FC = () => {
                     <div className="relative w-[320px] h-[640px] shrink-0 mt-8 lg:mt-0 transform transition-transform hover:scale-[1.02] duration-500">
                         {/* Frame */}
                         <div className="absolute inset-0 bg-[#1a1a1a] rounded-[3rem] shadow-2xl border-[6px] border-[#2a2a2a] ring-1 ring-white/10 z-20 pointer-events-none">
-                            {/* Buttons */}
                             <div className="absolute top-24 -left-2 w-1 h-8 bg-[#2a2a2a] rounded-l-md" />
                             <div className="absolute top-36 -left-2 w-1 h-12 bg-[#2a2a2a] rounded-l-md" />
                             <div className="absolute top-28 -right-2 w-1 h-16 bg-[#2a2a2a] rounded-r-md" />
@@ -381,60 +353,63 @@ export const UseCaseShowcase: React.FC = () => {
                         <ArrowRight className="absolute text-white/20" size={16} />
                     </div>
 
-                    {/* SECTION 3: OUTPUT TERMINAL - UPGRADED UI */}
-                    <div className="lg:w-[320px] relative z-20 mt-8 lg:mt-0 flex flex-col gap-4">
+                    {/* SECTION 3: OUTPUT CARD - REDESIGNED */}
+                    <div className="lg:w-[480px] relative z-20 mt-8 lg:mt-0 flex flex-col justify-center h-[640px]">
                         
-                        {/* Main Data Card */}
-                        <div className="bg-[#0c0c0e]/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden relative group h-[280px] flex flex-col shadow-2xl ring-1 ring-white/5">
-                            
-                            {/* Decorative Header */}
-                            <div className="h-10 bg-white/5 border-b border-white/5 flex items-center justify-between px-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_2s_infinite]" />
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-white/60">Live Stream</span>
+                        {/* INSIGHT CARD */}
+                        <div 
+                            key={activeItem.id} // Forces animate-in on change
+                            className="bg-[#0c0c0e]/90 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl ring-1 ring-white/5 flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500"
+                        >
+                            {/* Card Header */}
+                            <div className="flex items-center gap-4 mb-8 border-b border-white/5 pb-6">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 shadow-lg text-white transition-colors duration-500" style={{ color: activeItem.color }}>
+                                    <activeItem.icon size={24} />
                                 </div>
-                                <div className="flex gap-1.5">
-                                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeItem.color }} />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Active Module</span>
+                                    </div>
+                                    <h3 className="text-2xl font-serif text-white">{activeItem.title}</h3>
                                 </div>
                             </div>
 
-                            {/* Content Area */}
-                            <div className="flex-1 p-4 bg-black/40 relative">
-                                {/* Scanlines */}
-                                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+                            {/* Long Text Content */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+                                <p className="text-white/80 text-sm leading-relaxed font-light">
+                                    {activeItem.longContent[0]}
+                                </p>
+                                <p className="text-white/80 text-sm leading-relaxed font-light">
+                                    {activeItem.longContent[1]}
+                                </p>
                                 
-                                <TerminalOutput key={activeItem.id} output={activeItem.output} color={activeItem.color} />
+                                {/* Highlight Box for Result */}
+                                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 relative overflow-hidden group">
+                                    <div className="absolute top-0 left-0 w-1 h-full transition-colors duration-500" style={{ backgroundColor: activeItem.color }} />
+                                    <div className="flex items-start gap-3 relative z-10">
+                                        <Sparkles size={16} className="text-white/40 mt-1 shrink-0" />
+                                        <div>
+                                            <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-2">Key Outcome</h4>
+                                            <p className="text-white/70 text-sm leading-relaxed">
+                                                {activeItem.longContent[2]}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Footer Metrics */}
-                            <div className="h-12 bg-white/[0.02] border-t border-white/5 flex items-center px-4 justify-between">
-                                <div className="flex flex-col">
-                                    <span className="text-[8px] uppercase tracking-widest text-white/30">Confidence</span>
-                                    <span className="text-xs font-mono font-bold text-green-400">99.8%</span>
+                            {/* Footer Actions */}
+                            <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+                                <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+                                    ID: {activeItem.id.toUpperCase()}_SYS
                                 </div>
-                                <div className="h-6 w-px bg-white/10" />
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[8px] uppercase tracking-widest text-white/30">Latency</span>
-                                    <span className="text-xs font-mono font-bold text-white/70">14ms</span>
+                                <div className="flex gap-2">
+                                    <button className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+                                        <Layout size={16} />
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Secondary Action Card */}
-                        <div className="bg-[#151517] border border-white/5 rounded-xl p-4 flex items-center gap-4 transition-all hover:border-white/20 group cursor-pointer">
-                            <div 
-                                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-500"
-                                style={{ backgroundColor: `${activeItem.color}20`, color: activeItem.color }}
-                            >
-                                <CheckCircle2 size={18} />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-white mb-0.5 group-hover:text-[#69B7B2] transition-colors">Integration Ready</h4>
-                                <p className="text-[10px] text-white/40">JSON payload generated successfully.</p>
-                            </div>
-                            <ArrowRight size={14} className="ml-auto text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
                         </div>
 
                     </div>
