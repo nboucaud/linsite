@@ -9,432 +9,419 @@ interface SectionVisualizerProps {
 export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    
-    // Store simulation state in refs so they persist across re-renders and resizes without clearing
-    const stateRef = useRef({
-        particles: [] as any[],
-        staticGrid: [] as any[],
-        initialized: false,
-        width: 0,
-        height: 0
-    });
 
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
         
-        const ctx = canvas.getContext('2d', { alpha: true });
+        const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         let frameId: number;
         let time = 0;
+        let width = 0;
+        let height = 0;
 
-        // --- INITIALIZATION (Run Once per Mode) ---
-        const init = () => {
-            const state = stateRef.current;
+        // --- STATE STORAGE ---
+        // We use a mutable object to hold particle state so it persists across frames
+        const state: any = {
+            particles: [],
+            grid: []
+        };
+
+        // --- INITIALIZERS ---
+        const initSearch = () => {
             state.particles = [];
-            state.staticGrid = [];
+            for(let i=0; i<50; i++) {
+                state.particles.push({
+                    theta: Math.random() * Math.PI * 2,
+                    phi: Math.random() * Math.PI,
+                    r: 80 + Math.random() * 60, // Radius
+                    speed: (Math.random() - 0.5) * 0.02
+                });
+            }
+        };
 
-            if (mode === 'search') {
-                for(let i=0; i<40; i++) {
-                    state.particles.push({
-                        theta: Math.random() * Math.PI * 2,
-                        phi: Math.random() * Math.PI,
-                        radius: 0.2 + Math.random() * 0.3,
-                        speed: (Math.random() - 0.5) * 0.02
-                    });
-                }
-            }
-            else if (mode === 'redaction') {
-                const rows = 12; 
-                const cols = 6; 
-                for(let r=0; r<rows; r++) {
-                    for(let c=0; c<cols; c++) {
-                        if (Math.random() > 0.4) {
-                            state.particles.push({
-                                x: c / cols, y: r / rows,
-                                w: (1/cols) * 0.8, h: (1/rows) * 0.6,
-                                redacted: false
-                            });
-                        }
-                    }
-                }
-            }
-            else if (mode === 'logic') {
-                // Fixed Nodes
-                state.staticGrid = [
-                    { x: 0.2, y: 0.5 }, { x: 0.5, y: 0.2 }, 
-                    { x: 0.5, y: 0.8 }, { x: 0.8, y: 0.5 }
-                ];
-                // Moving Packets
-                for(let i=0; i<8; i++) {
-                    state.particles.push({
-                        pathStart: Math.floor(Math.random() * 4),
-                        pathEnd: Math.floor(Math.random() * 4),
-                        progress: Math.random(),
-                        speed: 0.01 + Math.random() * 0.01
-                    });
-                }
-            }
-            else if (mode === 'shield') {
-                for (let r=1; r<=5; r++) {
-                    const count = r * 6;
-                    for (let i=0; i<count; i++) {
+        const initRedaction = () => {
+            state.particles = [];
+            const cols = 8;
+            const rows = 12;
+            const cellW = width / cols;
+            const cellH = height / rows;
+            for(let y=0; y<rows; y++) {
+                for(let x=0; x<cols; x++) {
+                    if(Math.random() > 0.3) {
                         state.particles.push({
-                            angle: (Math.PI * 2 / count) * i,
-                            dist: r * 0.1,
-                            active: 0
+                            x: x * cellW + 5,
+                            y: y * cellH + 5,
+                            w: cellW - 10,
+                            h: cellH - 10,
+                            active: false
                         });
                     }
                 }
             }
-            else if (mode === 'swarm') {
-                for (let i=0; i<20; i++) {
-                    state.particles.push({
-                        x: 0.5, y: 0.5,
-                        vx: (Math.random()-0.5) * 0.01,
-                        vy: (Math.random()-0.5) * 0.01,
-                        history: []
-                    });
-                }
-            }
-            else if (mode === 'translation') {
-                for(let i=0; i<50; i++) {
-                    state.particles.push({
-                        x: Math.random(),
-                        y: Math.random(),
-                        speed: 0.002 + Math.random() * 0.005,
-                        char: String.fromCharCode(0x30A0 + Math.random() * 96)
-                    });
-                }
-            }
-            else if (mode === 'identity') {
-                for(let i=0; i<80; i++) {
-                    state.particles.push({
-                        angle: i * 0.15,
-                        radiusBase: i * 0.005,
-                        offset: Math.random() * Math.PI
-                    });
-                }
-            }
-            
-            state.initialized = true;
         };
 
-        // Initialize immediately
-        init();
-
-        // --- RENDER LOOP ---
-        const render = () => {
-            time += 0.01;
-            const w = stateRef.current.width;
-            const h = stateRef.current.height;
-
-            // Safety check: if 0x0, wait for resize
-            if (w === 0 || h === 0) {
-                frameId = requestAnimationFrame(render);
-                return;
+        const initLogic = () => {
+            state.grid = [
+                { x: width * 0.2, y: height * 0.2 },
+                { x: width * 0.8, y: height * 0.2 },
+                { x: width * 0.5, y: height * 0.5 },
+                { x: width * 0.2, y: height * 0.8 },
+                { x: width * 0.8, y: height * 0.8 }
+            ];
+            state.particles = [];
+            for(let i=0; i<10; i++) {
+                state.particles.push({
+                    from: Math.floor(Math.random() * state.grid.length),
+                    to: Math.floor(Math.random() * state.grid.length),
+                    progress: Math.random(),
+                    speed: 0.02 + Math.random() * 0.03
+                });
             }
+        };
 
-            // Clear Screen
-            ctx.clearRect(0, 0, w, h);
+        const initSwarm = () => {
+            state.particles = [];
+            for(let i=0; i<40; i++) {
+                state.particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random()-0.5) * 2,
+                    vy: (Math.random()-0.5) * 2
+                });
+            }
+        };
+
+        const initTranslation = () => {
+            state.particles = [];
+            const cols = Math.floor(width / 15);
+            for(let i=0; i<cols; i++) {
+                state.particles.push({
+                    x: i * 15,
+                    y: Math.random() * height,
+                    speed: 1 + Math.random() * 2,
+                    char: String.fromCharCode(0x30A0 + Math.random() * 96),
+                    updateRate: Math.floor(Math.random() * 10) + 5
+                });
+            }
+        };
+
+        const initShield = () => {
+            state.particles = [];
+            // Hexagon rings
+            for(let r=30; r<120; r+=20) {
+                const count = Math.floor((r * Math.PI * 2) / 20);
+                for(let i=0; i<count; i++) {
+                    state.particles.push({
+                        angle: (Math.PI * 2 / count) * i,
+                        radius: r,
+                        active: 0
+                    });
+                }
+            }
+        };
+
+        const initCore = () => {
+            state.particles = []; // Just uses time
+        };
+
+        const initIdentity = () => {
+            state.particles = [];
+            for(let i=0; i<100; i++) {
+                state.particles.push({
+                    angle: Math.random() * Math.PI * 2,
+                    r: 40 + Math.random() * 80,
+                    speed: (Math.random() - 0.5) * 0.05
+                });
+            }
+        };
+
+        // --- MAIN INIT ROUTER ---
+        const initialize = () => {
+            if (width === 0 || height === 0) return;
             
-            // Draw background explicitly to ensure visibility against parent
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
-            ctx.fillRect(0, 0, w, h);
+            if (mode === 'search') initSearch();
+            else if (mode === 'redaction') initRedaction();
+            else if (mode === 'logic') initLogic();
+            else if (mode === 'swarm') initSwarm();
+            else if (mode === 'translation') initTranslation();
+            else if (mode === 'shield') initShield();
+            else if (mode === 'core') initCore();
+            else initIdentity(); // Identity & default
+        };
 
-            const cx = w / 2;
-            const cy = h / 2;
-            const minDim = Math.min(w, h);
+        // --- RENDERERS ---
+        const render = () => {
+            time += 0.016;
+            ctx.clearRect(0, 0, width, height);
+            
+            // Subtle background tint
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(0,0,width,height);
 
-            // Save context before any transformations
-            ctx.save();
+            const cx = width / 2;
+            const cy = height / 2;
 
             if (mode === 'search') {
                 ctx.translate(cx, cy);
-                stateRef.current.particles.forEach(p => {
+                state.particles.forEach((p: any) => {
                     p.theta += p.speed;
-                    const r = p.radius * minDim;
-                    const x = r * Math.sin(p.phi) * Math.cos(p.theta);
-                    const y = r * Math.sin(p.phi) * Math.sin(p.theta);
-                    const z = r * Math.cos(p.phi);
+                    // Project 3D point
+                    const x = p.r * Math.sin(p.phi) * Math.cos(p.theta);
+                    const y = p.r * Math.sin(p.phi) * Math.sin(p.theta);
+                    const z = p.r * Math.cos(p.phi);
                     
-                    const scale = 400 / (400 + z);
-                    const alpha = (z + r) / (2 * r);
+                    const scale = 300 / (300 + z);
+                    const alpha = (z + 100) / 200; // Depth fade
                     
                     if (scale > 0) {
                         ctx.fillStyle = color;
                         ctx.globalAlpha = Math.max(0.1, alpha);
                         ctx.beginPath();
-                        ctx.arc(x * scale, y * scale, 3 * scale, 0, Math.PI * 2);
+                        ctx.arc(x * scale, y * scale, 2 * scale, 0, Math.PI*2);
                         ctx.fill();
                         
                         // Connecting lines
-                        if (Math.random() > 0.98) {
+                        if (Math.random() > 0.99) {
                             ctx.strokeStyle = color;
-                            ctx.lineWidth = 0.5;
-                            ctx.beginPath(); ctx.moveTo(x*scale, y*scale); ctx.lineTo(0,0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(x*scale, y*scale); ctx.stroke();
                         }
                     }
                 });
+                ctx.translate(-cx, -cy);
             }
 
             else if (mode === 'redaction') {
-                const scanY = (time * 0.5) % 1.2 - 0.1;
-                const scanPx = scanY * h;
-                
-                stateRef.current.particles.forEach(p => {
-                    const py = p.y * h;
-                    const px = p.x * w;
-                    const pw = p.w * w;
-                    const ph = p.h * h;
-                    
-                    const isRedacted = scanPx > py;
-                    
-                    if (isRedacted) {
+                const scanLine = (Math.sin(time) * 0.5 + 0.5) * height;
+                state.particles.forEach((p: any) => {
+                    // Check if scanline passed
+                    if (Math.abs(p.y - scanLine) < 50) {
                         ctx.fillStyle = color;
                         ctx.globalAlpha = 0.8;
                     } else {
                         ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                        ctx.globalAlpha = 1;
+                        ctx.globalAlpha = 0.3;
                     }
-                    ctx.fillRect(px + 10, py + 10, pw - 4, ph - 4);
+                    ctx.fillRect(p.x, p.y, p.w, p.h);
                 });
-                
-                // Scan Line
-                if (scanPx > 0 && scanPx < h) {
-                    ctx.shadowBlur = 10; ctx.shadowColor = color;
-                    ctx.fillStyle = '#fff'; ctx.fillRect(0, scanPx, w, 2);
-                    ctx.shadowBlur = 0;
-                }
+                // Draw Scanline
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.5;
+                ctx.fillRect(0, scanLine, width, 2);
             }
 
             else if (mode === 'logic') {
-                // Nodes
-                const nodes = stateRef.current.staticGrid.map((n: any) => ({
-                    x: n.x * w, y: n.y * h
-                }));
-                
-                // Draw Connections
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                ctx.lineWidth = 1;
+                // Draw Nodes
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                state.grid.forEach((n: any) => {
+                    ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI*2); ctx.fill();
+                });
+
+                // Draw Paths
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
                 ctx.beginPath();
-                for(let i=0; i<nodes.length; i++) {
-                    for(let j=i+1; j<nodes.length; j++) {
-                        ctx.moveTo(nodes[i].x, nodes[i].y);
-                        ctx.lineTo(nodes[j].x, nodes[j].y);
-                    }
-                }
+                state.grid.forEach((n1: any, i: number) => {
+                    state.grid.forEach((n2: any, j: number) => {
+                        if (i < j) { ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); }
+                    });
+                });
                 ctx.stroke();
 
-                // Packets
-                stateRef.current.particles.forEach(p => {
+                // Draw Packets
+                state.particles.forEach((p: any) => {
                     p.progress += p.speed;
                     if (p.progress >= 1) {
                         p.progress = 0;
-                        p.pathStart = Math.floor(Math.random() * nodes.length);
-                        p.pathEnd = Math.floor(Math.random() * nodes.length);
+                        p.from = Math.floor(Math.random() * state.grid.length);
+                        p.to = Math.floor(Math.random() * state.grid.length);
                     }
-                    
-                    const start = nodes[p.pathStart];
-                    const end = nodes[p.pathEnd];
-                    const x = start.x + (end.x - start.x) * p.progress;
-                    const y = start.y + (end.y - start.y) * p.progress;
+                    const n1 = state.grid[p.from];
+                    const n2 = state.grid[p.to];
+                    const x = n1.x + (n2.x - n1.x) * p.progress;
+                    const y = n1.y + (n2.y - n1.y) * p.progress;
                     
                     ctx.fillStyle = color;
-                    ctx.shadowBlur = 5; ctx.shadowColor = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 10;
                     ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
-                });
-
-                // Draw Nodes
-                nodes.forEach((n: any) => {
-                    ctx.fillStyle = '#000';
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.arc(n.x, n.y, 6, 0, Math.PI*2); 
-                    ctx.fill(); ctx.stroke();
-                });
-            }
-
-            else if (mode === 'shield') {
-                ctx.translate(cx, cy);
-                stateRef.current.particles.forEach(p => {
-                    if (Math.random() > 0.98) p.active = 1;
-                    p.active *= 0.95;
-                    
-                    const r = p.dist * minDim;
-                    const x = Math.cos(p.angle) * r;
-                    const y = Math.sin(p.angle) * r;
-                    
-                    ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.1 + p.active;
-                    
-                    // Draw Hex
-                    const size = minDim * 0.05;
-                    ctx.beginPath();
-                    for(let i=0; i<6; i++) {
-                        const a = Math.PI/3 * i;
-                        ctx.lineTo(x + Math.cos(a)*size, y + Math.sin(a)*size);
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    if (p.active > 0.1) {
-                        ctx.strokeStyle = '#fff';
-                        ctx.stroke();
-                    }
                 });
             }
 
             else if (mode === 'swarm') {
-                stateRef.current.particles.forEach(p => {
-                    // Center attraction
-                    const dx = 0.5 - p.x;
-                    const dy = 0.5 - p.y;
-                    p.vx += dx * 0.0005;
-                    p.vy += dy * 0.0005;
+                state.particles.forEach((p: any) => {
+                    // Pull to center
+                    const dx = cx - p.x;
+                    const dy = cy - p.y;
+                    p.vx += dx * 0.001;
+                    p.vy += dy * 0.001;
                     
-                    // Move
-                    p.x += p.vx; p.y += p.vy;
+                    // Add Noise
+                    p.vx += (Math.random()-0.5) * 0.2;
+                    p.vy += (Math.random()-0.5) * 0.2;
                     
-                    const px = p.x * w;
-                    const py = p.y * h;
+                    // Friction
+                    p.vx *= 0.96;
+                    p.vy *= 0.96;
+                    
+                    p.x += p.vx;
+                    p.y += p.vy;
                     
                     ctx.fillStyle = color;
-                    ctx.globalAlpha = 1;
-                    ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2); ctx.fill();
-                    
-                    // Trail
-                    p.history.push({x: px, y: py});
-                    if (p.history.length > 8) p.history.shift();
-                    
-                    ctx.beginPath();
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 1;
-                    p.history.forEach((h: any, i: number) => {
-                        if (i===0) ctx.moveTo(h.x, h.y); else ctx.lineTo(h.x, h.y);
-                    });
-                    ctx.stroke();
+                    ctx.fillRect(p.x, p.y, 2, 2);
                 });
                 
-                // Networking
+                // Connect neighbors
                 ctx.strokeStyle = color;
-                ctx.globalAlpha = 0.2;
+                ctx.globalAlpha = 0.15;
                 ctx.beginPath();
-                const parts = stateRef.current.particles;
-                for(let i=0; i<parts.length; i++) {
-                    for(let j=i+1; j<parts.length; j++) {
-                        const p1 = parts[i]; const p2 = parts[j];
-                        const d = Math.sqrt(Math.pow((p1.x-p2.x)*w, 2) + Math.pow((p1.y-p2.y)*h, 2));
-                        if (d < 60) {
-                            ctx.moveTo(p1.x*w, p1.y*h);
-                            ctx.lineTo(p2.x*w, p2.y*h);
+                for(let i=0; i<state.particles.length; i++) {
+                    for(let j=i+1; j<state.particles.length; j++) {
+                        const p1 = state.particles[i];
+                        const p2 = state.particles[j];
+                        const d = Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+                        if (d < 40) {
+                            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
                         }
                     }
                 }
                 ctx.stroke();
             }
 
-            else if (mode === 'core') {
-                ctx.translate(cx, cy);
-                const pulse = 1 + Math.sin(time * 3) * 0.1;
-                
-                ctx.fillStyle = color;
-                ctx.shadowBlur = 30; ctx.shadowColor = color;
-                ctx.beginPath(); ctx.arc(0, 0, minDim * 0.15 * pulse, 0, Math.PI*2); ctx.fill();
-                ctx.shadowBlur = 0;
-
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                
-                for(let i=0; i<3; i++) {
-                    ctx.rotate(time * (i%2 === 0 ? 1 : -1) + i);
-                    ctx.beginPath();
-                    ctx.arc(0, 0, minDim * (0.25 + i * 0.1), 0, Math.PI * 1.5);
-                    ctx.globalAlpha = 0.6;
-                    ctx.stroke();
-                }
-            }
-
             else if (mode === 'translation') {
                 ctx.font = '12px monospace';
-                const splitX = w * 0.6;
-                
-                stateRef.current.particles.forEach(p => {
+                state.particles.forEach((p: any) => {
                     p.y += p.speed;
-                    if (p.y > 1) p.y = 0;
+                    if (p.y > height) p.y = 0;
                     
-                    const py = p.y * h;
-                    const px = p.x * w;
+                    if (Math.floor(time * 60) % p.updateRate === 0) {
+                        p.char = String.fromCharCode(0x30A0 + Math.random() * 96);
+                    }
                     
-                    if (px < splitX) {
-                        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                        ctx.fillText(p.char, px, py);
+                    const distToCenter = Math.abs(p.x - cx);
+                    const alpha = Math.max(0.1, 1 - distToCenter / (width/2));
+                    
+                    if (p.x < cx) {
+                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                        ctx.fillText(p.char, p.x, p.y);
                     } else {
-                        // Data Block
                         ctx.fillStyle = color;
-                        const gx = Math.floor(px / 20) * 20;
-                        const gy = Math.floor(py / 12) * 12;
-                        ctx.fillRect(gx, gy, 12, 4);
+                        ctx.globalAlpha = alpha;
+                        ctx.fillRect(p.x, p.y, 8, 8);
                     }
                 });
-                
+                // Divider
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(splitX, 0); ctx.lineTo(splitX, h); ctx.stroke();
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, height); ctx.stroke();
             }
 
-            else if (mode === 'identity') {
+            else if (mode === 'shield') {
                 ctx.translate(cx, cy);
-                ctx.rotate(-time * 0.5);
+                state.particles.forEach((p: any) => {
+                    if (Math.random() > 0.99) p.active = 1;
+                    p.active *= 0.95;
+                    
+                    const x = Math.cos(p.angle) * p.radius;
+                    const y = Math.sin(p.angle) * p.radius;
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(p.angle); // Align hexagon
+                    
+                    ctx.strokeStyle = color;
+                    ctx.globalAlpha = 0.1 + p.active;
+                    ctx.beginPath();
+                    for(let i=0; i<6; i++) {
+                        const a = i * Math.PI / 3;
+                        const hx = Math.cos(a) * 8;
+                        const hy = Math.sin(a) * 8;
+                        if(i===0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    if(p.active > 0.5) {
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
+                });
+                ctx.translate(-cx, -cy);
+            }
+
+            else if (mode === 'core') {
+                ctx.translate(cx, cy);
                 
-                stateRef.current.particles.forEach((p, i) => {
-                    const r = p.radiusBase * minDim + Math.sin(time * 5 + p.offset) * 10;
-                    const x = Math.cos(p.angle) * r;
-                    const y = Math.sin(p.angle) * r;
+                for(let i=0; i<3; i++) {
+                    const r = 40 + i * 25;
+                    const angle = time * (i % 2 === 0 ? 1 : -1) * (1 + i * 0.2);
+                    
+                    ctx.rotate(angle);
+                    
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 15; ctx.shadowColor = color;
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 1.5);
+                    ctx.stroke();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.rotate(-angle); // Reset rotation for next ring
+                }
+                
+                // Central Pulse
+                const pulse = 10 + Math.sin(time * 5) * 5;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(0,0, pulse, 0, Math.PI*2); ctx.fill();
+                
+                ctx.translate(-cx, -cy);
+            }
+
+            else if (mode === 'identity' || mode === 'predictive') {
+                ctx.translate(cx, cy);
+                ctx.rotate(time * 0.2);
+                
+                state.particles.forEach((p: any) => {
+                    p.angle += p.speed;
+                    const x = Math.cos(p.angle) * p.r;
+                    const y = Math.sin(p.angle) * p.r;
                     
                     ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.5 + Math.sin(time * 10 + i) * 0.5;
                     ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+                    
+                    // Connect to center if close
+                    if (Math.random() > 0.98) {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(0,0); ctx.stroke();
+                    }
                 });
+                ctx.translate(-cx, -cy);
             }
 
-            ctx.restore();
+            ctx.globalAlpha = 1;
             frameId = requestAnimationFrame(render);
         };
 
         const handleResize = () => {
-            if (containerRef.current && canvasRef.current) {
-                const rect = containerRef.current.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
-                
-                // Logical size
-                stateRef.current.width = rect.width;
-                stateRef.current.height = rect.height;
-
-                // Physical size for sharpness
-                canvasRef.current.width = rect.width * dpr;
-                canvasRef.current.height = rect.height * dpr;
-                
-                // Context scaling
-                ctx.scale(dpr, dpr);
-                
-                // CSS size
-                canvasRef.current.style.width = `${rect.width}px`;
-                canvasRef.current.style.height = `${rect.height}px`;
+            if (container.clientWidth > 0 && container.clientHeight > 0) {
+                width = container.clientWidth;
+                height = container.clientHeight;
+                canvas.width = width;
+                canvas.height = height;
+                initialize();
             }
         };
 
         // Resize Observer
-        const observer = new ResizeObserver(() => {
-            handleResize();
-        });
-        observer.observe(containerRef.current);
-
-        // Initial setup
-        handleResize();
+        const observer = new ResizeObserver(handleResize);
+        observer.observe(container);
+        
+        handleResize(); // First run
         render();
 
         return () => {
@@ -444,10 +431,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
     }, [mode, color]);
 
     return (
-        <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-black">
-            <canvas ref={canvasRef} className="block absolute top-0 left-0" />
-            {/* Scanline Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay" style={{ background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
+        <div ref={containerRef} className="w-full h-full relative bg-black/20">
+            <canvas ref={canvasRef} className="block" style={{ width: '100%', height: '100%' }} />
         </div>
     );
 };
