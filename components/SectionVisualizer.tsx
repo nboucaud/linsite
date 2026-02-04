@@ -18,16 +18,20 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         let frameId: number;
         let time = 0;
         
-        // --- STATE INIT ---
-        const w = 400;
-        const h = 400;
+        // Dynamic Dimensions
+        let w = canvas.parentElement?.clientWidth || 300;
+        let h = canvas.parentElement?.clientHeight || 500;
+        canvas.width = w;
+        canvas.height = h;
 
+        // --- STATE INIT ---
+        
         // SEARCH
         const searchNodes = Array.from({ length: 40 }, () => ({
-            r: Math.random() * 150,
+            r: Math.random() * (Math.min(w, h) * 0.35),
             theta: Math.random() * Math.PI * 2,
             phi: Math.random() * Math.PI,
-            speed: (Math.random() - 0.5) * 0.013 // SLOWED from 0.02
+            speed: (Math.random() - 0.5) * 0.013
         }));
 
         // REDACTION (Document Scanner)
@@ -36,12 +40,12 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         const rCols = 6;
         for(let r=0; r<rRows; r++) {
             for(let c=0; c<rCols; c++) {
-                if(Math.random() > 0.3) { // Random gaps
+                if(Math.random() > 0.3) {
                     redactBlocks.push({
-                        x: 40 + c * ((w-80)/rCols) + (Math.random() * 10),
-                        y: 40 + r * ((h-80)/rRows),
-                        w: ((w-80)/rCols) - 15,
-                        h: 12,
+                        x: 20 + c * ((w-40)/rCols) + (Math.random() * 5),
+                        y: 20 + r * ((h-40)/rRows),
+                        w: ((w-40)/rCols) - 10,
+                        h: 8,
                         redacted: false
                     });
                 }
@@ -50,29 +54,29 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
 
         // LOGIC (Directed Graph Flow)
         const logicNodes = [
-            { x: w * 0.2, y: h * 0.5, id: 0 }, // Start
-            { x: w * 0.5, y: h * 0.2, id: 1 }, // Top
-            { x: w * 0.5, y: h * 0.8, id: 2 }, // Bottom
-            { x: w * 0.8, y: h * 0.5, id: 3 }  // End
+            { x: w * 0.2, y: h * 0.5, id: 0 }, 
+            { x: w * 0.5, y: h * 0.25, id: 1 }, 
+            { x: w * 0.5, y: h * 0.75, id: 2 }, 
+            { x: w * 0.8, y: h * 0.5, id: 3 }  
         ];
         const logicPaths = [
             { from: 0, to: 1 }, { from: 0, to: 2 }, 
             { from: 1, to: 3 }, { from: 2, to: 3 },
-            { from: 1, to: 2 } // Cross chatter
+            { from: 1, to: 2 } 
         ];
         const logicPackets: { from: number, to: number, progress: number, speed: number }[] = [];
 
-        // CORE (Reactor) - SPEED UNCHANGED
+        // CORE (Reactor)
         const coreRings = [0.2, 0.4, 0.6, 0.8];
         
         // SHIELD (Hex)
         const shieldHexes: {x:number, y:number, active: number}[] = [];
         const hexSize = 20;
-        for(let r=0; r<6; r++) {
+        for(let r=0; r<8; r++) {
             const count = 6 * r || 1;
             for(let i=0; i<count; i++) {
                 const angle = (Math.PI*2/count)*i;
-                const dist = r * hexSize * 1.8;
+                const dist = r * hexSize * 1.5;
                 shieldHexes.push({
                     x: Math.cos(angle) * dist,
                     y: Math.sin(angle) * dist,
@@ -94,19 +98,19 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         const transParticles = Array.from({length: 60}, () => ({
             x: Math.random() * w,
             y: Math.random() * h,
-            speed: (2 + Math.random() * 3) * 0.67, // SLOWED
+            speed: (2 + Math.random() * 3) * 0.67, 
             char: String.fromCharCode(0x30A0 + Math.random() * 96) // Katakana
         }));
 
         // IDENTITY (Spiral)
         const identPoints = Array.from({length: 120}, (_, i) => ({
             angle: i * 0.15,
-            dist: i * 1.2,
+            dist: i * 1.0, // Tighter spiral for mobile
             pulse: Math.random() * Math.PI
         }));
 
         const render = () => {
-            time += 0.0067; // SLOWED from 0.01 (Global Base Speed)
+            time += 0.0067;
             
             // Fade clear
             ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; 
@@ -121,7 +125,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 
                 searchNodes.forEach(n => {
                     n.theta += n.speed;
-                    // Project 3D sphere to 2D
                     const x = n.r * Math.sin(n.phi) * Math.cos(n.theta);
                     const y = n.r * Math.sin(n.phi) * Math.sin(n.theta);
                     const z = n.r * Math.cos(n.phi);
@@ -136,45 +139,35 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         ctx.arc(x * scale, y * scale, 2 * scale, 0, Math.PI*2);
                         ctx.fill();
                         
-                        // Connect close nodes (expensive but looks cool)
                         if (Math.random() > 0.99) {
                             ctx.strokeStyle = color;
                             ctx.lineWidth = 0.5;
                             ctx.beginPath();
                             ctx.moveTo(x*scale, y*scale);
-                            ctx.lineTo(0,0); // Connect to core
+                            ctx.lineTo(0,0);
                             ctx.stroke();
                         }
                     }
                 });
                 ctx.globalAlpha = 1;
-                ctx.setTransform(1,0,0,1,0,0); // Reset
+                ctx.setTransform(1,0,0,1,0,0);
             }
 
             else if (mode === 'redaction') {
-                const scanSpeed = 100; // SLOWED from 150
+                const scanSpeed = 100;
                 const scanY = (time * scanSpeed) % (h + 100) - 50;
                 
-                // Draw Blocks
                 redactBlocks.forEach(b => {
-                    // Logic: If scanline passes block, it becomes "redacted" (solid color)
-                    // If scanline wraps around (is near top), reset
                     if (scanY < 0) b.redacted = false;
-                    
-                    if (scanY > b.y && !b.redacted) {
-                        b.redacted = true;
-                    }
+                    if (scanY > b.y && !b.redacted) b.redacted = true;
 
                     if (b.redacted) {
                         ctx.fillStyle = color;
                         ctx.globalAlpha = 0.8;
                         ctx.fillRect(b.x, b.y, b.w, b.h);
                     } else {
-                        // Unredacted "Text" look
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                         ctx.fillRect(b.x, b.y, b.w, b.h);
-                        
-                        // Highlight if being scanned
                         if (Math.abs(scanY - b.y) < 20) {
                             ctx.fillStyle = '#fff';
                             ctx.fillRect(b.x, b.y, b.w, b.h);
@@ -183,140 +176,118 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
                 ctx.globalAlpha = 1;
 
-                // Draw Scanner Bar
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = color;
                 ctx.fillStyle = '#fff';
                 ctx.fillRect(0, scanY, w, 2);
                 
-                // Scanner Light Cone
                 const g = ctx.createLinearGradient(0, scanY, 0, scanY - 40);
-                g.addColorStop(0, color); // solid color at bar
+                g.addColorStop(0, color);
                 g.addColorStop(1, 'transparent');
                 ctx.fillStyle = g;
                 ctx.fillRect(0, scanY - 40, w, 40);
-                
                 ctx.shadowBlur = 0;
             }
 
             else if (mode === 'logic') {
-                // Spawn packets randomly (Slower rate)
-                if (Math.random() > 0.94) { // Was 0.92
+                if (Math.random() > 0.94) {
                     const path = logicPaths[Math.floor(Math.random() * logicPaths.length)];
-                    logicPackets.push({ from: path.from, to: path.to, progress: 0, speed: (0.01 + Math.random()*0.02) * 0.67 }); // SLOWED
+                    logicPackets.push({ from: path.from, to: path.to, progress: 0, speed: (0.01 + Math.random()*0.02) * 0.67 });
                 }
 
-                // Draw Paths
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 logicPaths.forEach(p => {
-                    const start = logicNodes[p.from];
-                    const end = logicNodes[p.to];
-                    ctx.moveTo(start.x, start.y);
-                    ctx.lineTo(end.x, end.y);
+                    // Safety check for resize
+                    if (logicNodes[p.from] && logicNodes[p.to]) {
+                        const start = logicNodes[p.from];
+                        const end = logicNodes[p.to];
+                        // Rescale logic nodes to current w/h
+                        const sx = start.id === 0 ? w*0.2 : start.id === 3 ? w*0.8 : w*0.5;
+                        const sy = start.id === 1 ? h*0.25 : start.id === 2 ? h*0.75 : h*0.5;
+                        const ex = end.id === 0 ? w*0.2 : end.id === 3 ? w*0.8 : w*0.5;
+                        const ey = end.id === 1 ? h*0.25 : end.id === 2 ? h*0.75 : h*0.5;
+                        ctx.moveTo(sx, sy);
+                        ctx.lineTo(ex, ey);
+                    }
                 });
                 ctx.stroke();
 
-                // Process & Draw Packets
                 for (let i = logicPackets.length - 1; i >= 0; i--) {
                     const p = logicPackets[i];
                     p.progress += p.speed;
                     
+                    const startId = logicNodes[p.from].id;
+                    const endId = logicNodes[p.to].id;
+                    const sx = startId === 0 ? w*0.2 : startId === 3 ? w*0.8 : w*0.5;
+                    const sy = startId === 1 ? h*0.25 : startId === 2 ? h*0.75 : h*0.5;
+                    const ex = endId === 0 ? w*0.2 : endId === 3 ? w*0.8 : w*0.5;
+                    const ey = endId === 1 ? h*0.25 : endId === 2 ? h*0.75 : h*0.5;
+
                     if (p.progress >= 1) {
-                        // Pulse destination node
-                        const endNode = logicNodes[p.to];
                         ctx.fillStyle = '#fff';
-                        ctx.beginPath(); ctx.arc(endNode.x, endNode.y, 8, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(ex, ey, 8, 0, Math.PI*2); ctx.fill();
                         logicPackets.splice(i, 1);
                         continue;
                     }
 
-                    const start = logicNodes[p.from];
-                    const end = logicNodes[p.to];
-                    const x = start.x + (end.x - start.x) * p.progress;
-                    const y = start.y + (end.y - start.y) * p.progress;
+                    const x = sx + (ex - sx) * p.progress;
+                    const y = sy + (ey - sy) * p.progress;
 
                     ctx.fillStyle = color;
                     ctx.shadowBlur = 5;
                     ctx.shadowColor = color;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 4, 0, Math.PI*2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
                 }
 
-                // Draw Nodes
                 logicNodes.forEach(n => {
+                    const nx = n.id === 0 ? w*0.2 : n.id === 3 ? w*0.8 : w*0.5;
+                    const ny = n.id === 1 ? h*0.25 : n.id === 2 ? h*0.75 : h*0.5;
                     ctx.fillStyle = '#1a1a1a';
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(n.x, n.y - 15);
-                    ctx.lineTo(n.x + 15, n.y);
-                    ctx.lineTo(n.x, n.y + 15);
-                    ctx.lineTo(n.x - 15, n.y);
+                    ctx.moveTo(nx, ny - 15); ctx.lineTo(nx + 15, ny);
+                    ctx.lineTo(nx, ny + 15); ctx.lineTo(nx - 15, ny);
                     ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
+                    ctx.fill(); ctx.stroke();
                 });
             }
 
             else if (mode === 'core') {
                 ctx.translate(cx, cy);
-                
-                // Reactor Core - KEEP FAST for "Knowledge Trees"
-                const coreTime = time * 1.5; // Compensate for global slow down to keep original speed (0.01 * 1.5 = 0.015 approx original was 0.01 but visually seems fine to boost back)
-                // Actually original was 0.01 global. So (time * 1 / 0.67) restores it.
-                const restoreSpeed = time * 1.5;
-
-                const pulse = 1 + Math.sin(restoreSpeed * 5) * 0.1;
+                const coreTime = time * 1.5;
+                const pulse = 1 + Math.sin(coreTime * 5) * 0.1;
                 ctx.fillStyle = color;
                 ctx.shadowBlur = 30 * pulse;
                 ctx.shadowColor = color;
-                ctx.beginPath();
-                ctx.arc(0, 0, 30, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
                 ctx.shadowBlur = 0;
 
-                // Spinning Containment Rings
                 coreRings.forEach((r, i) => {
                     ctx.save();
-                    const radius = 60 + i * 30;
-                    // Rotate alternating directions
-                    ctx.rotate(restoreSpeed * (i % 2 === 0 ? 1 : -1) * (1 - i * 0.1));
-                    
+                    const radius = 50 + i * 25;
+                    ctx.rotate(coreTime * (i % 2 === 0 ? 1 : -1) * (1 - i * 0.1));
                     ctx.strokeStyle = color;
                     ctx.globalAlpha = 0.3;
                     ctx.lineWidth = 2;
-                    
-                    // Draw Ring Arcs
-                    ctx.beginPath();
-                    ctx.arc(0, 0, radius, 0, Math.PI * 1.5);
-                    ctx.stroke();
-                    
-                    // Tech detail
-                    ctx.fillStyle = '#fff';
-                    ctx.fillRect(radius - 2, -2, 4, 4);
-                    
+                    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 1.5); ctx.stroke();
+                    ctx.fillStyle = '#fff'; ctx.fillRect(radius - 2, -2, 4, 4);
                     ctx.restore();
                 });
-                
                 ctx.setTransform(1,0,0,1,0,0);
             }
 
             else if (mode === 'shield') {
                 ctx.translate(cx, cy);
                 shieldHexes.forEach(h => {
-                    // Random activation
                     if (Math.random() > 0.99) h.active = 1;
-                    h.active *= 0.96; // Slower decay (was 0.95)
-
+                    h.active *= 0.96;
                     ctx.strokeStyle = color;
                     ctx.fillStyle = color;
                     ctx.globalAlpha = 0.1 + h.active;
-                    
-                    // Draw Hex
                     ctx.beginPath();
                     for(let i=0; i<6; i++) {
                         const a = Math.PI/3 * i;
@@ -324,8 +295,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         const hy = h.y + Math.sin(a) * 10;
                         if(i===0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
                     }
-                    ctx.closePath();
-                    ctx.stroke();
+                    ctx.closePath(); ctx.stroke();
                     if (h.active > 0.1) ctx.fill();
                 });
                 ctx.globalAlpha = 1;
@@ -333,51 +303,25 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             }
 
             else if (mode === 'swarm') {
-                // Spawn new pings
-                if (Math.random() > 0.96) { // Less frequent (was 0.95)
-                    swarmPings.push({
-                        x: Math.random() * w,
-                        y: Math.random() * h,
-                        life: 0,
-                        maxR: 30 + Math.random() * 50
-                    });
+                if (Math.random() > 0.96) {
+                    swarmPings.push({ x: Math.random() * w, y: Math.random() * h, life: 0, maxR: 30 + Math.random() * 50 });
                 }
-
-                // Process Pings
                 for (let i = swarmPings.length - 1; i >= 0; i--) {
                     const p = swarmPings[i];
-                    p.life += 0.0067; // Slower growth (was 0.01)
-                    if (p.life > 1) {
-                        swarmPings.splice(i, 1);
-                        continue;
-                    }
-
-                    // Draw Ping Ripple
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2 * (1 - p.life);
-                    ctx.globalAlpha = 1 - p.life;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.maxR * p.life, 0, Math.PI*2);
-                    ctx.stroke();
-
-                    // Draw Center Dot
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
-
-                    // Connect Neighbors
+                    p.life += 0.0067;
+                    if (p.life > 1) { swarmPings.splice(i, 1); continue; }
+                    ctx.strokeStyle = color; ctx.lineWidth = 2 * (1 - p.life); ctx.globalAlpha = 1 - p.life;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.maxR * p.life, 0, Math.PI*2); ctx.stroke();
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+                    
+                    // Connections
                     for (let j = i + 1; j < swarmPings.length; j++) {
                         const p2 = swarmPings[j];
-                        const dx = p.x - p2.x;
-                        const dy = p.y - p2.y;
+                        const dx = p.x - p2.x; const dy = p.y - p2.y;
                         const dist = Math.sqrt(dx*dx + dy*dy);
                         if (dist < 100) {
-                            ctx.strokeStyle = color;
-                            ctx.lineWidth = 1;
-                            ctx.globalAlpha = (1 - dist/100) * 0.5;
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y);
-                            ctx.lineTo(p2.x, p2.y);
-                            ctx.stroke();
+                            ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.globalAlpha = (1 - dist/100) * 0.5;
+                            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
                         }
                     }
                 }
@@ -389,23 +333,16 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 predPaths.forEach((p, i) => {
                     ctx.beginPath();
                     ctx.strokeStyle = i === 2 ? color : 'rgba(255,255,255,0.1)'; 
-                    
                     for(let x=0; x<w; x+=5) {
                         const progress = x/w;
                         const divergence = progress * progress * 100 * p.offset;
-                        const y = h/2 
-                            + Math.sin(x * 0.02 - time * 5) * 40 
-                            + Math.sin(time * 3 + p.phase) * divergence;
-                        
+                        const y = h/2 + Math.sin(x * 0.02 - time * 5) * 40 + Math.sin(time * 3 + p.phase) * divergence;
                         if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
                     }
                     ctx.stroke();
                 });
-                
-                // Vertical analysis scanner
-                const scanX = (time * 100) % w; // Slower scan (was 150)
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.1;
+                const scanX = (time * 100) % w;
+                ctx.fillStyle = color; ctx.globalAlpha = 0.1;
                 ctx.fillRect(scanX, 0, 30, h);
                 ctx.globalAlpha = 1;
             }
@@ -413,77 +350,66 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             else if (mode === 'translation') {
                 ctx.font = '10px monospace';
                 const split = w * 0.6;
-                
                 transParticles.forEach(p => {
                     p.y += p.speed;
                     if (p.y > h) p.y = 0;
-                    
                     if (p.x < split) {
-                        // Chaos Matrix
-                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                        ctx.fillText(p.char, p.x, p.y);
+                        ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillText(p.char, p.x, p.y);
                     } else {
-                        // Order Grid
                         ctx.fillStyle = color;
-                        const gx = Math.floor(p.x / 20) * 20;
-                        const gy = Math.floor(p.y / 10) * 10;
+                        const gx = Math.floor(p.x / 20) * 20; const gy = Math.floor(p.y / 10) * 10;
                         ctx.fillRect(gx, gy, 15, 2);
                     }
                 });
-                
-                // The Filter Line
-                ctx.beginPath();
-                ctx.moveTo(split, 0); ctx.lineTo(split, h);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(split, 0); ctx.lineTo(split, h);
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
             }
 
             else if (mode === 'identity') {
                 ctx.translate(cx, cy);
                 ctx.rotate(-time * 0.2);
-                
                 identPoints.forEach((p, i) => {
-                    // Fingerprint-like spiral logic
                     const r = p.dist + Math.sin(time * 3 + i * 0.1) * 2;
-                    const x = Math.cos(p.angle) * r;
-                    const y = Math.sin(p.angle) * r;
-                    
-                    ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.5 + Math.sin(time * 5 + p.pulse) * 0.5;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 1.5, 0, Math.PI*2);
-                    ctx.fill();
+                    const x = Math.cos(p.angle) * r; const y = Math.sin(p.angle) * r;
+                    ctx.fillStyle = color; ctx.globalAlpha = 0.5 + Math.sin(time * 5 + p.pulse) * 0.5;
+                    ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI*2); ctx.fill();
                 });
                 ctx.globalAlpha = 1;
                 ctx.setTransform(1,0,0,1,0,0);
                 
-                // Radar sweep
                 const angle = time * 2;
-                ctx.translate(cx, cy);
-                ctx.rotate(angle);
-                const g = ctx.createLinearGradient(0,0,150,0);
-                g.addColorStop(0, 'rgba(0,0,0,0)');
-                g.addColorStop(1, color); // tip
+                ctx.translate(cx, cy); ctx.rotate(angle);
+                const g = ctx.createLinearGradient(0,0,120,0);
+                g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, color);
                 ctx.fillStyle = g;
-                ctx.beginPath();
-                ctx.moveTo(0,0); ctx.arc(0,0,150,0, 0.2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,120,0, 0.2); ctx.fill();
                 ctx.setTransform(1,0,0,1,0,0);
             }
 
             frameId = requestAnimationFrame(render);
         };
+
+        const handleResize = () => {
+            if (canvas.parentElement) {
+                w = canvas.width = canvas.parentElement.clientWidth;
+                h = canvas.height = canvas.parentElement.clientHeight;
+                render(); // Force re-render to update center points immediately
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
         render();
 
-        return () => cancelAnimationFrame(frameId);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            cancelAnimationFrame(frameId);
+        };
     }, [mode, color]);
 
     return (
         <div className="w-full h-full relative overflow-hidden bg-black/20">
             <canvas 
                 ref={canvasRef} 
-                width={400} 
-                height={400} 
                 className="w-full h-full object-cover opacity-80 mix-blend-screen"
             />
             {/* Scanline Overlay */}

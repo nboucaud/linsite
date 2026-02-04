@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight, Radio } from 'lucide-react';
 import { SectionVisualizer } from './SectionVisualizer';
 
 const SOLUTIONS = [
@@ -65,6 +65,56 @@ const SOLUTIONS = [
         output: "Workforce Capacity +40%"
     }
 ];
+
+const TerminalOutput: React.FC<{ output: string; color: string }> = ({ output, color }) => {
+    const [lines, setLines] = useState<string[]>([]);
+    
+    useEffect(() => {
+        setLines([]);
+        const steps = [
+            "Initializing handshake...",
+            "Decrypting stream...",
+            "Parsing structure...",
+            "Optimizing...",
+            `>> ${output}`
+        ];
+        
+        const timeouts: any[] = [];
+        let accumulatedDelay = 0;
+
+        steps.forEach((step, i) => {
+            accumulatedDelay += Math.random() * 300 + 200;
+            const t = setTimeout(() => {
+                setLines(prev => {
+                    const newLines = [...prev, step];
+                    return newLines.slice(-6); // Keep last 6 lines
+                });
+            }, accumulatedDelay);
+            timeouts.push(t);
+        });
+
+        return () => timeouts.forEach(clearTimeout);
+    }, [output]);
+
+    return (
+        <div className="font-mono text-[10px] space-y-2 h-full flex flex-col justify-end pb-2">
+            {lines.map((line, i) => (
+                <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <span className="text-white/20 shrink-0 select-none">
+                        {new Date().toLocaleTimeString([], {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}
+                    </span>
+                    <span 
+                        className={`break-words ${line.startsWith('>>') ? 'text-white font-bold bg-white/10 px-2 py-1 rounded w-full border-l-2 shadow-lg' : 'text-white/60'}`} 
+                        style={{ borderColor: line.startsWith('>>') ? color : 'transparent' }}
+                    >
+                        {line}
+                    </span>
+                </div>
+            ))}
+            <div className="animate-pulse text-[#69B7B2] font-bold">_</div>
+        </div>
+    );
+};
 
 export const UseCaseShowcase: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -189,10 +239,10 @@ export const UseCaseShowcase: React.FC = () => {
                                                 {!isActive && <ChevronRight size={14} className="text-white/10 group-hover:text-white/30" />}
                                             </div>
                                             
-                                            {/* EXPANDED TEXT: No truncation */}
+                                            {/* EXPANDED TEXT: No truncation, full height */}
                                             {isActive && (
                                                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <p className="text-white/60 text-xs leading-relaxed pb-2">
+                                                    <p className="text-white/60 text-xs leading-relaxed pb-2 whitespace-normal h-auto">
                                                         {item.desc}
                                                     </p>
                                                     <span 
@@ -283,7 +333,8 @@ export const UseCaseShowcase: React.FC = () => {
                             {/* Visualizer Area */}
                             <div className="flex-1 relative mx-2 rounded-2xl overflow-hidden bg-[#0c0c0e] border border-white/10">
                                 <div className="absolute inset-0">
-                                    <SectionVisualizer mode={activeItem.mode as any} color={activeItem.color} />
+                                    {/* KEY IS CRITICAL FOR RE-MOUNTING ON CHANGE */}
+                                    <SectionVisualizer key={activeItem.id} mode={activeItem.mode as any} color={activeItem.color} />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                                 
@@ -330,35 +381,62 @@ export const UseCaseShowcase: React.FC = () => {
                         <ArrowRight className="absolute text-white/20" size={16} />
                     </div>
 
-                    {/* SECTION 3: OUTPUT CARD */}
-                    <div className="lg:w-[300px] relative z-20 mt-8 lg:mt-0">
-                        <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
-                            {/* Glow */}
-                            <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors" />
+                    {/* SECTION 3: OUTPUT TERMINAL - UPGRADED UI */}
+                    <div className="lg:w-[320px] relative z-20 mt-8 lg:mt-0 flex flex-col gap-4">
+                        
+                        {/* Main Data Card */}
+                        <div className="bg-[#0c0c0e]/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden relative group h-[280px] flex flex-col shadow-2xl ring-1 ring-white/5">
                             
-                            <div className="relative z-10">
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
-                                    <FileJson size={12} /> System Output
+                            {/* Decorative Header */}
+                            <div className="h-10 bg-white/5 border-b border-white/5 flex items-center justify-between px-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_2s_infinite]" />
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-white/60">Live Stream</span>
                                 </div>
-                                
-                                <div className="h-32 bg-[#050505] rounded-lg border border-white/5 p-4 font-mono text-[10px] text-white/60 leading-relaxed overflow-hidden">
-                                    <span className="text-[#69B7B2]">root@infogito:~$</span> ./verify_integrity<br/>
-                                    <span className="text-green-400">✓</span> Analysis Complete<br/>
-                                    <span className="text-green-400">✓</span> {activeItem.output}<br/>
-                                    <span className="animate-pulse">_</span>
+                                <div className="flex gap-1.5">
+                                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                                    <div className="w-1 h-1 rounded-full bg-white/20" />
                                 </div>
+                            </div>
 
-                                <div className="mt-4 flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
-                                        <CheckCircle2 size={16} />
-                                    </div>
-                                    <div>
-                                        <div className="text-sm font-bold text-white">Action Ready</div>
-                                        <div className="text-[10px] text-white/40">Integrated into workflow</div>
-                                    </div>
+                            {/* Content Area */}
+                            <div className="flex-1 p-4 bg-black/40 relative">
+                                {/* Scanlines */}
+                                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+                                
+                                <TerminalOutput key={activeItem.id} output={activeItem.output} color={activeItem.color} />
+                            </div>
+
+                            {/* Footer Metrics */}
+                            <div className="h-12 bg-white/[0.02] border-t border-white/5 flex items-center px-4 justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-[8px] uppercase tracking-widest text-white/30">Confidence</span>
+                                    <span className="text-xs font-mono font-bold text-green-400">99.8%</span>
+                                </div>
+                                <div className="h-6 w-px bg-white/10" />
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[8px] uppercase tracking-widest text-white/30">Latency</span>
+                                    <span className="text-xs font-mono font-bold text-white/70">14ms</span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Secondary Action Card */}
+                        <div className="bg-[#151517] border border-white/5 rounded-xl p-4 flex items-center gap-4 transition-all hover:border-white/20 group cursor-pointer">
+                            <div 
+                                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-500"
+                                style={{ backgroundColor: `${activeItem.color}20`, color: activeItem.color }}
+                            >
+                                <CheckCircle2 size={18} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-white mb-0.5 group-hover:text-[#69B7B2] transition-colors">Integration Ready</h4>
+                                <p className="text-[10px] text-white/40">JSON payload generated successfully.</p>
+                            </div>
+                            <ArrowRight size={14} className="ml-auto text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </div>
+
                     </div>
 
                 </div>
