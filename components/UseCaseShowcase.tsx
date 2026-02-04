@@ -101,7 +101,7 @@ export const UseCaseShowcase: React.FC = () => {
     useEffect(() => {
         if (isPaused) return;
         
-        const duration = 8000; // Increased duration for reading time
+        const duration = 8000;
         const interval = 50;   
         
         const timer = setInterval(() => {
@@ -126,8 +126,6 @@ export const UseCaseShowcase: React.FC = () => {
             const activeButton = buttons[activeIndex] as HTMLElement;
             
             if (activeButton) {
-                // Calculate center Y of active button relative to container
-                const containerTop = listRef.current.offsetTop;
                 const buttonTop = activeButton.offsetTop;
                 const buttonHeight = activeButton.offsetHeight;
                 setBeamSourceY(buttonTop + buttonHeight / 2);
@@ -135,7 +133,6 @@ export const UseCaseShowcase: React.FC = () => {
         };
 
         updateBeam();
-        // Recalculate after render/transition
         const t = setTimeout(updateBeam, 350); 
         window.addEventListener('resize', updateBeam);
         return () => {
@@ -145,7 +142,7 @@ export const UseCaseShowcase: React.FC = () => {
     }, [activeIndex]);
 
     const activeItem = SOLUTIONS[activeIndex];
-    const beamTargetY = 300; // Center of iPhone/Container
+    const beamTargetY = 250; // Center of Visualizer Card
 
     return (
         <div className="py-32 bg-[#030303] border-b border-white/5 relative overflow-hidden">
@@ -167,7 +164,7 @@ export const UseCaseShowcase: React.FC = () => {
                 </div>
 
                 {/* --- THE PIPELINE INTERFACE --- */}
-                {/* Grid: [List 400px] [Beam 60px] [Phone 320px] [Beam 60px] [Output Rest] */}
+                {/* Grid: [List 400px] [Beam 60px] [Visualizer 340px] [Beam 60px] [Output Rest] */}
                 <div className="flex flex-col lg:flex-row gap-0 relative items-start lg:items-center justify-center">
                     
                     {/* SECTION 1: INPUT LIST */}
@@ -196,14 +193,12 @@ export const UseCaseShowcase: React.FC = () => {
                                     )}
 
                                     <div className={`relative px-4 py-3 flex h-full ${isActive ? 'items-start' : 'items-center'}`}>
-                                        {/* Number */}
                                         <div className="w-8 flex-shrink-0 text-right mr-4">
                                             <span className={`font-mono text-xs ${isActive ? 'text-white' : 'text-white/20'}`}>
                                                 0{idx + 1}
                                             </span>
                                         </div>
 
-                                        {/* Content */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between">
                                                 <h3 className={`font-bold transition-colors ${isActive ? 'text-white text-base mb-2' : 'text-white/50 text-sm group-hover:text-white/80'}`}>
@@ -212,7 +207,6 @@ export const UseCaseShowcase: React.FC = () => {
                                                 {!isActive && <ChevronRight size={14} className="text-white/10 group-hover:text-white/30" />}
                                             </div>
                                             
-                                            {/* EXPANDED TEXT: Short desc for list view */}
                                             {isActive && (
                                                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <p className="text-white/60 text-xs leading-relaxed pb-2 whitespace-normal h-auto">
@@ -233,17 +227,15 @@ export const UseCaseShowcase: React.FC = () => {
                         })}
                     </div>
 
-                    {/* PIPE 1: LIST TO PHONE */}
-                    <div className="hidden lg:block relative w-[60px] h-[600px] shrink-0">
+                    {/* PIPE 1: LIST TO VISUALIZER */}
+                    <div className="hidden lg:block relative w-[60px] h-[500px] shrink-0">
                         <svg className="w-full h-full overflow-visible absolute top-0 left-0">
-                            {/* Static Track */}
                             <path 
                                 d={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
                                 fill="none"
                                 stroke="rgba(255,255,255,0.05)"
                                 strokeWidth="3"
                             />
-                            {/* Active Beam */}
                             <path 
                                 d={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
                                 fill="none"
@@ -252,7 +244,6 @@ export const UseCaseShowcase: React.FC = () => {
                                 className="transition-all duration-500 ease-out"
                                 style={{ filter: `drop-shadow(0 0 8px ${activeItem.color})` }}
                             />
-                            {/* Pulse Packet */}
                             <circle r="3" fill="#fff">
                                 <animateMotion 
                                     dur="1s" 
@@ -263,86 +254,53 @@ export const UseCaseShowcase: React.FC = () => {
                         </svg>
                     </div>
 
-                    {/* SECTION 2: IPHONE INTERFACE */}
-                    <div className="relative w-[320px] h-[640px] shrink-0 mt-8 lg:mt-0 transform transition-transform hover:scale-[1.02] duration-500">
-                        {/* Frame */}
-                        <div className="absolute inset-0 bg-[#1a1a1a] rounded-[3rem] shadow-2xl border-[6px] border-[#2a2a2a] ring-1 ring-white/10 z-20 pointer-events-none">
-                            <div className="absolute top-24 -left-2 w-1 h-8 bg-[#2a2a2a] rounded-l-md" />
-                            <div className="absolute top-36 -left-2 w-1 h-12 bg-[#2a2a2a] rounded-l-md" />
-                            <div className="absolute top-28 -right-2 w-1 h-16 bg-[#2a2a2a] rounded-r-md" />
-                        </div>
-
-                        {/* Screen */}
-                        <div className="absolute inset-[6px] bg-black rounded-[2.5rem] overflow-hidden z-10 flex flex-col relative">
+                    {/* SECTION 2: VISUALIZER UI CARD */}
+                    <div className="relative w-[340px] h-[500px] shrink-0 mt-8 lg:mt-0 flex flex-col">
+                        <div className="w-full h-full bg-[#0c0c0e] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden relative flex flex-col group hover:border-white/20 transition-colors">
                             
-                            {/* Dynamic Island */}
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-50 flex items-center justify-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-[#111]" />
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#050505] border border-white/10" />
-                            </div>
-
-                            {/* Status Bar */}
-                            <div className="h-12 w-full flex justify-between items-center px-6 pt-2 z-40 text-white select-none">
-                                <span className="text-[10px] font-bold">9:41</span>
-                                <div className="flex gap-1">
-                                    <div className="w-4 h-2.5 bg-white rounded-[2px]" />
-                                </div>
-                            </div>
-
-                            {/* App Header */}
-                            <div className="px-6 pt-2 pb-4 z-30">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                                        <activeItem.icon size={20} color={activeItem.color} />
+                            {/* Card Header */}
+                            <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#111]">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+                                        <activeItem.icon size={16} style={{ color: activeItem.color }} />
                                     </div>
                                     <div>
-                                        <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Running Module</div>
-                                        <h3 className="text-xl font-serif text-white">{activeItem.title.split(' ')[0]}</h3>
+                                        <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Runtime</div>
+                                        <div className="text-xs font-serif text-white">{activeItem.title.split(' ')[0]}</div>
                                     </div>
                                 </div>
+                                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeItem.color }} />
                             </div>
 
-                            {/* Visualizer Area */}
-                            <div className="flex-1 relative mx-2 rounded-2xl overflow-hidden bg-[#0c0c0e] border border-white/10">
-                                <div className="absolute inset-0">
-                                    {/* KEY IS CRITICAL FOR RE-MOUNTING ON CHANGE */}
-                                    <SectionVisualizer key={activeItem.id} mode={activeItem.mode as any} color={activeItem.color} />
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+                            {/* Canvas Stage */}
+                            <div className="flex-1 relative bg-black">
+                                <SectionVisualizer key={activeItem.id} mode={activeItem.mode as any} color={activeItem.color} />
                                 
-                                {/* Floating Overlay Data */}
-                                <div className="absolute bottom-4 left-4 right-4">
-                                    <div className="bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-xl flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeItem.color }} />
-                                        <div className="flex-1">
-                                            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                                <div className="h-full bg-white animate-[dash_2s_ease-in-out_infinite]" style={{ width: '60%' }} />
+                                {/* Overlay UI Elements */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                    <div className="absolute bottom-6 left-6 right-6">
+                                        <div className="bg-black/60 backdrop-blur-md border border-white/10 p-3 rounded-xl flex items-center gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                            <div className="flex-1">
+                                                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-white animate-[dash_2s_ease-in-out_infinite]" style={{ width: '60%' }} />
+                                                </div>
                                             </div>
+                                            <span className="text-[9px] font-mono text-white/70">ACTIVE</span>
                                         </div>
-                                        <span className="text-[9px] font-mono text-white/70">PROCCESSING</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* App Footer */}
-                            <div className="h-20 px-6 flex items-center justify-between z-30 bg-black">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-white/30 uppercase">Latency</span>
-                                    <span className="text-xs font-mono text-white">12ms</span>
-                                </div>
-                                <div className="w-px h-8 bg-white/10" />
-                                <div className="flex flex-col text-right">
-                                    <span className="text-[9px] text-white/30 uppercase">Status</span>
-                                    <span className="text-xs font-bold text-green-400">Optimal</span>
-                                </div>
+                            {/* Footer Status */}
+                            <div className="h-12 bg-[#08080a] border-t border-white/5 flex items-center justify-between px-6">
+                                <span className="text-[9px] font-mono text-white/30 uppercase">Latency: 12ms</span>
+                                <span className="text-[9px] font-mono text-white/30 uppercase">Status: OK</span>
                             </div>
-
-                            {/* Home Indicator */}
-                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-50" />
                         </div>
                     </div>
 
-                    {/* PIPE 2: PHONE TO OUTPUT */}
+                    {/* PIPE 2: VISUALIZER TO OUTPUT */}
                     <div className="hidden lg:flex relative w-[60px] items-center justify-center">
                         <div className="w-full h-[2px] bg-white/5 relative overflow-hidden">
                             <div 
@@ -353,15 +311,12 @@ export const UseCaseShowcase: React.FC = () => {
                         <ArrowRight className="absolute text-white/20" size={16} />
                     </div>
 
-                    {/* SECTION 3: OUTPUT CARD - REDESIGNED */}
-                    <div className="lg:w-[480px] relative z-20 mt-8 lg:mt-0 flex flex-col justify-center h-[640px]">
-                        
-                        {/* INSIGHT CARD */}
+                    {/* SECTION 3: OUTPUT CARD */}
+                    <div className="lg:w-[480px] relative z-20 mt-8 lg:mt-0 flex flex-col justify-center h-[500px]">
                         <div 
-                            key={activeItem.id} // Forces animate-in on change
+                            key={activeItem.id} 
                             className="bg-[#0c0c0e]/90 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl ring-1 ring-white/5 flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500"
                         >
-                            {/* Card Header */}
                             <div className="flex items-center gap-4 mb-8 border-b border-white/5 pb-6">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 shadow-lg text-white transition-colors duration-500" style={{ color: activeItem.color }}>
                                     <activeItem.icon size={24} />
@@ -375,7 +330,6 @@ export const UseCaseShowcase: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Long Text Content */}
                             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
                                 <p className="text-white/80 text-sm leading-relaxed font-light">
                                     {activeItem.longContent[0]}
@@ -384,7 +338,6 @@ export const UseCaseShowcase: React.FC = () => {
                                     {activeItem.longContent[1]}
                                 </p>
                                 
-                                {/* Highlight Box for Result */}
                                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 relative overflow-hidden group">
                                     <div className="absolute top-0 left-0 w-1 h-full transition-colors duration-500" style={{ backgroundColor: activeItem.color }} />
                                     <div className="flex items-start gap-3 relative z-10">
@@ -399,7 +352,6 @@ export const UseCaseShowcase: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Footer Actions */}
                             <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
                                 <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
                                     ID: {activeItem.id.toUpperCase()}_SYS
@@ -411,7 +363,6 @@ export const UseCaseShowcase: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-
                     </div>
 
                 </div>
