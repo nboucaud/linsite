@@ -1,16 +1,13 @@
 
 import React, { useEffect, useRef } from 'react';
 
-const IndustrialsHeroVisualizerComponent: React.FC = () => {
+export const IndustrialsHeroVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null); // Add ref to container for sizing
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        const container = containerRef.current; // Use container ref
         if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d', { alpha: false }); // Optimize: No alpha channel
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
         let width = 0;
@@ -25,29 +22,45 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
         const MODEL_SCALE = 1.4;
 
         // --- GEOMETRY PRE-CALCULATION ---
+        // Using flat arrays for [x, y, z] is faster than objects
+        // Structure: [x, y, z, x, y, z...]
+        
         const createCasing = () => {
             const verts: number[] = [];
-            // Reduced density for performance stability
-            for (let z = -250; z <= 250; z += 45) { 
+            for (let z = -250; z <= 250; z += 40) { // Reduced density for performance
                 const r = (130 + Math.sin(z * 0.008) * 15) * MODEL_SCALE;
-                for (let a = 0; a < Math.PI * 2; a += 0.4) { // Reduced angular resolution
+                for (let a = 0; a < Math.PI * 2; a += 0.3) {
                     verts.push(Math.cos(a) * r, Math.sin(a) * r, z);
                 }
             }
             return new Float32Array(verts);
         };
 
-        const casing = createCasing();
+        const createRotor = () => {
+            const verts: number[] = [];
+            // Single rotor blade shape
+            const rOuter = 115 * MODEL_SCALE;
+            const rInner = 40 * MODEL_SCALE;
+            
+            // We'll rotate this single definition in the render loop
+            // Define points: Inner, Outer
+            verts.push(rInner, 0, 0); // Inner 1
+            verts.push(rOuter, 10, 0); // Outer 1 (twisted)
+            return new Float32Array(verts);
+        };
 
-        // Config for the stages
-        const STAGES = 5; // Reduced from 6 to 5 for perf
-        const STAGE_SPACING = 90;
-        const STAGE_OFFSET = -180;
+        const casing = createCasing();
+        const rotorTemplate = createRotor();
+
+        // Config for the 6 stages
+        const STAGES = 6;
+        const STAGE_SPACING = 80;
+        const STAGE_OFFSET = -200;
 
         const render = () => {
-            // Cycle time to prevent float precision loss over very long sessions
-            time = (time + 0.005) % 10000; 
+            time += 0.005; // Base Speed
             
+            // Clear
             ctx.fillStyle = '#020202';
             ctx.fillRect(0, 0, width, height);
 
@@ -57,8 +70,8 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
             const cy_cos = Math.cos(rotY), cy_sin = Math.sin(rotY);
             const cx_cos = Math.cos(rotX), cx_sin = Math.sin(rotX);
 
-            // --- DRAW CASING (Batch Points) ---
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            // --- DRAW CASING ---
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.beginPath();
             
             for (let i = 0; i < casing.length; i += 3) {
@@ -78,35 +91,50 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
                 if (scale > 0) {
                     const px = cx + tx * scale;
                     const py = cy + ty * scale;
-                    // Optimization: Rects are faster than arcs
+                    // Optimization: Draw tiny rects instead of arc for massive speedup
                     ctx.rect(px, py, 1.5 * scale, 1.5 * scale);
                 }
             }
             ctx.fill();
 
-            // --- DRAW ROTORS (Vector Lines) ---
+            // --- DRAW ROTORS ---
             for (let s = 0; s < STAGES; s++) {
                 const zPos = STAGE_OFFSET + s * STAGE_SPACING;
+                // Alternating rotation directions
                 const dir = s % 2 === 0 ? 1 : -1;
-                const rotorAngle = time * 2.5 * dir;
+                const rotorAngle = time * 2.5 * dir; // Speed multiplier
                 
-                const bladeCount = 12; // Fixed count for stability
+                const r_cos = Math.cos(rotorAngle);
+                const r_sin = Math.sin(rotorAngle);
+
+                const bladeCount = 12 + (s % 2) * 4;
                 const angleStep = (Math.PI * 2) / bladeCount;
 
                 ctx.beginPath();
                 ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)'; // Amber
                 ctx.lineWidth = 1;
 
-                const rInner = 40 * MODEL_SCALE;
-                const rOuter = 115 * MODEL_SCALE;
-
+                // Draw all blades for this stage
                 for (let b = 0; b < bladeCount; b++) {
-                    // Optimization: Calculate world angle once
-                    const totalAngle = rotorAngle + (b * angleStep);
+                    const bladeAngle = b * angleStep;
+                    const b_cos = Math.cos(bladeAngle);
+                    const b_sin = Math.sin(bladeAngle);
+
+                    // Inner Point (Rotated by Blade Index then by Rotor Spin)
+                    // Simplified: We know inner is at r=40, z=zPos
+                    const rInner = 40 * MODEL_SCALE;
+                    const rOuter = 115 * MODEL_SCALE;
+
+                    // Compute world positions
+                    // 1. Blade Local Rotation
+                    // 2. Rotor Spin
+                    // 3. Camera Transform
+                    
+                    // Optimization: Combine blade and rotor angles
+                    const totalAngle = rotorAngle + bladeAngle;
                     const t_cos = Math.cos(totalAngle);
                     const t_sin = Math.sin(totalAngle);
-                    // Twist outer edge
-                    const t_cos_twist = Math.cos(totalAngle + 0.3); 
+                    const t_cos_twist = Math.cos(totalAngle + 0.3); // Twist for outer
                     const t_sin_twist = Math.sin(totalAngle + 0.3);
 
                     // Inner Vertex
@@ -119,13 +147,13 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
                     const oy = rOuter * t_sin_twist;
                     const oz = zPos;
 
-                    // Transform Inner
+                    // Camera Transform - Inner
                     let itx = ix * cy_cos - iz * cy_sin;
                     let itz = iz * cy_cos + ix * cy_sin;
                     let ity = iy * cx_cos - itz * cx_sin;
                     let itz2 = itz * cx_cos + iy * cx_sin;
 
-                    // Transform Outer
+                    // Camera Transform - Outer
                     let otx = ox * cy_cos - oz * cy_sin;
                     let otz = oz * cy_cos + ox * cy_sin;
                     let oty = oy * cx_cos - otz * cx_sin;
@@ -146,16 +174,11 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
         };
 
         const handleResize = () => {
-            if (containerRef.current && canvas) {
-                const rect = containerRef.current.getBoundingClientRect();
-                // Limit DPR to 2 to prevent massive canvases on mobile/retina causing slow down
-                const dpr = Math.min(window.devicePixelRatio || 1, 2); 
-                
+            if (canvas.parentElement) {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
                 canvas.width = rect.width * dpr;
                 canvas.height = rect.height * dpr;
-                
-                // Reset context scale after resize
-                ctx.setTransform(1, 0, 0, 1, 0, 0); 
                 ctx.scale(dpr, dpr);
                 
                 width = rect.width;
@@ -166,8 +189,8 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
         };
         
         window.addEventListener('resize', handleResize);
-        handleResize(); // Init size
-        render(); // Start loop
+        handleResize();
+        frameId = requestAnimationFrame(render);
 
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -175,12 +198,5 @@ const IndustrialsHeroVisualizerComponent: React.FC = () => {
         };
     }, []);
 
-    return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full">
-            <canvas ref={canvasRef} className="block w-full h-full" />
-        </div>
-    );
+    return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{width: '100%', height: '100%'}} />;
 };
-
-// Use memo to prevent re-renders from parent updates
-export const IndustrialsHeroVisualizer = React.memo(IndustrialsHeroVisualizerComponent);
