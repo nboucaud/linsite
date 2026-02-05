@@ -775,7 +775,7 @@ export const LogisticsPage: React.FC = () => {
                                             type="portrait" 
                                             label="Node Analysis" 
                                             caption="Detailed view of a single failure point." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_warehouse_logistics_inventory_check.jpg" 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/CardboardBoxesMovingAlongCurvedConveyorBeltSystemInWarehouse.webp" 
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 

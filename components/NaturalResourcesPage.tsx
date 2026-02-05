@@ -929,7 +929,7 @@ export const NaturalResourcesPage: React.FC = () => {
                                             type="portrait" 
                                             label="Extraction Plan" 
                                             caption="Optimized sequencing model." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_laser_projection_industrial_polymer_forged_steel_technical_inspection_nocturnal_maintenance.jpg"
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AerialViewOfClearedPathsThroughDenseGreenForestIndicatingDeforestation.webp"
                                         />
                                     </div>
 

@@ -684,13 +684,13 @@ export const IndustrialsPage: React.FC = () => {
                                             type="portrait" 
                                             label="Asset Sensor" 
                                             caption="Real-time telemetry feed." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_complex_volumetric_steam_concrete_cooling_tower_steel_piping_utilitarian_geometry_natural_daylight.jpg"
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AutomatedWeavingMachinesOperatingInLargeTextileManufacturingFactory.webp"
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Maintenance Log" 
                                             caption="Predictive maintenance schedule." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_laser_projection_industrial_polymer_forged_steel_technical_inspection_nocturnal_maintenance.jpg"
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/GlovedHandsAssemblingPrecisionMetalComponentOnBlueWorkSurface.webp"
                                         />
                                     </div>
 
@@ -708,7 +708,7 @@ export const IndustrialsPage: React.FC = () => {
                                         type="square" 
                                         label="Control Room" 
                                         caption="Centralized oversight for distributed assets." 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_bins_diffuse_overhead_illumination_orthogonal_storage_grid_complex_mechanical_assemblies_collaborative_technical_learning.jpg"
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/ThreeDiverseMaleFactoryWorkersInHardHatsAndSafetyVestsOperatingIndustrialMachinery.webp"
                                     />
                                 </div>
                             </div>
