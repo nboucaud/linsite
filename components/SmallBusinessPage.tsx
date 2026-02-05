@@ -27,7 +27,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string, blend?: boolean }> = ({ type, label, caption, src, blend }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
@@ -54,7 +54,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                         <img 
                             src={src} 
                             alt={label}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${blend ? 'mix-blend-multiply contrast-125' : ''}`}
                         />
                         {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
@@ -516,6 +516,7 @@ export const SmallBusinessPage: React.FC = () => {
                                         label="Current State" 
                                         caption="Mapping the inefficiencies of decentralized decision making." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_wireframe_city_blueprint.jpg" 
+                                        blend={true}
                                     />
 
                                     {/* SECTION 2: INTERVENTION */}
