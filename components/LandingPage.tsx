@@ -90,6 +90,7 @@ const INDUSTRIES = [
 
 // --- CAROUSEL COMPONENT ---
 const IndustryCarousel: React.FC = () => {
+    const { navigateTo } = useNavigation();
     const [activeIndex, setActiveIndex] = useState(0);
     const count = INDUSTRIES.length;
 
@@ -136,7 +137,11 @@ const IndustryCarousel: React.FC = () => {
                                 opacity
                             }}
                             onClick={() => {
-                                if (!isActive) setActiveIndex(index);
+                                if (!isActive) {
+                                    setActiveIndex(index);
+                                } else {
+                                    navigateTo(item.path);
+                                }
                             }}
                         >
                             <div className="relative w-full h-full rounded-3xl bg-[#0c0c0e] overflow-hidden shadow-2xl group border border-white/10 hover:border-white/20 transition-colors">
@@ -160,7 +165,15 @@ const IndustryCarousel: React.FC = () => {
                                             <span className="text-xs font-bold uppercase tracking-widest">{item.subtitle}</span>
                                         </div>
                                         
-                                        <h3 className="text-3xl md:text-4xl font-serif text-white mb-4 leading-none">{item.title}</h3>
+                                        <div className="flex items-center gap-2 group-hover:gap-4 transition-all duration-300">
+                                            <h3 className="text-3xl md:text-4xl font-serif text-white mb-4 leading-none">{item.title}</h3>
+                                            {isActive && (
+                                                <div className="mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/10 rounded-full p-1">
+                                                    <ArrowUpRight size={20} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        
                                         <p className="text-sm text-white/70 leading-relaxed mb-8 line-clamp-3">
                                             {item.desc}
                                         </p>
@@ -248,7 +261,7 @@ export const LandingPage: React.FC = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-white pt-24 font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
+        <div className="relative min-h-screen bg-[#020202] text-white pt-24 md:pt-28 font-sans overflow-x-hidden selection:bg-[#69B7B2]/30 selection:text-[#69B7B2]">
             <style>
                 {`
                 @keyframes marquee {
@@ -262,7 +275,13 @@ export const LandingPage: React.FC = () => {
             </style>
 
             {/* --- HERO SECTION --- */}
-            <section className="relative h-[90vh] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
+            {/* 
+                HEIGHT ADJUSTMENT: 
+                On mobile: min-h-[calc(100vh-6rem)] (where 6rem ~ 96px for pt-24)
+                On desktop: min-h-[calc(100vh-7rem)] (where 7rem ~ 112px for pt-28)
+                This ensures the hero fits exactly into the viewport below the navbar, keeping content centered and the bottom arrow visible.
+            */}
+            <section className="relative min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 <div className="absolute inset-0 z-0">
                     <HeroVisualizer />
                 </div>

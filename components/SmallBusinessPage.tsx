@@ -65,7 +65,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
             </div>
             {caption && (
                 <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-purple-500/30 pl-4">
-                    <span className="text-purple-500">FIG</span>
+                    <span className="text-purple-500">IMAGE:</span>
                     <span>{caption}</span>
                 </div>
             )}
