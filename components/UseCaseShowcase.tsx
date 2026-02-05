@@ -142,7 +142,7 @@ export const UseCaseShowcase: React.FC = () => {
     }, [activeIndex]);
 
     const activeItem = SOLUTIONS[activeIndex];
-    const beamTargetY = 250; // Center of Visualizer Card
+    const beamTargetY = 290; // Center of 581px Visualizer Card
 
     return (
         <div className="py-32 bg-[#030303] border-b border-white/5 relative overflow-hidden">
@@ -164,7 +164,7 @@ export const UseCaseShowcase: React.FC = () => {
                 </div>
 
                 {/* --- THE PIPELINE INTERFACE --- */}
-                {/* Grid: [List 400px] [Beam 60px] [Visualizer 340px] [Beam 60px] [Output Rest] */}
+                {/* Grid: [List 400px] [Beam 60px] [Visualizer 282px] [Beam 60px] [Output Rest] */}
                 <div className="flex flex-col lg:flex-row gap-0 relative items-start lg:items-center justify-center">
                     
                     {/* SECTION 1: INPUT LIST */}
@@ -228,7 +228,7 @@ export const UseCaseShowcase: React.FC = () => {
                     </div>
 
                     {/* PIPE 1: LIST TO VISUALIZER */}
-                    <div className="hidden lg:block relative w-[60px] h-[500px] shrink-0">
+                    <div className="hidden lg:block relative w-[60px] h-[581px] shrink-0">
                         <svg className="w-full h-full overflow-visible absolute top-0 left-0">
                             <path 
                                 d={`M 0,${beamSourceY} C 30,${beamSourceY} 30,${beamTargetY} 60,${beamTargetY}`}
@@ -254,9 +254,9 @@ export const UseCaseShowcase: React.FC = () => {
                         </svg>
                     </div>
 
-                    {/* SECTION 2: VISUALIZER UI CARD */}
-                    <div className="relative w-[340px] h-[500px] shrink-0 mt-8 lg:mt-0 flex flex-col">
-                        <div className="w-full h-full bg-[#0c0c0e] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden relative flex flex-col group hover:border-white/20 transition-colors">
+                    {/* SECTION 2: VISUALIZER UI CARD (581px Height x 282px Width) */}
+                    <div className="relative w-[282px] h-[581px] shrink-0 mt-8 lg:mt-0 flex flex-col">
+                        <div className="w-full h-full bg-[#0c0c0e] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative flex flex-col group hover:border-white/20 transition-colors">
                             
                             {/* Card Header */}
                             <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#111]">
