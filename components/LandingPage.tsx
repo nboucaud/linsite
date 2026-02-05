@@ -448,8 +448,12 @@ export const LandingPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md">
-                                        <Building2 size={40} className="text-[#69B7B2] opacity-80" strokeWidth={1} />
+                                    <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md overflow-hidden p-4">
+                                        <img 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Gito%20AI%20%283%29.webp" 
+                                            alt="Gito AI" 
+                                            className="w-full h-full object-contain opacity-80"
+                                        />
                                     </div>
                                 </div>
                             </div>
