@@ -209,16 +209,22 @@ const CLIENTS = [
 ];
 
 const MarqueeRow: React.FC = () => (
-    <div className="w-full overflow-hidden bg-[#08080a] border-y border-white/5 py-6 flex relative">
-        <div className="flex w-max animate-marquee gap-24">
-            {[...CLIENTS, ...CLIENTS, ...CLIENTS].map((client, i) => (
-                <div key={i} className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity cursor-default group">
-                    <span className="font-serif text-xl text-white group-hover:text-[#69B7B2] transition-colors tracking-wide whitespace-nowrap">{client}</span>
-                </div>
-            ))}
+    <div id="partners" className="w-full bg-[#08080a] border-y border-white/5 py-10 flex flex-col items-center relative overflow-hidden">
+        <div className="text-[#69B7B2] font-mono text-[10px] uppercase tracking-widest mb-8 flex items-center gap-2 z-20">
+             <Cpu size={12} /> Our Tech Partners
         </div>
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#020202] to-transparent z-10" />
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#020202] to-transparent z-10" />
+        <div className="w-full overflow-hidden flex relative z-10">
+            <div className="flex w-max animate-marquee gap-24">
+                {[...CLIENTS, ...CLIENTS, ...CLIENTS].map((client, i) => (
+                    <div key={i} className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity cursor-default group">
+                        <span className="font-serif text-xl text-white group-hover:text-[#69B7B2] transition-colors tracking-wide whitespace-nowrap">{client}</span>
+                    </div>
+                ))}
+            </div>
+            {/* Gradients to match container background #08080a */}
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#08080a] to-transparent z-10" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#08080a] to-transparent z-10" />
+        </div>
     </div>
 );
 
@@ -263,8 +269,6 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
                 
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
-                    {/* REMOVED: Global Operations Network Tag */}
-
                     {/* REDUCED HERO TEXT SIZE */}
                     <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         We help organizations locate, understand, and <br/>
@@ -277,17 +281,20 @@ export const LandingPage: React.FC = () => {
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                         <button 
-                            onClick={() => document.getElementById('manifesto')?.scrollIntoView({ behavior: 'smooth' })}
+                            onClick={() => navigateTo('contact')}
                             className="px-8 py-4 bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs rounded transition-all shadow-[0_0_30px_rgba(105,183,178,0.3)] hover:shadow-[0_0_50px_rgba(105,183,178,0.5)] active:scale-95"
                         >
-                            Explore Platform
+                            Get In Touch
                         </button>
                     </div>
                 </div>
                 
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 animate-bounce z-20">
+                <button 
+                    onClick={() => document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 hover:text-white transition-colors animate-bounce z-20 p-2 cursor-pointer"
+                >
                     <ChevronDown size={24} />
-                </div>
+                </button>
             </section>
 
             <MarqueeRow />
