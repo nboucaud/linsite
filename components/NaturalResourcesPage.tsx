@@ -27,6 +27,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
 const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
+    const [imgError, setImgError] = useState(false);
     
     // Intersection Observer for Reveal Effect
     const containerRef = useRef<HTMLDivElement>(null);
@@ -95,11 +96,12 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     return (
         <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
-                {src ? (
+                {src && !imgError ? (
                     <>
                         <img 
                             src={src} 
-                            alt={label}
+                            alt="" // Empty alt to prevent text rendering if loaded, error handler manages fallback
+                            onError={() => setImgError(true)}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         {/* Canvas Overlay */}
@@ -234,7 +236,8 @@ const ECOSYSTEM = [
     "Esri", "SAP", "Oracle", "IBM", "Palantir", "Bentley Systems", "Hexagon", "Trimble", "Honeywell", "Wood Mackenzie", "Halliburton", "AVEVA", "Siemens Energy", "Schlumberger", "Veolia"
 ];
 
-// ... (VISUALIZERS KEPT UNCHANGED) ...
+// ... (VISUALIZERS) ...
+
 const DistillationVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -374,7 +377,7 @@ const GridSyncVisualizer: React.FC<{ color: string }> = ({ color }) => {
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-const MiningVisualizer: React.FC<{ color: string }> = ({ color }) => {
+const GeologicalScanVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -390,17 +393,17 @@ const MiningVisualizer: React.FC<{ color: string }> = ({ color }) => {
         
         // Ore Deposits
         const ores = Array.from({length: 10}, () => ({
-            x: Math.random() * w,
+            x: Math.random() * 300,
             y: 50 + Math.random() * 250,
             val: Math.random()
         }));
         
         // Strata Layers
         const layers = [
-            { y: 50, color: '#444' },
-            { y: 120, color: '#333' },
-            { y: 200, color: '#222' },
-            { y: 280, color: '#111' }
+            { y: 50, color: '#222' },
+            { y: 120, color: '#1a1a1a' },
+            { y: 200, color: '#111' },
+            { y: 280, color: '#050505' }
         ];
 
         const render = () => {
@@ -414,35 +417,41 @@ const MiningVisualizer: React.FC<{ color: string }> = ({ color }) => {
             // Draw Layers
             layers.forEach(l => {
                 ctx.fillStyle = l.color;
-                ctx.fillRect(0, l.y, w, 70);
+                ctx.fillRect(0, l.y, w, 80);
             });
 
             // Draw Ores (Hidden mostly)
             ores.forEach(o => {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
                 ctx.beginPath(); ctx.arc(o.x, o.y, 3, 0, Math.PI*2); ctx.fill();
             });
 
             // Borehole
+            const bx = w/2 - 20;
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.fillRect(w/2 - 20, 0, 40, h);
+            ctx.fillRect(bx, 0, 40, h);
             ctx.strokeStyle = color;
-            ctx.strokeRect(w/2 - 20, 0, 40, h);
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx, 0, 40, h);
 
             // Scan Line
             const scanY = t % h;
             ctx.fillStyle = color;
-            ctx.shadowBlur = 10; ctx.shadowColor = color;
-            ctx.fillRect(w/2 - 30, scanY, 60, 2);
+            ctx.shadowBlur = 15; ctx.shadowColor = color;
+            ctx.fillRect(bx - 10, scanY, 60, 2);
             ctx.shadowBlur = 0;
 
             // Highlight Ores when scanned
             ores.forEach(o => {
-                if (Math.abs(o.y - scanY) < 10 && Math.abs(o.x - w/2) < 40) {
+                if (Math.abs(o.y - scanY) < 20 && Math.abs(o.x - w/2) < 50) {
                     ctx.fillStyle = '#fff';
-                    ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
-                    ctx.beginPath(); ctx.arc(o.x, o.y, 4, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 10; ctx.shadowColor = '#fff';
+                    ctx.beginPath(); ctx.arc(o.x, o.y, 5, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
+                    
+                    // Connection line
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath(); ctx.moveTo(w/2, scanY); ctx.lineTo(o.x, o.y); ctx.stroke();
                 }
             });
 
@@ -703,7 +712,7 @@ const TiltPillarCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar
             <div className="absolute inset-0 opacity-30 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
                 {pillar.visualMode === 'distillation' && <DistillationVisualizer color={pillar.color} />}
                 {pillar.visualMode === 'grid' && <GridSyncVisualizer color={pillar.color} />}
-                {pillar.visualMode === 'lidar' && <MiningVisualizer color={pillar.color} />}
+                {pillar.visualMode === 'lidar' && <GeologicalScanVisualizer color={pillar.color} />}
                 {pillar.visualMode === 'filter' && <WaterVisualizer color={pillar.color} />}
             </div>
 
@@ -717,8 +726,8 @@ const TiltPillarCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar
                     <h3 className="text-lg font-serif text-white mb-2 group-hover:text-emerald-400 transition-colors">{pillar.title}</h3>
                     <p className="text-xs text-white/50 leading-relaxed mb-4 line-clamp-3">{pillar.shortDesc}</p>
                     <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-white/30 group-hover:text-white transition-colors">
-                        <span>Initialize</span>
-                        <ArrowRight size={10} />
+                        <span>Initialize Protocol</span>
+                        <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                 </div>
             </div>
@@ -807,16 +816,18 @@ export const NaturalResourcesPage: React.FC = () => {
                     </div>
 
                     {/* --- CONTEXT --- */}
-                    <section className="py-32 bg-[#050505] border-b border-white/5 relative">
-                        <div className="absolute top-0 right-0 p-64 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
-                        
-                        <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
-                            <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Hard Asset Reality</h2>
-                            <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
-                                Natural Resources sectors operate against hard physical limits. Geology is fixed, weather is unpredictable, and infrastructure is capital-intensive. Success depends on maximizing yield and efficiency within these unyielding constraints. As resource scarcity grows and sustainability mandates tighten, operators must balance extraction targets with environmental stewardship and community license to operate. The challenge is not just finding resources, but managing the complex interplay of physical, economic, and regulatory variables that define modern extraction and generation.
-                            </p>
-                        </div>
-                    </section>
+                    <ViewportSlot minHeight="600px">
+                        <section className="py-32 bg-[#050505] border-b border-white/5 relative">
+                            <div className="absolute top-0 right-0 p-64 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+                            
+                            <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
+                                <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Hard Asset Reality</h2>
+                                <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
+                                    Natural Resources sectors operate against hard physical limits. Geology is fixed, weather is unpredictable, and infrastructure is capital-intensive. Success depends on maximizing yield and efficiency within these unyielding constraints. As resource scarcity grows and sustainability mandates tighten, operators must balance extraction targets with environmental stewardship and community license to operate. The challenge is not just finding resources, but managing the complex interplay of physical, economic, and regulatory variables that define modern extraction and generation.
+                                </p>
+                            </div>
+                        </section>
+                    </ViewportSlot>
 
                     {/* --- STATS GRID --- */}
                     <section className="py-24 bg-[#08080a] border-b border-white/5">
@@ -937,4 +948,78 @@ export const NaturalResourcesPage: React.FC = () => {
                                     <section className="animate-in slide-in-from-bottom-8 duration-1000 delay-300">
                                         <div className="flex items-center gap-4 mb-8">
                                             <div className="w-12 h-px bg-red-500/50" />
-                                            <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">The Problem
+                                            <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">The Problem</h3>
+                                        </div>
+                                        <FormattedContent text={activePillar.content.problem} />
+                                    </section>
+                                    
+                                    {/* VISUAL BREAK 1: WIDE */}
+                                    <ImagePlaceholder 
+                                        type="wide" 
+                                        label="Site Topography" 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_wireframe_landscape_topography_emerald_green_contours_black_void.jpg"
+                                    />
+
+                                    {/* SECTION 2: INTERVENTION */}
+                                    <section>
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="w-12 h-px bg-amber-400/50" />
+                                            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest">The Intervention</h3>
+                                        </div>
+                                        <FormattedContent text={activePillar.content.intervene} />
+                                    </section>
+
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Core Sample Analysis" 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_geological_core_samples_cylindrical_glass_containers_laboratory_setting_sterile_lighting.jpg"
+                                        />
+                                        <ImagePlaceholder 
+                                            type="portrait" 
+                                            label="Resource Flow" 
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_pipes_complex_network_brushed_metal_steam_vents_atmospheric_perspective.jpg"
+                                        />
+                                    </div>
+
+                                    {/* SECTION 3: APPROACH */}
+                                    <section>
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="w-12 h-px bg-emerald-500/50" />
+                                            <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Our Approach</h3>
+                                        </div>
+                                        <FormattedContent text={activePillar.content.approach} />
+                                    </section>
+
+                                    {/* FINAL VISUAL */}
+                                    <ImagePlaceholder 
+                                        type="square" 
+                                        label="System Balance" 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_abstract_geometric_crystals_emerald_glow_dark_background_macro_photography.jpg"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Back To Top FAB */}
+                        <button 
+                            onClick={scrollToTop}
+                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                        >
+                            <ChevronUp size={24} />
+                        </button>
+
+                        {/* Footer Close */}
+                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[110] bg-gradient-to-t from-black to-transparent">
+                            <button onClick={handleClose} className="pointer-events-auto px-8 py-3 bg-white hover:bg-emerald-400 text-black font-bold uppercase tracking-widest text-xs rounded-full shadow-lg transition-colors">
+                                Close Module
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
