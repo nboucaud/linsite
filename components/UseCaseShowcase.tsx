@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Cpu, Scan, Zap, Network, Bot, BarChart3, Users, CheckCircle2, FileJson, ArrowRight, Radio, Sparkles, Layout } from 'lucide-react';
+import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Building2, Truck, Briefcase, Factory, ArrowUpRight, ChevronLeft, Loader2, Key, CheckCircle2, Handshake, Users, Target, Cpu, Layers, ArrowRight, Radio, Sparkles, Layout, Bot, BarChart3, Scan, Network } from 'lucide-react';
 import { SectionVisualizer } from './SectionVisualizer';
 
 const SOLUTIONS = [
@@ -276,19 +276,9 @@ export const UseCaseShowcase: React.FC = () => {
                             <div className="flex-1 relative bg-black">
                                 <SectionVisualizer key={activeItem.id} mode={activeItem.mode as any} color={activeItem.color} />
                                 
-                                {/* Overlay UI Elements */}
+                                {/* Overlay UI Elements - Removed Active Bar */}
                                 <div className="absolute inset-0 pointer-events-none">
-                                    <div className="absolute bottom-6 left-6 right-6">
-                                        <div className="bg-black/60 backdrop-blur-md border border-white/10 p-3 rounded-xl flex items-center gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                            <div className="flex-1">
-                                                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-white animate-[dash_2s_ease-in-out_infinite]" style={{ width: '60%' }} />
-                                                </div>
-                                            </div>
-                                            <span className="text-[9px] font-mono text-white/70">ACTIVE</span>
-                                        </div>
-                                    </div>
+                                    {/* Content removed */}
                                 </div>
                             </div>
 
