@@ -15,7 +15,7 @@ import { useNavigation } from '../context/NavigationContext';
 
 // --- VISUALIZER ENGINE: ABSTRACT SECURITY ---
 // Persistent particle system that morphs between security states
-const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
+const AbstractSecurityVisualizer: React.FC<{ mode: string; color?: string }> = ({ mode, color = '#69B7B2' }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const particlesRef = useRef<any[]>([]);
     const reqRef = useRef<number>(null);
@@ -126,7 +126,7 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
             
             // Draw Connections First (Background)
             ctx.lineWidth = 0.5;
-            ctx.strokeStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : '#69B7B2';
+            ctx.strokeStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : color;
             ctx.globalAlpha = 0.1;
             ctx.beginPath();
             
@@ -147,7 +147,7 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
             ctx.stroke();
 
             // Update & Draw Particles
-            ctx.fillStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : '#69B7B2';
+            ctx.fillStyle = mode === 'redaction' ? '#ef4444' : mode === 'audit' ? '#f59e0b' : color;
             
             parts.forEach(p => {
                 // SLOWER LERP: Decreased from 0.15 to 0.05
@@ -167,7 +167,7 @@ const AbstractSecurityVisualizer: React.FC<{ mode: string }> = ({ mode }) => {
         return () => {
             if (reqRef.current) cancelAnimationFrame(reqRef.current);
         };
-    }, [mode]); 
+    }, [mode, color]); 
 
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };

@@ -1,27 +1,41 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { GlobalNav } from './components/GlobalNav';
+import { Loader2 } from 'lucide-react';
 
-// Page Components
-import { LandingPage } from './components/LandingPage'; // Serves as "Platform" now
-import { CompliancePage } from './components/CompliancePage'; // Serves as Security & Privacy
-import { SmallBusinessPage } from './components/SmallBusinessPage'; // Serves as SMB
-import { GenericPage } from './components/GenericPage';
-import { ContactPage } from './components/ContactPage';
-import { OurWorkPage } from './components/OurWorkPage';
-import { LogisticsPage } from './components/LogisticsPage';
-import { HealthcarePage } from './components/HealthcarePage';
-import { IndustrialsPage } from './components/IndustrialsPage';
-import { NaturalResourcesPage } from './components/NaturalResourcesPage';
-import { OurClientsPage } from './components/OurClientsPage'; 
-import { CareersPage } from './components/CareersPage';
-import { DownloadHeroesPage } from './components/DownloadHeroesPage';
-import { TrustCenterPage } from './components/TrustCenterPage'; // Newly added
+// --- EAGER IMPORTS (Critical Path) ---
+// LandingPage remains eager to ensure the Largest Contentful Paint (LCP) is fast.
+import { LandingPage } from './components/LandingPage'; 
+
+// --- LAZY IMPORTS (Code Splitting) ---
+// These components are split into separate chunks and loaded only when requested.
+const CompliancePage = React.lazy(() => import('./components/CompliancePage').then(module => ({ default: module.CompliancePage })));
+const SmallBusinessPage = React.lazy(() => import('./components/SmallBusinessPage').then(module => ({ default: module.SmallBusinessPage })));
+const ContactPage = React.lazy(() => import('./components/ContactPage').then(module => ({ default: module.ContactPage })));
+const OurWorkPage = React.lazy(() => import('./components/OurWorkPage').then(module => ({ default: module.OurWorkPage })));
+const LogisticsPage = React.lazy(() => import('./components/LogisticsPage').then(module => ({ default: module.LogisticsPage })));
+const HealthcarePage = React.lazy(() => import('./components/HealthcarePage').then(module => ({ default: module.HealthcarePage })));
+const IndustrialsPage = React.lazy(() => import('./components/IndustrialsPage').then(module => ({ default: module.IndustrialsPage })));
+const NaturalResourcesPage = React.lazy(() => import('./components/NaturalResourcesPage').then(module => ({ default: module.NaturalResourcesPage })));
+const OurClientsPage = React.lazy(() => import('./components/OurClientsPage').then(module => ({ default: module.OurClientsPage })));
+const CareersPage = React.lazy(() => import('./components/CareersPage').then(module => ({ default: module.CareersPage })));
+const DownloadHeroesPage = React.lazy(() => import('./components/DownloadHeroesPage').then(module => ({ default: module.DownloadHeroesPage })));
+const TrustCenterPage = React.lazy(() => import('./components/TrustCenterPage').then(module => ({ default: module.TrustCenterPage })));
+const GenericPage = React.lazy(() => import('./components/GenericPage').then(module => ({ default: module.GenericPage })));
+
+// --- LOADING STATE ---
+const PageLoader = () => (
+  <div className="min-h-screen w-full bg-[#020202] flex items-center justify-center z-0">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 size={32} className="text-[#69B7B2] animate-spin" />
+      <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest animate-pulse">Initializing...</span>
+    </div>
+  </div>
+);
 
 // Simple Home Redirector or Splash
 const HomePage = () => {
-    // Ideally this would be a high level intro, but for now we reuse GenericPage or redirect
     return (
         <GenericPage 
             title="Intelligence for the Real World." 
@@ -41,7 +55,7 @@ const MainContent = () => {
   if (currentPath === 'our-clients') return <OurClientsPage />; 
   if (currentPath === 'about/careers') return <CareersPage />;
   if (currentPath === 'download-heroes') return <DownloadHeroesPage />;
-  if (currentPath === 'trust-center') return <TrustCenterPage />; // New Route
+  if (currentPath === 'trust-center') return <TrustCenterPage />;
   
   // 2. EXACT MATCHES FOR EXISTING COMPLEX PAGES
   if (currentPath === 'platform' || currentPath === 'home') {
@@ -75,7 +89,7 @@ const MainContent = () => {
       return <OurWorkPage />;
   }
 
-  // 4. PATTERN MATCHING FOR GENERIC PAGES (Catch-all for subpages not explicitly handled)
+  // 4. PATTERN MATCHING FOR GENERIC PAGES
   
   // INDUSTRIES
   if (currentPath.startsWith('our-clients/industries/')) {
@@ -97,10 +111,14 @@ const App: React.FC = () => {
   return (
     <NavigationProvider>
       <GlobalNav />
-      {/* Standard padding handled by page components */}
-      <div>
+      {/* 
+        Suspense Boundary:
+        Catches the loading state of lazy components.
+        This allows the GlobalNav to remain interactive while the page loads.
+      */}
+      <Suspense fallback={<PageLoader />}>
         <MainContent />
-      </div>
+      </Suspense>
     </NavigationProvider>
   );
 };

@@ -6,13 +6,15 @@ interface ViewportSlotProps {
   minHeight?: string | number; // Vital to prevent layout shift
   threshold?: number; // 0 to 1
   rootMargin?: string; // e.g. "200px" to load before it comes into view
+  id?: string;
 }
 
 export const ViewportSlot: React.FC<ViewportSlotProps> = ({ 
   children, 
   minHeight = '50vh', 
   threshold = 0.1,
-  rootMargin = '400px' // Start loading 400px before it hits the screen
+  rootMargin = '400px', // Start loading 400px before it hits the screen
+  id
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -52,7 +54,7 @@ export const ViewportSlot: React.FC<ViewportSlotProps> = ({
   }, [threshold, rootMargin]);
 
   return (
-    <div ref={ref} style={{ minHeight }} className="w-full relative">
+    <div ref={ref} id={id} style={{ minHeight }} className="w-full relative">
       {hasLoaded ? (
         <div className="animate-in fade-in duration-700">
           {children}
