@@ -24,12 +24,14 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
+// Enhanced Image Component with JS Canvas Overlay
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
     // Intersection Observer for Reveal Effect
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -39,12 +41,66 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                 observer.disconnect();
             }
         }, { threshold: 0.1 });
-        if (ref.current) observer.observe(ref.current);
+        if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
+
+    // Canvas Effect (The ".js" part)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !isVisible) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrameId: number;
+        let time = 0;
+
+        const render = () => {
+            time += 1;
+            const w = canvas.parentElement?.clientWidth || 300;
+            const h = canvas.parentElement?.clientHeight || 300;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Scanline (Amber)
+            const scanY = (time * 1.8) % h;
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.1)'; 
+            ctx.fillRect(0, scanY, w, 3);
+
+            // 2. Warning Blocks
+            if (Math.random() > 0.94) {
+                const bw = Math.random() * 60;
+                const bh = Math.random() * 30;
+                const bx = Math.random() * w;
+                const by = Math.random() * h;
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(bx, by, bw, bh);
+                
+                // Crosshair
+                ctx.beginPath();
+                ctx.moveTo(bx + bw/2, by); ctx.lineTo(bx + bw/2, by+bh);
+                ctx.moveTo(bx, by + bh/2); ctx.lineTo(bx+bw, by+bh/2);
+                ctx.stroke();
+            }
+
+            // 3. Grid Markers
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for(let i=0; i<w; i+=50) {
+                ctx.fillRect(i, h-10, 1, 4);
+            }
+
+            animationFrameId = requestAnimationFrame(render);
+        };
+        render();
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isVisible]);
     
     return (
-        <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
                 {src ? (
                     <>
@@ -53,6 +109,9 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             alt={label}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
+                        {/* Canvas Overlay */}
+                        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
+                        
                         {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
@@ -60,12 +119,6 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
                 )}
             </div>
-            {caption && (
-                <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-amber-500/30 pl-4">
-                    <span className="text-amber-500">IMAGE:</span>
-                    <span>{caption}</span>
-                </div>
-            )}
         </div>
     );
 };
@@ -665,7 +718,6 @@ export const IndustrialsPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Site Schematic" 
-                                        caption="Identifying zones of high variance." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_steel_lattice_weathered_metal_low_angle_natural_daylight_mechanical_geometry.jpg"
                                     />
 
@@ -683,13 +735,11 @@ export const IndustrialsPage: React.FC = () => {
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Asset Sensor" 
-                                            caption="Real-time telemetry feed." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AutomatedWeavingMachinesOperatingInLargeTextileManufacturingFactory.webp"
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Maintenance Log" 
-                                            caption="Predictive maintenance schedule." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/GlovedHandsAssemblingPrecisionMetalComponentOnBlueWorkSurface.webp"
                                         />
                                     </div>
@@ -707,7 +757,6 @@ export const IndustrialsPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="Control Room" 
-                                        caption="Centralized oversight for distributed assets." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/ThreeDiverseMaleFactoryWorkersInHardHatsAndSafetyVestsOperatingIndustrialMachinery.webp"
                                     />
                                 </div>

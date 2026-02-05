@@ -24,12 +24,14 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
+// Enhanced Image Component with JS Canvas Overlay
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
     // Intersection Observer for Reveal Effect
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -39,12 +41,60 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                 observer.disconnect();
             }
         }, { threshold: 0.1 });
-        if (ref.current) observer.observe(ref.current);
+        if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
+
+    // Canvas Effect (The ".js" part)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !isVisible) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrameId: number;
+        let time = 0;
+
+        const render = () => {
+            time += 1;
+            const w = canvas.parentElement?.clientWidth || 300;
+            const h = canvas.parentElement?.clientHeight || 300;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Scanline
+            const scanY = (time * 3) % h;
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.1)'; // Cyan tint
+            ctx.fillRect(0, scanY, w, 2);
+
+            // 2. Random Glitch Blocks
+            if (Math.random() > 0.92) {
+                const bw = Math.random() * 80;
+                const bh = Math.random() * 4;
+                const bx = Math.random() * w;
+                const by = Math.random() * h;
+                ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
+                ctx.fillRect(bx, by, bw, bh);
+            }
+
+            // 3. Grid Markers
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(20, 20, 4, 1);
+            ctx.fillRect(20, 20, 1, 4);
+            ctx.fillRect(w-24, h-24, 4, 1);
+            ctx.fillRect(w-21, h-24, 1, 4);
+
+            animationFrameId = requestAnimationFrame(render);
+        };
+        render();
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isVisible]);
     
     return (
-        <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
                 {src ? (
                     <>
@@ -53,6 +103,9 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             alt={label}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
+                        {/* Canvas Overlay */}
+                        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
+                        
                         {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
@@ -60,12 +113,6 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
                 )}
             </div>
-            {caption && (
-                <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-cyan-500/30 pl-4">
-                    <span className="text-cyan-500">IMAGE:</span>
-                    <span>{caption}</span>
-                </div>
-            )}
         </div>
     );
 };
@@ -756,7 +803,6 @@ export const LogisticsPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Network Overview" 
-                                        caption="Visualizing the breakdown in traditional linear logistics models." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_holographic_city_simulation.jpg" 
                                     />
 
@@ -774,13 +820,11 @@ export const LogisticsPage: React.FC = () => {
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Node Analysis" 
-                                            caption="Detailed view of a single failure point." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/CardboardBoxesMovingAlongCurvedConveyorBeltSystemInWarehouse.webp" 
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Flow Correction" 
-                                            caption="Automated rerouting protocol in action." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corrugated_steel_industrial_logistics_massive_gantry_cranes_modular_geometry.jpg" 
                                         />
                                     </div>
@@ -798,7 +842,6 @@ export const LogisticsPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="System Harmony" 
-                                        caption="The target state: Synchronized movement across the entire value chain." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_raw_timber_pallets_orthogonal_grid_structure_logistical_efficiency_diffuse_indoor_illumination.jpg" 
                                     />
                                 </div>

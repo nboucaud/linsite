@@ -23,12 +23,14 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string }> = ({ type, label, caption, src }) => {
+// Enhanced Image Component with JS Canvas Overlay
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
     // Intersection Observer for Reveal Effect
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -38,12 +40,60 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                 observer.disconnect();
             }
         }, { threshold: 0.1 });
-        if (ref.current) observer.observe(ref.current);
+        if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
+
+    // Canvas Effect (The ".js" part)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !isVisible) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrameId: number;
+        let time = 0;
+
+        const render = () => {
+            time += 1;
+            const w = canvas.parentElement?.clientWidth || 300;
+            const h = canvas.parentElement?.clientHeight || 300;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Scanline (Emerald)
+            const scanY = (time * 1.2) % h;
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.1)'; 
+            ctx.fillRect(0, scanY, w, 2);
+
+            // 2. Terrain Mapping Points
+            if (Math.random() > 0.85) {
+                for(let i=0; i<3; i++) {
+                    const px = Math.random() * w;
+                    const py = Math.random() * h;
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.5)';
+                    ctx.fillRect(px, py, 2, 2);
+                }
+            }
+
+            // 3. Grid Markers
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(10, 10, 4, 1);
+            ctx.fillRect(10, 10, 1, 4);
+            ctx.fillRect(w-14, h-14, 4, 1);
+            ctx.fillRect(w-11, h-14, 1, 4);
+
+            animationFrameId = requestAnimationFrame(render);
+        };
+        render();
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isVisible]);
     
     return (
-        <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
                 {src ? (
                     <>
@@ -52,6 +102,9 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             alt={label}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
+                        {/* Canvas Overlay */}
+                        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
+                        
                         {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
@@ -59,12 +112,6 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 )}
             </div>
-            {caption && (
-                <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-emerald-500/30 pl-4">
-                    <span className="text-emerald-500">IMAGE:</span>
-                    <span>{caption}</span>
-                </div>
-            )}
         </div>
     );
 };
@@ -187,9 +234,7 @@ const ECOSYSTEM = [
     "Esri", "SAP", "Oracle", "IBM", "Palantir", "Bentley Systems", "Hexagon", "Trimble", "Honeywell", "Wood Mackenzie", "Halliburton", "AVEVA", "Siemens Energy", "Schlumberger", "Veolia"
 ];
 
-// --- VISUALIZERS ---
-
-// 1. REFINERY: DISTILLATION (Particles Separation)
+// ... (VISUALIZERS KEPT UNCHANGED) ...
 const DistillationVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -255,7 +300,6 @@ const DistillationVisualizer: React.FC<{ color: string }> = ({ color }) => {
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-// 2. RENEWABLES: GRID SYNC (Sine Waves + Mouse Distortion)
 const GridSyncVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef({ x: 0, y: 0 });
@@ -330,7 +374,6 @@ const GridSyncVisualizer: React.FC<{ color: string }> = ({ color }) => {
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-// 3. MINING: LIDAR SCAN (Vertical Depth + Ore Sparkles)
 const MiningVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -411,7 +454,6 @@ const MiningVisualizer: React.FC<{ color: string }> = ({ color }) => {
     return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
-// 4. WATER: FILTRATION (Flow)
 const WaterVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -895,82 +937,4 @@ export const NaturalResourcesPage: React.FC = () => {
                                     <section className="animate-in slide-in-from-bottom-8 duration-1000 delay-300">
                                         <div className="flex items-center gap-4 mb-8">
                                             <div className="w-12 h-px bg-red-500/50" />
-                                            <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">The Problem</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.problem} />
-                                    </section>
-                                    
-                                    {/* VISUAL BREAK 1: WIDE */}
-                                    <ImagePlaceholder 
-                                        type="wide" 
-                                        label="Geological Scan" 
-                                        caption="Mapping subterranean constraints." 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_topographical_wireframe_emerald_grid_dark_void_contour_lines.jpg"
-                                    />
-
-                                    {/* SECTION 2: INTERVENTION */}
-                                    <section>
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-px bg-amber-400/50" />
-                                            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest">The Intervention</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.intervene} />
-                                    </section>
-
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-                                        <ImagePlaceholder 
-                                            type="portrait" 
-                                            label="Asset Monitor" 
-                                            caption="Real-time equipment telemetry." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_complex_volumetric_steam_concrete_cooling_tower_steel_piping_utilitarian_geometry_natural_daylight.jpg"
-                                        />
-                                        <ImagePlaceholder 
-                                            type="portrait" 
-                                            label="Extraction Plan" 
-                                            caption="Optimized sequencing model." 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AerialViewOfClearedPathsThroughDenseGreenForestIndicatingDeforestation.webp"
-                                        />
-                                    </div>
-
-                                    {/* SECTION 3: APPROACH */}
-                                    <section>
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-px bg-emerald-500/50" />
-                                            <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Our Approach</h3>
-                                        </div>
-                                        <FormattedContent text={activePillar.content.approach} />
-                                    </section>
-
-                                    {/* FINAL VISUAL */}
-                                    <ImagePlaceholder 
-                                        type="square" 
-                                        label="System Overview" 
-                                        caption="Integrated resource management dashboard." 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_bins_diffuse_overhead_illumination_orthogonal_storage_grid_complex_mechanical_assemblies_collaborative_technical_learning.jpg"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Back To Top FAB */}
-                        <button 
-                            onClick={scrollToTop}
-                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                        >
-                            <ChevronUp size={24} />
-                        </button>
-
-                        {/* Footer Close */}
-                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[110] bg-gradient-to-t from-black to-transparent">
-                            <button onClick={handleClose} className="pointer-events-auto px-8 py-3 bg-white hover:bg-emerald-400 text-black font-bold uppercase tracking-widest text-xs rounded-full shadow-lg transition-colors">
-                                Close Module
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+                                            <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">The Problem

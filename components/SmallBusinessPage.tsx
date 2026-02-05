@@ -27,12 +27,14 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, caption?: string, src?: string, blend?: boolean }> = ({ type, label, caption, src, blend }) => {
+// Enhanced Image Component with JS Canvas Overlay
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string, blend?: boolean }> = ({ type, label, src, blend }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     
     // Intersection Observer for Reveal Effect
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -42,12 +44,61 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                 observer.disconnect();
             }
         }, { threshold: 0.1 });
-        if (ref.current) observer.observe(ref.current);
+        if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
+
+    // Canvas Effect (The ".js" part)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !isVisible) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrameId: number;
+        let time = 0;
+
+        const render = () => {
+            time += 1;
+            const w = canvas.parentElement?.clientWidth || 300;
+            const h = canvas.parentElement?.clientHeight || 300;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Scanline
+            const scanY = (time * 2) % h;
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.1)'; // Purple tint
+            ctx.fillRect(0, scanY, w, 2);
+
+            // 2. Random Glitch Blocks
+            if (Math.random() > 0.9) {
+                const bw = Math.random() * 100;
+                const bh = Math.random() * 5;
+                const bx = Math.random() * w;
+                const by = Math.random() * h;
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
+                ctx.fillRect(bx, by, bw, bh);
+            }
+
+            // 3. Corner UI
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            // TL
+            ctx.beginPath(); ctx.moveTo(10, 30); ctx.lineTo(10, 10); ctx.lineTo(30, 10); ctx.stroke();
+            // BR
+            ctx.beginPath(); ctx.moveTo(w-10, h-30); ctx.lineTo(w-10, h-10); ctx.lineTo(w-30, h-10); ctx.stroke();
+
+            animationFrameId = requestAnimationFrame(render);
+        };
+        render();
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isVisible]);
     
     return (
-        <div ref={ref} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
                 {src ? (
                     <>
@@ -56,6 +107,9 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             alt={label}
                             className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${blend ? 'mix-blend-multiply contrast-125' : ''}`}
                         />
+                        {/* Canvas Overlay */}
+                        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
+                        
                         {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
@@ -63,12 +117,6 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 )}
             </div>
-            {caption && (
-                <div className="mt-4 flex gap-4 text-xs font-mono text-white/40 border-l border-purple-500/30 pl-4">
-                    <span className="text-purple-500">IMAGE:</span>
-                    <span>{caption}</span>
-                </div>
-            )}
         </div>
     );
 };
@@ -514,7 +562,6 @@ export const SmallBusinessPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Current State" 
-                                        caption="Mapping the inefficiencies of decentralized decision making." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_wireframe_city_blueprint.jpg" 
                                         blend={true}
                                     />
@@ -533,13 +580,11 @@ export const SmallBusinessPage: React.FC = () => {
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Signal Analysis" 
-                                            caption="Detecting pattern variance." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corporate_modernism_brushed_aluminum_polished_glass_diffuse_daylight_rectilinear_architecture.jpg" 
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Action Loop" 
-                                            caption="Automated response trigger." 
                                             src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_modular_grid_technical_learning.jpg" 
                                         />
                                     </div>
@@ -557,7 +602,6 @@ export const SmallBusinessPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="Unified View" 
-                                        caption="The consolidated operational dashboard." 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_striped_textile_polished_acetate_soft_diffused_illumination_contemplative_professionalism.jpg" 
                                     />
                                 </div>
