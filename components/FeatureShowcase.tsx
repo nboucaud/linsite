@@ -1,25 +1,18 @@
 
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Activity, FileText, CheckCircle2, 
     Database, Search, Zap, Network, 
-    Bot, X, ArrowLeft, ArrowRight,
-    Folder, Image as ImageIcon, FileSpreadsheet, MoreVertical,
-    Grid, List, Lock, Layout,
-    Terminal, Code, Play, Check,
-    Cpu, BarChart3, RefreshCw, Layers,
-    MessageSquare, Briefcase, CreditCard,
+    Bot, ArrowLeft, ArrowRight,
     HardDrive, Plus,
     GitMerge,
-    Bell, Settings,
-    Server, Trash2, Sparkles, Mail,
-    Globe, Shield, FileJson, Share2,
-    PlayCircle, PauseCircle, Scan,
+    Server, Sparkles, Mail,
+    Globe, Shield, Share2,
+    PlayCircle,
     Cloud, Box, ChevronRight,
-    ArrowUp, Command, Hash,
     MousePointer2, Square,
-    Filter, Download, ExternalLink,
-    AlertCircle, Info
+    AlertCircle, Info, RefreshCw, Layers,
+    MessageSquare
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -45,7 +38,7 @@ const GuideOverlay = ({ title, description, onDismiss }: { title: string, descri
             
             <button 
                 onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-                className="bg-white text-black hover:bg-[#69B7B2] hover:text-white transition-colors px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+                className="bg-white text-black hover:bg-[#69B7B2] hover:text-white transition-colors px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg"
             >
                 Explore Demo
             </button>
@@ -53,7 +46,7 @@ const GuideOverlay = ({ title, description, onDismiss }: { title: string, descri
     </div>
 );
 
-const WindowHeader = ({ title, icon: Icon, videoRef, isVideoPlaying, toggleVideo }: any) => (
+const WindowHeader = ({ title, icon: Icon }: any) => (
     <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#0a0a0c] select-none z-20 relative">
         <div className="flex items-center gap-4">
             <div className="flex gap-2 group">
@@ -67,36 +60,77 @@ const WindowHeader = ({ title, icon: Icon, videoRef, isVideoPlaying, toggleVideo
                 <span>{title}</span>
             </div>
         </div>
+    </div>
+);
 
-        {/* GITO AGENT - RIGHT SIDE, CLEAN LOOK */}
-        <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end mr-2">
-                <span className="text-[10px] font-bold text-white/90">Gito AI</span>
-                <span className="text-[9px] text-[#69B7B2] font-mono animate-pulse">ONLINE</span>
-            </div>
-            <div className="relative group cursor-pointer" onClick={toggleVideo}>
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#69B7B2] to-blue-500 rounded-full opacity-20 group-hover:opacity-50 blur transition duration-500" />
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 bg-black">
-                    <video 
+const GitoAgent = () => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [quote, setQuote] = useState("");
+    const [showQuote, setShowQuote] = useState(false);
+
+    const quotes = [
+        "Deploying on Friday? Bold move.",
+        "It works on my machine.",
+        "Have you checked the logs?",
+        "SELECT * FROM production... just kidding.",
+        "That's not a bug, it's an undocumented feature.",
+        "60% of the time, it works every time.",
+        "Caching is the root of all evil.",
+        "Git push --force... and pray."
+    ];
+
+    const togglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            if (isPlaying) videoRef.current.pause();
+            else videoRef.current.play();
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const saySomething = () => {
+        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+        setShowQuote(true);
+        setTimeout(() => setShowQuote(false), 3000);
+    };
+
+    return (
+        <div className="mt-auto p-4 border-t border-white/5 relative group">
+             {/* Quote Bubble */}
+             <div className={`absolute bottom-full mb-4 left-4 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-bl-none shadow-xl transition-all duration-300 transform origin-bottom-left ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                "{quote}"
+             </div>
+
+            <div className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-white/5 transition-colors" onClick={saySomething}>
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 bg-black flex-shrink-0" onClick={togglePlay}>
+                     <video
                         ref={videoRef}
                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                        autoPlay 
-                        loop 
-                        muted 
+                        autoPlay
+                        loop
+                        muted
                         playsInline
                         className="w-full h-full object-cover transform scale-110"
                     />
-                    {!isVideoPlaying && (
+                    {!isPlaying && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <PlayCircle size={16} className="text-white" />
                         </div>
                     )}
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full z-10" />
                 </div>
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full z-10" />
+                <div>
+                    <div className="text-[10px] font-bold text-white flex items-center gap-2">
+                        Gito AI
+                        <span className="px-1.5 py-0.5 rounded bg-[#69B7B2]/20 text-[#69B7B2] text-[8px]">BOT</span>
+                    </div>
+                    <div className="text-[9px] text-white/40">Click me for wisdom</div>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 // --- 1. LOCATE (Data Sources) ---
 const LocateApp = ({ active }: { active: boolean }) => {
@@ -106,7 +140,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
 
     useEffect(() => {
         if(active) {
-            setShowIntro(true); // Reset intro on tab switch
+            setShowIntro(true);
             const interval = setInterval(() => {
                 setScannedItems(prev => {
                     const next = {...prev};
@@ -120,7 +154,6 @@ const LocateApp = ({ active }: { active: boolean }) => {
         }
     }, [active]);
 
-    // Initialize progress on mount
     useEffect(() => {
         const initial: any = {};
         integrations.forEach(i => initial[i.name] = 0);
@@ -143,7 +176,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
             {showIntro && (
                 <GuideOverlay 
                     title="Unified Search"
-                    description="Stop digging through silos. Locate connects to every drive, server, and database you own, indexing it all into one searchable map."
+                    description="Stop digging through silos. Locate connects to every drive, server, and database you own, making it all searchable in one place."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -165,7 +198,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
                     <div className="h-2 w-24 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-green-500 w-2/3 animate-pulse" />
                     </div>
-                    <span className="text-[10px] text-white/30 font-mono">INDEXING...</span>
+                    <span className="text-[10px] text-white/30 font-mono">SEARCHING...</span>
                 </div>
             </div>
 
@@ -292,7 +325,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
             {showIntro && (
                 <GuideOverlay 
                     title="Live Activity Feed"
-                    description="The pulse of your operation. Watch data flow in from every connected source, parsed and categorized in real-time."
+                    description="The pulse of your operation. Watch data flow in from every connected source, processed and categorized in real-time."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -365,7 +398,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 <div className="w-1/2 border-r border-white/5 p-6 bg-[#0c0c0e]">
                     <div className="mb-4 flex justify-between items-center">
                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Original Document</span>
-                        <span className="text-[9px] font-mono text-white/20">OCR_LAYER</span>
+                        <span className="text-[9px] font-mono text-white/20">Raw Scan</span>
                     </div>
                     
                     {/* Simulated Document */}
@@ -426,7 +459,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 <div className="w-1/2 p-6 bg-[#08080a] flex flex-col">
                     <div className="mb-4 flex justify-between items-center">
                         <span className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest">Clean Data</span>
-                        <span className="text-[9px] font-mono text-white/20">JSON_OBJ</span>
+                        <span className="text-[9px] font-mono text-white/20">Structured</span>
                     </div>
                     
                     <div className="space-y-3 font-mono text-xs">
@@ -441,7 +474,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                         <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-blue-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
                             <div className="flex flex-col">
                                 <span className="text-blue-400 font-bold mb-1">invoice_date</span>
-                                <span className="text-white/40 text-[8px] uppercase">ISO 8601</span>
+                                <span className="text-white/40 text-[8px] uppercase">Date</span>
                             </div>
                             <span className="text-white bg-black/40 px-2 py-1 rounded">"2025-10-24"</span>
                         </div>
@@ -449,7 +482,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                         <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-amber-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
                             <div className="flex flex-col">
                                 <span className="text-amber-400 font-bold mb-1">total_amount</span>
-                                <span className="text-white/40 text-[8px] uppercase">Float</span>
+                                <span className="text-white/40 text-[8px] uppercase">Number</span>
                             </div>
                             <span className="text-white bg-black/40 px-2 py-1 rounded">12400.00</span>
                         </div>
@@ -913,8 +946,6 @@ const ReflectApp = ({ active }: { active: boolean }) => {
 // --- MAIN CONTAINER ---
 export const FeatureShowcase: React.FC = () => {
     const [activeStage, setActiveStage] = useState(0);
-    const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-    const videoRef = useRef<HTMLVideoElement>(null);
 
     const stages = [
         { id: 'locate', label: 'Locate', desc: "Connect & Index", icon: HardDrive, comp: LocateApp },
@@ -925,19 +956,6 @@ export const FeatureShowcase: React.FC = () => {
         { id: 'bridge', label: 'Bridge', desc: "Assistant", icon: Bot, comp: BridgeApp },
         { id: 'reflect', label: 'Reflect', desc: "Optimization", icon: RefreshCw, comp: ReflectApp },
     ];
-
-    const toggleVideo = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-                setIsVideoPlaying(true);
-            } else {
-                videoRef.current.pause();
-                setIsVideoPlaying(false);
-            }
-        }
-    };
 
     return (
         <section className="py-24 md:py-32 bg-[#020202] border-t border-white/5 relative">
@@ -992,18 +1010,18 @@ export const FeatureShowcase: React.FC = () => {
                                 )
                             })}
                         </div>
+
+                        {/* GITO AGENT - Sidebar Footer */}
+                        <GitoAgent />
                     </div>
 
                     {/* RIGHT CONTENT AREA */}
                     <div className="flex-1 flex flex-col relative bg-[#0c0c0e]">
                         
-                        {/* OS Header - With Gito Integrated Top Right */}
+                        {/* OS Header */}
                         <WindowHeader 
                             title={`${stages[activeStage].label}_OS`} 
                             icon={stages[activeStage].icon}
-                            videoRef={videoRef}
-                            isVideoPlaying={isVideoPlaying}
-                            toggleVideo={toggleVideo}
                         />
 
                         {/* Stage Component Container */}
