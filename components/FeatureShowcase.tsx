@@ -1,20 +1,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    ShieldCheck, Activity, FileText, CheckCircle2, 
+    Activity, FileText, CheckCircle2, 
     Database, Search, Zap, Network, 
-    Bot, Minimize, Square, X, ArrowLeft, ArrowRight,
+    Bot, X, ArrowLeft, ArrowRight,
     Folder, Image as ImageIcon, FileSpreadsheet, MoreVertical,
-    Grid, List, Clock, Cloud, Lock, Layout,
-    Terminal, Code, Play, AlertCircle, Check,
-    ChevronRight, ChevronDown, Filter, Download, 
-    MoreHorizontal, User, Tag,
-    Users, Share2, Globe, Cpu, BarChart3, RefreshCw, Layers,
-    MessageSquare, Briefcase, CreditCard, Box,
-    File, HardDrive, Plus, Sliders, Table, Columns,
-    GitBranch, GitCommit, GitMerge, AlertOctagon,
-    ArrowUpRight, PieChart, Bell, Settings,
-    Server, Trash2, Sparkles, Mail, MousePointer2
+    Grid, List, Lock, Layout,
+    Terminal, Code, Play, Check,
+    Cpu, BarChart3, RefreshCw, Layers,
+    MessageSquare, Briefcase, CreditCard,
+    HardDrive, Plus,
+    GitMerge,
+    Bell, Settings,
+    Server, Trash2, Sparkles, Mail,
+    Globe, Shield, FileJson, Share2,
+    PlayCircle, PauseCircle, Scan
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -22,291 +22,287 @@ const cn = (...classes: (string | undefined | null | false)[]) => classes.filter
 
 // --- SHARED COMPONENTS ---
 
-const WindowHeader = ({ title, icon: Icon, activeStage }: { title: string, icon: any, activeStage: number }) => (
-    <div className="h-10 md:h-12 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
+const WindowHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
+    <div className="h-10 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
         <div className="flex items-center gap-4">
-            <div className="flex gap-2 group">
-                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
-                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50" />
-                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/50" />
+            <div className="flex gap-1.5 group">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-[#1AAB29]/50" />
             </div>
             <div className="h-4 w-px bg-white/10" />
-            <div className="flex items-center gap-2 text-white/60 text-xs font-medium">
-                <Icon size={14} className="text-[#69B7B2]" />
+            <div className="flex items-center gap-2 text-white/60 text-[10px] font-medium font-mono uppercase tracking-wider">
+                <Icon size={12} className="text-[#69B7B2]" />
                 <span>{title}</span>
             </div>
         </div>
-        <div className="flex items-center gap-3 text-white/30">
-            <span className="text-[10px] font-mono uppercase tracking-widest hidden md:inline">v2.4.0</span>
+        <div className="flex items-center gap-3 text-white/20">
+            <Settings size={12} />
         </div>
     </div>
 );
 
-// --- 1. LOCATE (Simulated File System / "Drive") ---
+// --- 1. LOCATE (Simulated File System) ---
 const LocateApp = ({ active }: { active: boolean }) => {
-    const [loading, setLoading] = useState(true);
+    const [scannedCount, setScannedCount] = useState(0);
     
     useEffect(() => {
         if(active) {
-            setLoading(true);
-            const t = setTimeout(() => setLoading(false), 800);
-            return () => clearTimeout(t);
+            setScannedCount(0);
+            const interval = setInterval(() => {
+                setScannedCount(prev => Math.min(prev + 1, 6));
+            }, 300);
+            return () => clearInterval(interval);
         }
     }, [active]);
 
-    const files = [
-        { name: "Q3_Financials.xlsx", type: "sheet", size: "2.4 MB", date: "Just now", status: "sync" },
-        { name: "Client_Contracts_2025", type: "folder", size: "--", date: "Yesterday", status: "check" },
-        { name: "Vendor_API_Keys.txt", type: "code", size: "4 KB", date: "2 days ago", status: "lock" },
-        { name: "Employee_Roster_Full.csv", type: "sheet", size: "1.1 MB", date: "Oct 24", status: "check" },
-        { name: "Strategic_Plan_v4.pdf", type: "pdf", size: "8.2 MB", date: "Oct 22", status: "check" },
-        { name: "CRM_Export_Raw.json", type: "code", size: "45 MB", date: "Oct 20", status: "check" },
+    const sources = [
+        { name: "SharePoint_Legal", type: "cloud", size: "1.2 TB", status: "Indexing...", color: "text-blue-400" },
+        { name: "Salesforce_CRM", type: "db", size: "450 GB", status: "Connected", color: "text-sky-400" },
+        { name: "Q3_Invoices_S3", type: "server", size: "85 GB", status: "Scanning", color: "text-amber-400" },
+        { name: "Slack_History", type: "chat", size: "12 GB", status: "Waiting", color: "text-purple-400" },
+        { name: "Legacy_Oracle", type: "db", size: "4.5 TB", status: "Queued", color: "text-red-400" },
+        { name: "Email_Archive", type: "mail", size: "890 GB", status: "Paused", color: "text-gray-400" },
     ];
 
     return (
-        <div className="w-full h-full bg-[#0f0f11] text-gray-300 font-sans flex flex-col">
-            {/* Toolbar */}
-            <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
-                <div className="flex items-center gap-4 w-full max-w-2xl">
-                    <div className="bg-[#1e1e20] rounded-md h-9 flex items-center px-3 gap-2 text-gray-500 w-full border border-white/5 hover:border-white/10 transition-colors">
-                        <Search size={14} />
-                        <span className="text-xs">Search files, folders, and connected apps...</span>
-                    </div>
+        <div className="w-full h-full bg-[#0c0c0e] flex flex-col font-sans">
+            <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
+                <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <span className="hover:text-white cursor-pointer">Sources</span>
+                    <span className="text-white/20">/</span>
+                    <span className="text-white">Active Connections</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-500">
-                    <Bell size={16} />
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 text-[10px] text-white flex items-center justify-center font-bold">JD</div>
-                </div>
+                <button className="bg-[#69B7B2] text-black text-[10px] font-bold px-3 py-1.5 rounded flex items-center gap-2 hover:bg-[#5aa09c] transition-colors">
+                    <Plus size={12} /> Add Source
+                </button>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-                {/* Sidebar */}
-                <div className="w-48 border-r border-white/5 py-4 hidden md:flex flex-col bg-[#0f0f11]">
-                    <div className="px-4 mb-6">
-                        <button className="flex items-center justify-center gap-2 w-full bg-white text-black rounded-lg py-2 text-sm font-bold shadow-lg hover:bg-gray-100 transition-colors">
-                            <Plus size={16} /> New Connection
-                        </button>
-                    </div>
-                    <div className="space-y-1 px-2">
-                        {[{ l: "All Sources", i: HardDrive, a: true }, { l: "External Drives", i: Server }, { l: "Cloud Apps", i: Cloud }, { l: "Trash", i: Trash2 }].map((item, i) => (
-                            <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium cursor-pointer ${item.a ? 'bg-[#69B7B2]/10 text-[#69B7B2]' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}>
-                                <item.i size={14} /> {item.l}
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <div className="mt-auto px-4 pb-4">
-                        <div className="bg-[#1e1e20] rounded-lg p-3 border border-white/5">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] text-gray-400">Storage</span>
-                                <span className="text-[10px] text-[#69B7B2]">82%</span>
-                            </div>
-                            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#69B7B2] w-[82%]" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main View */}
-                <div className="flex-1 p-6 overflow-y-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-bold text-white">Connected Sources</h2>
-                        <div className="flex gap-2">
-                            <button className="p-1.5 rounded hover:bg-white/5 text-gray-400"><List size={16}/></button>
-                            <button className="p-1.5 rounded bg-white/10 text-white"><Grid size={16}/></button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {loading ? (
-                            [1,2,3,4].map(i => (
-                                <div key={i} className="h-32 bg-white/5 rounded-xl animate-pulse" />
-                            ))
-                        ) : (
-                            files.map((f, i) => (
-                                <div key={i} className="group bg-[#1a1a1c] hover:bg-[#202022] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between h-32 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${i*100}ms` }}>
-                                    <div className="flex justify-between items-start">
-                                        {f.type === 'folder' ? <Folder className="text-blue-400 fill-blue-400/20" size={24} /> : 
-                                         f.type === 'sheet' ? <FileSpreadsheet className="text-green-400" size={24} /> :
-                                         f.type === 'code' ? <Code className="text-amber-400" size={24} /> :
-                                         <FileText className="text-red-400" size={24} />}
-                                        <MoreHorizontal size={14} className="text-gray-600 group-hover:text-gray-400" />
-                                    </div>
-                                    <div>
-                                        <div className="text-sm font-medium text-gray-200 truncate mb-1">{f.name}</div>
-                                        <div className="flex items-center justify-between text-[10px] text-gray-500">
-                                            <span>{f.size}</span>
-                                            {f.status === 'sync' ? <RefreshCw size={10} className="animate-spin text-[#69B7B2]" /> : 
-                                             f.status === 'lock' ? <Lock size={10} className="text-amber-500" /> :
-                                             <CheckCircle2 size={10} className="text-gray-600" />}
-                                        </div>
-                                    </div>
+            <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto">
+                {sources.map((s, i) => {
+                    const isScanned = i < scannedCount;
+                    return (
+                        <div key={i} className={`group bg-[#121214] border border-white/5 p-4 rounded-xl relative overflow-hidden transition-all duration-500 ${isScanned ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                            {isScanned && i % 2 === 0 && (
+                                <div className="absolute top-0 left-0 w-full h-0.5 bg-[#69B7B2] animate-[loading_2s_ease-in-out_infinite]" />
+                            )}
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`p-2.5 rounded-lg bg-white/5 ${s.color}`}>
+                                    {s.type === 'cloud' ? <Globe size={18} /> : 
+                                     s.type === 'db' ? <Database size={18} /> : 
+                                     s.type === 'server' ? <Server size={18} /> : 
+                                     s.type === 'mail' ? <Mail size={18} /> :
+                                     <MessageSquare size={18} />}
                                 </div>
-                            ))
-                        )}
-                        
-                        {/* Dropzone visual */}
-                        <div className="border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-gray-500 gap-2 h-32 hover:border-[#69B7B2]/50 hover:bg-[#69B7B2]/5 transition-colors cursor-pointer group">
-                            <div className="p-2 rounded-full bg-white/5 group-hover:bg-[#69B7B2]/20 transition-colors">
-                                <Plus size={16} className="group-hover:text-[#69B7B2]" />
+                                <div className={`text-[9px] font-bold uppercase px-2 py-1 rounded border ${i === 2 ? 'border-[#69B7B2]/30 text-[#69B7B2] bg-[#69B7B2]/10 animate-pulse' : 'border-white/10 text-white/30'}`}>
+                                    {i === 2 ? 'Scanning' : s.status}
+                                </div>
                             </div>
-                            <span className="text-xs font-medium group-hover:text-[#69B7B2]">Add Source</span>
+                            <h4 className="text-white font-medium text-sm mb-1">{s.name}</h4>
+                            <p className="text-white/30 text-xs font-mono">{s.size}</p>
                         </div>
+                    );
+                })}
+                
+                <div className="border border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer min-h-[120px]">
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                        <Plus size={16} />
                     </div>
+                    <span className="text-xs font-medium">Connect New</span>
                 </div>
             </div>
         </div>
     );
 };
 
-// --- 2. STREAM (Simulated Terminal / Log Aggregator) ---
+// --- 2. STREAM (AI Agent Data Processing) ---
 const StreamApp = ({ active }: { active: boolean }) => {
-    const [logs, setLogs] = useState<any[]>([]);
-    const bottomRef = useRef<HTMLDivElement>(null);
-
+    const [events, setEvents] = useState<any[]>([]);
+    
+    // Simulate incoming data stream
     useEffect(() => {
-        if(!active) return;
-        setLogs([]);
-        
-        const types = ['INFO', 'WARN', 'SUCCESS', 'DEBUG'];
-        const sources = ['stripe_connector', 'auth_service', 'pdf_parser', 'crm_sync'];
-        const messages = [
-            "Payment webhook received id=evt_1M",
-            "Rate limit approaching (80%)",
-            "Successfully extracted metadata from INV-2024.pdf",
-            "User session established",
-            "Syncing batch #4921...",
-            "Detected PII in payload, applying redaction",
-            "Latency spike detected on node us-east-1a"
+        if (!active) {
+            setEvents([]);
+            return;
+        }
+
+        const templates = [
+            { type: 'invoice', raw: "INV-2921 from Acme Corp ($4,200) - Overdue", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+            { type: 'email', raw: "Subject: Project Alpha delays - Urgent", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+            { type: 'log', raw: "Error: Database timeout on cluster us-east-1", color: "text-red-400", bg: "bg-red-400/10", border: "border-red-400/20" },
+            { type: 'slack', raw: "@channel deployment failed in staging", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" }
         ];
 
         const interval = setInterval(() => {
-            const newLog = {
+            const template = templates[Math.floor(Math.random() * templates.length)];
+            const newEvent = {
                 id: Date.now(),
-                ts: new Date().toISOString().split('T')[1].split('.')[0],
-                type: types[Math.floor(Math.random() * types.length)],
-                source: sources[Math.floor(Math.random() * sources.length)],
-                msg: messages[Math.floor(Math.random() * messages.length)]
+                ...template,
+                status: 'pending', // pending -> processing -> done
+                agent: null
             };
-            setLogs(prev => [...prev.slice(-15), newLog]);
-        }, 800);
+            
+            setEvents(prev => [newEvent, ...prev].slice(0, 6)); // Keep last 6
+        }, 1500);
 
         return () => clearInterval(interval);
     }, [active]);
 
+    // Simulate Agent Processing
     useEffect(() => {
-        if(bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
+        if (!active) return;
+        
+        const processInterval = setInterval(() => {
+            setEvents(prev => {
+                // Find pending event
+                const targetIdx = prev.findIndex(e => e.status === 'pending');
+                if (targetIdx === -1) return prev; // Nothing to do
+
+                const next = [...prev];
+                // Start processing
+                next[targetIdx] = { ...next[targetIdx], status: 'processing', agent: 'Analyzer_Bot' };
+                
+                // Finish processing shortly after
+                setTimeout(() => {
+                    setEvents(curr => {
+                        const doneNext = [...curr];
+                        const doneIdx = doneNext.findIndex(e => e.id === next[targetIdx].id);
+                        if (doneIdx !== -1) {
+                            doneNext[doneIdx] = { ...doneNext[doneIdx], status: 'done', agent: null };
+                        }
+                        return doneNext;
+                    });
+                }, 1000);
+
+                return next;
+            });
+        }, 800);
+
+        return () => clearInterval(processInterval);
+    }, [active]);
 
     return (
-        <div className="w-full h-full bg-[#0c0c0e] font-mono text-xs flex flex-col">
-            <div className="h-10 bg-[#1a1a1c] border-b border-white/5 flex items-center px-4 justify-between">
-                <div className="flex gap-4 text-gray-400">
-                    <span className="text-white font-bold border-b-2 border-[#69B7B2] pb-2.5">Live Tail</span>
-                    <span className="hover:text-white cursor-pointer">Analytics</span>
-                    <span className="hover:text-white cursor-pointer">Settings</span>
+        <div className="w-full h-full bg-[#0a0a0c] flex flex-col font-mono text-xs overflow-hidden relative">
+            {/* Header */}
+            <div className="h-10 bg-[#111] border-b border-white/5 flex items-center px-4 gap-4">
+                <div className="flex items-center gap-2 text-green-400">
+                    <Activity size={12} className="animate-pulse" />
+                    <span className="font-bold">LIVE_FEED</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-green-500">Connected</span>
-                </div>
-            </div>
-            
-            <div className="flex-1 p-4 overflow-y-auto space-y-1 custom-scrollbar">
-                {logs.map(log => (
-                    <div key={log.id} className="grid grid-cols-[80px_60px_120px_1fr] gap-2 hover:bg-white/5 p-1 rounded transition-colors border-l-2 border-transparent hover:border-white/20 animate-in slide-in-from-left-2 duration-200">
-                        <span className="text-gray-500">{log.ts}</span>
-                        <span className={`${log.type === 'WARN' ? 'text-amber-400' : log.type === 'SUCCESS' ? 'text-green-400' : log.type === 'DEBUG' ? 'text-gray-600' : 'text-blue-400'} font-bold`}>
-                            {log.type}
-                        </span>
-                        <span className="text-purple-400">{log.source}</span>
-                        <span className="text-gray-300 truncate">{log.msg}</span>
-                    </div>
-                ))}
-                <div ref={bottomRef} />
+                <div className="flex-1 h-px bg-white/5" />
+                <div className="text-white/30">4 Agents Active</div>
             </div>
 
-            <div className="h-8 bg-[#1a1a1c] border-t border-white/5 flex items-center px-4 text-gray-500 gap-4">
-                <Terminal size={12} />
-                <span>Filter: service:production</span>
+            {/* Stream Content */}
+            <div className="flex-1 p-4 space-y-4 overflow-hidden relative">
+                {/* Background Grid */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '100% 20px' }} />
+
+                {events.map((ev) => (
+                    <div key={ev.id} className="relative pl-8 group animate-in slide-in-from-top-2 duration-500">
+                        {/* Timeline Line */}
+                        <div className="absolute left-3 top-0 bottom-0 w-px bg-white/10 group-last:bg-gradient-to-b group-last:from-white/10 group-last:to-transparent" />
+                        
+                        {/* Status Dot */}
+                        <div className={`absolute left-[9px] top-4 w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
+                            ev.status === 'done' ? 'bg-[#69B7B2] shadow-[0_0_8px_#69B7B2]' : 
+                            ev.status === 'processing' ? 'bg-amber-400 animate-ping' : 
+                            'bg-white/20'
+                        }`} />
+
+                        <div className={`relative p-3 rounded-lg border transition-all duration-500 ${
+                            ev.status === 'processing' ? 'bg-[#151517] border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)] translate-x-2' : 
+                            ev.status === 'done' ? 'bg-[#0f1110] border-[#69B7B2]/20 opacity-60' : 
+                            'bg-transparent border-transparent opacity-40'
+                        }`}>
+                            
+                            {/* Agent Cursor Overlay */}
+                            {ev.status === 'processing' && (
+                                <div className="absolute -right-3 -top-3 flex items-center gap-2 bg-amber-500 text-black px-3 py-1 rounded-full text-[9px] font-bold animate-bounce z-10 shadow-lg border border-white/20">
+                                    <Bot size={12} /> Analyzing...
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center mb-2">
+                                <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${ev.bg} ${ev.color} ${ev.border} border`}>
+                                    {ev.type === 'invoice' && <FileText size={10} />}
+                                    {ev.type === 'email' && <Mail size={10} />}
+                                    {ev.type === 'log' && <Terminal size={10} />}
+                                    {ev.type === 'slack' && <MessageSquare size={10} />}
+                                    {ev.type}
+                                </div>
+                                <span className="text-white/20 font-mono text-[9px]">{new Date(ev.id).toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}</span>
+                            </div>
+                            
+                            <div className="text-white/80 truncate font-sans text-sm mb-1">{ev.raw}</div>
+                            
+                            {/* Enrichment Data */}
+                            {ev.status === 'done' && (
+                                <div className="mt-2 flex gap-2 animate-in fade-in">
+                                    <span className="bg-[#69B7B2]/10 text-[#69B7B2] px-1.5 py-0.5 rounded border border-[#69B7B2]/20 flex items-center gap-1">
+                                        <CheckCircle2 size={8} /> Processed
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
 };
 
-// --- 3. CONTEXT (Simulated Doc Editor / Analysis) ---
+// --- 3. CONTEXT (Schema Mapping) ---
 const ContextApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#191919] flex overflow-hidden">
-            {/* Doc View */}
-            <div className="flex-1 bg-white p-8 md:p-12 shadow-inner overflow-y-auto custom-scrollbar text-black">
-                <div className="max-w-2xl mx-auto space-y-6">
-                    <div className="h-8 w-3/4 bg-gray-100 rounded animate-pulse" />
-                    <div className="space-y-2">
-                        <div className="h-4 w-full bg-gray-50 rounded" />
-                        <div className="h-4 w-full bg-gray-50 rounded" />
-                        <div className="h-4 w-2/3 bg-gray-50 rounded" />
+        <div className="w-full h-full bg-[#0f0f11] flex flex-col relative overflow-hidden">
+            {/* Split View */}
+            <div className="flex-1 flex">
+                {/* Left: Unstructured Source */}
+                <div className="w-1/2 border-r border-white/5 p-6 space-y-4">
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <FileText size={12} /> Source Document
                     </div>
-                    
-                    {/* Highlighted Section */}
-                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 relative group transition-all hover:bg-purple-100">
-                        <div className="absolute -right-3 -top-3 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
-                            <Bot size={12} />
-                        </div>
-                        <p className="text-gray-800 text-sm leading-relaxed font-serif">
-                            "The Contractor agrees to indemnify the Client against all claims arising from negligence. 
-                            <span className="bg-yellow-200/50 px-1 rounded mx-1 cursor-pointer border-b-2 border-yellow-400 font-semibold">Termination requires 30 days notice</span> 
-                            via certified mail."
-                        </p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="h-4 w-full bg-gray-50 rounded" />
-                        <div className="h-4 w-5/6 bg-gray-50 rounded" />
+                    <div className="text-white/60 text-xs leading-relaxed font-mono p-4 bg-white/5 rounded-lg border border-white/5 shadow-inner">
+                        <span className="bg-blue-500/20 text-blue-300 px-1 rounded">INVOICE #9921</span><br/>
+                        Vendor: <span className="bg-purple-500/20 text-purple-300 px-1 rounded">Acme Corp</span><br/>
+                        Date: <span className="bg-green-500/20 text-green-300 px-1 rounded">Oct 24, 2025</span><br/>
+                        Items: Server Racks (x4)<br/>
+                        Total: <span className="bg-amber-500/20 text-amber-300 px-1 rounded">$12,400.00</span>
                     </div>
                 </div>
-            </div>
 
-            {/* Analysis Sidebar */}
-            <div className="w-80 bg-[#0f0f11] border-l border-white/5 flex flex-col">
-                <div className="p-4 border-b border-white/5">
-                    <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                        <Sparkles size={14} className="text-[#69B7B2]" /> Context AI
-                    </h3>
+                {/* Center: Connector Lines (Canvas simulated via SVG) */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <svg className="w-full h-full">
+                        <path d="M 200 120 C 300 120, 300 100, 400 100" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
+                        <path d="M 200 140 C 300 140, 300 160, 400 160" fill="none" stroke="#a855f7" strokeWidth="2" strokeOpacity="0.5" />
+                        <path d="M 200 200 C 300 200, 300 220, 400 220" fill="none" stroke="#f59e0b" strokeWidth="2" strokeOpacity="0.5" />
+                    </svg>
                 </div>
-                <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                    {/* Entity Card */}
-                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5 animate-in slide-in-from-right-4 duration-500 delay-100">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Detected Entity</div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                <Briefcase size={16} />
-                            </div>
-                            <div>
-                                <div className="text-white text-xs font-bold">Termination Clause</div>
-                                <div className="text-gray-500 text-[10px]">Legal • High Risk</div>
-                            </div>
+
+                {/* Right: Structured Schema */}
+                <div className="w-1/2 p-6 space-y-4 bg-[#0a0a0c]">
+                    <div className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <FileJson size={12} /> Normalized Schema
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-blue-500/30">
+                            <span className="text-blue-400 text-xs font-bold">id</span>
+                            <span className="text-white text-xs">"INV-9921"</span>
                         </div>
-                    </div>
-
-                    {/* Sentiment */}
-                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5 animate-in slide-in-from-right-4 duration-500 delay-200">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Analysis</div>
-                        <p className="text-xs text-gray-300 leading-relaxed">
-                            This clause deviates from the standard MSA template. Usually 14 days notice is sufficient. 
-                            <span className="text-[#69B7B2] cursor-pointer hover:underline ml-1">View precedent</span>
-                        </p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="space-y-2 animate-in slide-in-from-right-4 duration-500 delay-300">
-                        <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-xs text-white transition-colors">
-                            Draft Amendment
-                        </button>
-                        <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-xs text-white transition-colors">
-                            Flag for Review
-                        </button>
+                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-purple-500/30">
+                            <span className="text-purple-400 text-xs font-bold">entity</span>
+                            <span className="text-white text-xs">"Acme Corp"</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-white/5">
+                            <span className="text-gray-500 text-xs font-bold">date_iso</span>
+                            <span className="text-white text-xs">"2025-10-24"</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-amber-500/30">
+                            <span className="text-amber-400 text-xs font-bold">amount</span>
+                            <span className="text-white text-xs">12400.00</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -314,261 +310,151 @@ const ContextApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 4. CAPTURE (Simulated Workflow/Logic Builder) ---
+// --- 4. CAPTURE (Logic Builder) ---
 const CaptureApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#111113] relative overflow-hidden flex cursor-grab active:cursor-grabbing">
-            {/* Background Grid */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none" 
-                style={{ 
-                    backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', 
-                    backgroundSize: '20px 20px' 
-                }} 
-            />
+        <div className="w-full h-full bg-[#111113] relative overflow-hidden">
+            {/* Dot Grid */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
-            {/* Nodes */}
-            <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2 z-10 animate-in zoom-in-95 duration-500">
-                <div className="w-64 bg-[#1a1a1c] border border-green-500/50 rounded-xl shadow-xl p-4 relative group">
-                    <div className="absolute -top-3 left-4 bg-green-500/10 border border-green-500/50 text-green-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Trigger</div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/5 rounded-lg"><Mail size={16} className="text-white"/></div>
-                        <div className="text-sm font-bold text-white">New Invoice Email</div>
+            <div className="absolute inset-0 flex items-center justify-center">
+                {/* Flowchart */}
+                <div className="relative w-full max-w-lg h-64">
+                    {/* Node 1 */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 bg-[#1a1a1c] border border-white/10 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Mail size={16}/></div>
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase font-bold">Trigger</div>
+                            <div className="text-xs text-white font-bold">Invoice Received</div>
+                        </div>
                     </div>
-                    <div className="text-[10px] text-gray-500">Source: billing@company.com</div>
-                    
-                    {/* Output Dot */}
-                    <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-green-500 rounded-full z-10" />
-                </div>
-            </div>
 
-            {/* Connector Line */}
-            <svg className="absolute inset-0 pointer-events-none z-0">
-                <path d="M 300 300 C 400 300, 400 300, 500 300" fill="none" stroke="#69B7B2" strokeWidth="2" strokeDasharray="5 5" className="animate-[dash_20s_linear_infinite]" />
-            </svg>
-
-            <div className="absolute top-1/2 left-3/4 -translate-y-1/2 -translate-x-1/2 z-10 animate-in zoom-in-95 duration-500 delay-100">
-                <div className="w-64 bg-[#1a1a1c] border border-blue-500/50 rounded-xl shadow-xl p-4 relative">
-                    {/* Input Dot */}
-                    <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-500 rounded-full z-10" />
-                    
-                    <div className="absolute -top-3 left-4 bg-blue-500/10 border border-blue-500/50 text-blue-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Action</div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/5 rounded-lg"><Database size={16} className="text-white"/></div>
-                        <div className="text-sm font-bold text-white">Update CRM</div>
+                    {/* Connecting Line Vertical */}
+                    <div className="absolute top-8 left-1/2 w-0.5 h-16 bg-white/10 -translate-x-1/2">
+                        <div className="absolute top-0 left-0 w-full h-1/2 bg-[#69B7B2] animate-[drop_1.5s_infinite]" />
                     </div>
-                    <div className="text-[10px] text-gray-500">Match Record ID & Attach PDF</div>
-                </div>
-            </div>
 
-            {/* Floating Palette */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#1a1a1c] border border-white/10 rounded-full px-6 py-3 flex gap-6 shadow-2xl z-20">
-                <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Zap size={14} className="text-yellow-400"/></div>
-                    <span className="text-[9px] text-gray-500">Trigger</span>
-                </div>
-                <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><GitMerge size={14} className="text-purple-400"/></div>
-                    <span className="text-[9px] text-gray-500">Logic</span>
-                </div>
-                <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Play size={14} className="text-blue-400"/></div>
-                    <span className="text-[9px] text-gray-500">Action</span>
+                    {/* Node 2 (Logic) */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 bg-[#1a1a1c] border border-amber-500/30 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
+                        <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg"><GitMerge size={16}/></div>
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase font-bold">Logic</div>
+                            <div className="text-xs text-white font-bold">Amount {'>'} $10k?</div>
+                        </div>
+                    </div>
+
+                    {/* Paths */}
+                    <div className="absolute top-[calc(50%+2rem)] left-1/2 w-32 h-16 border-l-2 border-b-2 border-white/10 rounded-bl-3xl -translate-x-full" />
+                    <div className="absolute top-[calc(50%+2rem)] right-1/2 w-32 h-16 border-r-2 border-b-2 border-white/10 rounded-br-3xl -translate-x-0" />
+
+                    {/* Leaf Nodes */}
+                    <div className="absolute bottom-0 left-8 w-32 bg-[#1a1a1c] border border-white/10 rounded-lg p-2 text-center shadow-lg">
+                        <div className="text-[10px] text-red-400 font-bold">Flag for Review</div>
+                    </div>
+                    <div className="absolute bottom-0 right-8 w-32 bg-[#1a1a1c] border border-white/10 rounded-lg p-2 text-center shadow-lg">
+                        <div className="text-[10px] text-green-400 font-bold">Auto-Approve</div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-// --- 5. CONTROL (Graph / Knowledge Base) ---
+// --- 5. CONTROL (Graph) ---
 const ControlApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#050505] relative flex overflow-hidden">
+        <div className="w-full h-full bg-[#050505] relative overflow-hidden flex items-center justify-center">
+            {/* Central Node */}
+            <div className="absolute z-20 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.3)] animate-pulse">
+                <Shield size={32} className="text-black" />
+            </div>
+
+            {/* Orbiting Satellites */}
+            {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                <div 
+                    key={i}
+                    className="absolute w-64 h-1 bg-gradient-to-r from-white/20 to-transparent origin-left"
+                    style={{ transform: `rotate(${deg + (active ? i*10 : 0)}deg)` }}
+                >
+                    <div className="absolute right-0 -top-4 w-8 h-8 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center z-10 hover:scale-125 transition-transform cursor-pointer">
+                        <div className="w-2 h-2 bg-[#69B7B2] rounded-full" />
+                    </div>
+                </div>
+            ))}
+            
             {/* Sidebar Overlay */}
-            <div className="absolute left-4 top-4 z-10 w-64 bg-black/80 backdrop-blur border border-white/10 rounded-lg p-4 shadow-xl">
-                <div className="flex items-center gap-2 mb-4 text-white/50 text-xs">
-                    <Network size={14} /> Knowledge Graph
-                </div>
+            <div className="absolute left-4 top-4 bg-black/80 backdrop-blur border border-white/10 p-4 rounded-xl w-48">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Knowledge Graph</div>
                 <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
-                        <span>Acme Corp</span>
-                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Client</span>
+                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full w-3/4 bg-[#69B7B2]" />
                     </div>
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
-                        <span>MSA_2024.pdf</span>
-                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Contract</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
-                        <span>Risk Policy A</span>
-                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Rule</span>
+                    <div className="flex justify-between text-[10px] text-white/60">
+                        <span>Entities</span>
+                        <span>842</span>
                     </div>
                 </div>
-                
-                <div className="mt-4 pt-4 border-t border-white/10">
-                    <div className="text-[10px] text-gray-500 mb-2">Cypher Query</div>
-                    {/* Fixed: Escape the '>' character in the query string */}
-                    <div className="font-mono text-[10px] text-[#69B7B2] bg-black p-2 rounded border border-white/10">
-                        MATCH (n:Client)-[r:HAS_CONTRACT]-&gt;(c) RETURN n,r,c LIMIT 1
-                    </div>
-                </div>
-            </div>
-
-            {/* Simulated Graph */}
-            <div className="flex-1 relative flex items-center justify-center">
-                {/* Center Node */}
-                <div className="absolute w-16 h-16 bg-white rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center justify-center z-10 border-4 border-[#050505] text-black font-bold text-xs animate-pulse">
-                    ACME
-                </div>
-                
-                {/* Connections */}
-                {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                    <div key={i} className="absolute w-[200px] h-[2px] bg-white/10 origin-left animate-in fade-in duration-1000" style={{ transform: `rotate(${deg}deg) translateX(30px)`, animationDelay: `${i*100}ms` }}>
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center hover:scale-125 transition-transform cursor-pointer" style={{ transform: `rotate(${-deg}deg)` }}>
-                            {i % 2 === 0 ? <FileText size={12} className="text-red-400"/> : <ShieldCheck size={12} className="text-amber-400"/>}
-                        </div>
-                    </div>
-                ))}
             </div>
         </div>
     );
 };
 
-// --- 6. BRIDGE (Task / Agent Fleet) ---
+// --- 6. BRIDGE (Agent Fleet) ---
 const BridgeApp = ({ active }: { active: boolean }) => {
+    const agents = [
+        { name: "Compliance_Bot", status: "Auditing", progress: 65, color: "bg-blue-500" },
+        { name: "Risk_Analyzer", status: "Idle", progress: 0, color: "bg-white/20" },
+        { name: "Outreach_Agent", status: "Sending", progress: 32, color: "bg-green-500" },
+        { name: "Data_Miner", status: "Extraction", progress: 88, color: "bg-purple-500" }
+    ];
+
     return (
-        <div className="w-full h-full bg-[#f4f5f7] text-gray-800 font-sans flex flex-col">
-            <div className="h-12 border-b border-gray-200 bg-white flex items-center px-4 justify-between">
-                <div className="flex items-center gap-4">
-                    <span className="font-bold text-gray-700">Agent Operations</span>
-                    <div className="flex bg-gray-100 p-0.5 rounded">
-                        <div className="px-3 py-0.5 bg-white shadow rounded text-xs font-medium">Board</div>
-                        <div className="px-3 py-0.5 text-gray-500 text-xs font-medium">List</div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">4 Active Agents</span>
-                    <div className="flex -space-x-2">
-                        {[1,2,3].map(i => (
-                            <div key={i} className="w-6 h-6 rounded-full bg-gray-300 border-2 border-white" />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex-1 p-6 overflow-x-auto flex gap-6">
-                {/* Column 1: Backlog */}
-                <div className="w-72 flex-shrink-0 flex flex-col">
-                    <div className="text-xs font-bold text-gray-500 mb-3 flex justify-between">
-                        <span>AWAITING (2)</span>
-                        <Plus size={14} />
-                    </div>
-                    <div className="space-y-3">
-                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow">
-                            <div className="text-sm font-medium mb-2">Parse Q3 Invoices</div>
-                            <div className="flex items-center justify-between">
-                                <div className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Finance</div>
-                                <Bot size={14} className="text-gray-400" />
-                            </div>
+        <div className="w-full h-full bg-[#0c0c0e] p-8 grid grid-cols-2 gap-4 overflow-y-auto">
+            {agents.map((a, i) => (
+                <div key={i} className="bg-[#151517] border border-white/5 p-4 rounded-xl flex flex-col justify-between hover:border-white/20 transition-all">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                            <Bot size={20} className="text-white/60" />
                         </div>
-                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move">
-                            <div className="text-sm font-medium mb-2">Sync Salesforce Contacts</div>
-                            <div className="flex items-center justify-between">
-                                <div className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Sales</div>
-                                <Bot size={14} className="text-gray-400" />
-                            </div>
+                        <div className={`text-[9px] font-bold uppercase px-2 py-1 rounded ${a.status === 'Idle' ? 'bg-white/5 text-white/30' : 'bg-white/10 text-white'}`}>
+                            {a.status}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-white font-bold text-xs mb-2">{a.name}</h4>
+                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className={`h-full ${a.color} transition-all duration-1000`} style={{ width: `${a.progress}%` }} />
                         </div>
                     </div>
                 </div>
-
-                {/* Column 2: Active */}
-                <div className="w-72 flex-shrink-0 flex flex-col">
-                    <div className="text-xs font-bold text-gray-500 mb-3">PROCESSING (1)</div>
-                    <div className="space-y-3">
-                        <div className="bg-white p-3 rounded shadow-sm border-l-4 border-green-500 cursor-pointer hover:bg-green-50/10 transition-colors">
-                            <div className="text-sm font-medium mb-2">Drafting Renewal Contracts</div>
-                            <div className="w-full bg-gray-100 h-1.5 rounded-full mb-3 overflow-hidden">
-                                <div className="bg-green-500 h-full w-2/3 animate-[pulse_2s_infinite]" />
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <div className="w-4 h-4 rounded bg-green-100 flex items-center justify-center text-green-600"><Bot size={10}/></div>
-                                <span>Legal_Agent_01</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Column 3: Done */}
-                <div className="w-72 flex-shrink-0 flex flex-col">
-                    <div className="text-xs font-bold text-gray-500 mb-3">COMPLETE</div>
-                    <div className="space-y-3 opacity-60">
-                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200">
-                            <div className="text-sm font-medium mb-2 line-through text-gray-400">Daily Audit Report</div>
-                            <div className="flex items-center justify-between">
-                                <div className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] font-bold">Compliance</div>
-                                <Check size={14} className="text-green-500" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            ))}
         </div>
     );
 };
 
-// --- 7. REFLECT (Performance Dashboard) ---
+// --- 7. REFLECT (Metrics) ---
 const ReflectApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#0f1117] text-white p-6 grid grid-cols-3 gap-6 font-sans">
-            {/* Header / Stats */}
-            <div className="col-span-3 flex items-end justify-between mb-2">
-                <div>
-                    <h2 className="text-xl font-bold">Model Performance</h2>
-                    <p className="text-xs text-gray-500">Last 24 Hours • Production Env</p>
+        <div className="w-full h-full bg-[#08080a] p-8 flex flex-col justify-center items-center">
+            <div className="w-full max-w-sm space-y-6">
+                <div className="flex items-center justify-between text-white mb-2">
+                    <span className="text-sm font-bold">Model Accuracy</span>
+                    <span className="text-[#69B7B2] font-mono">98.4%</span>
                 </div>
-                <div className="flex gap-2">
-                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Retrain</button>
-                    <button className="bg-[#1f2937] hover:bg-[#374151] px-3 py-1.5 rounded text-xs font-bold transition-colors">Export Logs</button>
-                </div>
-            </div>
-
-            {/* Main Chart */}
-            <div className="col-span-2 bg-[#1f2937] rounded-xl p-4 border border-white/5 relative overflow-hidden">
-                <div className="flex justify-between items-center mb-6">
-                    <span className="text-xs font-bold text-gray-400 uppercase">Accuracy vs Confidence</span>
-                    <MoreHorizontal size={14} className="text-gray-500" />
-                </div>
-                
-                {/* Fake Chart CSS */}
-                <div className="h-40 flex items-end justify-between gap-1 px-2">
-                    {[40, 65, 55, 80, 70, 85, 90, 85, 95, 92, 96, 94, 98].map((h, i) => (
-                        <div key={i} className="w-full bg-blue-500/20 hover:bg-blue-500 transition-colors rounded-t-sm relative group" style={{ height: `${h}%` }}>
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 border border-white/20">
-                                {h}%
-                            </div>
-                        </div>
+                <div className="h-32 flex items-end gap-1">
+                    {[40, 65, 50, 80, 75, 90, 85, 95, 92, 98].map((h, i) => (
+                        <div key={i} className="flex-1 bg-white/10 hover:bg-[#69B7B2] transition-colors rounded-t-sm" style={{ height: `${h}%` }} />
                     ))}
                 </div>
-                {/* Overlay Line */}
-                <svg className="absolute bottom-4 left-6 right-6 h-40 w-[90%] pointer-events-none" preserveAspectRatio="none">
-                    <path d="M0,100 C 50,80 100,90 150,40 S 300,50 400,20 S 500,10 600,5" fill="none" stroke="#69B7B2" strokeWidth="2" />
-                </svg>
-            </div>
-
-            {/* Right Column Stats */}
-            <div className="col-span-1 space-y-4">
-                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Drift Detected</div>
-                    <div className="text-2xl font-bold text-amber-400">2.4%</div>
-                    <div className="text-[10px] text-gray-500 mt-1">Within tolerance (5%)</div>
-                </div>
-                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Human Review</div>
-                    <div className="text-2xl font-bold text-white">14</div>
-                    <div className="text-[10px] text-gray-500 mt-1">Items flagged for review</div>
-                </div>
-                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Est. Cost Savings</div>
-                    <div className="text-2xl font-bold text-green-400">$4,200</div>
-                    <div className="text-[10px] text-gray-500 mt-1">This month</div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
+                        <div className="text-2xl font-bold text-white mb-1">12ms</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Latency</div>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
+                        <div className="text-2xl font-bold text-white mb-1">0</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Hallucinations</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -578,112 +464,164 @@ const ReflectApp = ({ active }: { active: boolean }) => {
 // --- MAIN CONTAINER ---
 export const FeatureShowcase: React.FC = () => {
     const [activeStage, setActiveStage] = useState(0);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const stages = [
-        { id: 'locate', label: 'Locate', icon: HardDrive, comp: LocateApp, color: '#FF5F56' },
-        { id: 'stream', label: 'Stream', icon: Activity, comp: StreamApp, color: '#FFBD2E' },
-        { id: 'context', label: 'Context', icon: Layers, comp: ContextApp, color: '#27C93F' },
-        { id: 'capture', label: 'Capture', icon: Zap, comp: CaptureApp, color: '#22d3ee' },
-        { id: 'control', label: 'Control', icon: Network, comp: ControlApp, color: '#a78bfa' },
-        { id: 'bridge', label: 'Bridge', icon: Cpu, comp: BridgeApp, color: '#f472b6' },
-        { id: 'reflect', label: 'Reflect', icon: RefreshCw, comp: ReflectApp, color: '#34d399' },
+        { id: 'locate', label: 'Locate', desc: "Connect & Index", icon: HardDrive, comp: LocateApp },
+        { id: 'stream', label: 'Stream', desc: "Real-time Feed", icon: Activity, comp: StreamApp },
+        { id: 'context', label: 'Context', desc: "Schema Map", icon: Layers, comp: ContextApp },
+        { id: 'capture', label: 'Capture', desc: "Logic Builder", icon: Zap, comp: CaptureApp },
+        { id: 'control', label: 'Control', desc: "Knowledge Graph", icon: Network, comp: ControlApp },
+        { id: 'bridge', label: 'Bridge', desc: "Agent Fleet", icon: Cpu, comp: BridgeApp },
+        { id: 'reflect', label: 'Reflect', desc: "Optimization", icon: RefreshCw, comp: ReflectApp },
     ];
 
-    const nextStage = () => { setActiveStage(prev => (prev + 1) % stages.length); };
-    const prevStage = () => { setActiveStage(prev => (prev - 1 + stages.length) % stages.length); };
+    const toggleVideo = () => {
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsVideoPlaying(true);
+            } else {
+                videoRef.current.pause();
+                setIsVideoPlaying(false);
+            }
+        }
+    };
 
     return (
-        <section className="py-32 bg-[#020202] border-t border-white/5 relative">
-            <div className="max-w-7xl mx-auto px-6">
+        <section className="py-24 md:py-32 bg-[#020202] border-t border-white/5 relative">
+            <div className="max-w-[1400px] mx-auto px-6">
                 
                 {/* Header */}
                 <div className="mb-16 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
-                            The Agentic <span className="text-[#69B7B2] italic">Operating System.</span>
+                            The Agentic <span className="text-[#69B7B2] italic">OS.</span>
                         </h2>
                         <p className="mt-6 text-lg text-white/50 font-light">
-                            Seven specialized engines working in concert to locate, understand, and act on your enterprise data.
+                            A complete operating system for enterprise intelligence. From raw data ingestion to autonomous action.
                         </p>
                     </div>
                 </div>
 
-                {/* Main Content Layout */}
-                <div className="flex flex-col gap-8">
+                {/* --- MAIN INTERFACE --- */}
+                <div className="flex flex-col lg:flex-row h-[700px] lg:h-[600px] bg-[#0c0c0e] rounded-3xl border border-white/10 shadow-2xl overflow-hidden ring-1 ring-white/5 relative z-10">
                     
-                    {/* Navigation Pills */}
-                    <div className="flex overflow-x-auto gap-2 pb-4 no-scrollbar">
-                        {stages.map((stage, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setActiveStage(idx)}
-                                className={cn(
-                                    "flex items-center gap-3 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 border flex-shrink-0",
-                                    activeStage === idx 
-                                        ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
-                                        : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white"
-                                )}
-                            >
-                                <stage.icon size={14} />
-                                {stage.label}
-                            </button>
-                        ))}
+                    {/* LEFT SIDEBAR NAVIGATION */}
+                    <div className="w-full lg:w-64 bg-[#08080a] border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col">
+                        
+                        {/* Sidebar Header */}
+                        <div className="p-6 hidden lg:block">
+                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Modules</div>
+                            <div className="h-0.5 w-8 bg-[#69B7B2]" />
+                        </div>
+
+                        {/* Nav Items */}
+                        <div className="flex-1 overflow-x-auto lg:overflow-y-auto flex lg:flex-col p-2 lg:p-4 gap-1 no-scrollbar">
+                            {stages.map((stage, idx) => {
+                                const isActive = activeStage === idx;
+                                return (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setActiveStage(idx)}
+                                        className={cn(
+                                            "flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-300 group min-w-[140px] lg:w-full",
+                                            isActive 
+                                                ? "bg-white/10 text-white shadow-lg border border-white/5" 
+                                                : "text-white/40 hover:text-white hover:bg-white/5 border border-transparent"
+                                        )}
+                                    >
+                                        <stage.icon size={16} className={isActive ? "text-[#69B7B2]" : "text-current opacity-50"} />
+                                        <div>
+                                            <div className="text-xs font-bold uppercase tracking-wider">{stage.label}</div>
+                                            <div className="text-[9px] opacity-50 hidden lg:block font-mono mt-0.5">{stage.desc}</div>
+                                        </div>
+                                        {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#69B7B2] shadow-[0_0_10px_#69B7B2]" />}
+                                    </button>
+                                )
+                            })}
+                        </div>
+
+                        {/* GITO VIDEO AGENT (Bottom Sidebar) */}
+                        <div className="p-4 border-t border-white/5 hidden lg:block">
+                            <div className="relative group cursor-pointer" onClick={toggleVideo}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-[#69B7B2] to-blue-500 rounded-full opacity-30 group-hover:opacity-70 blur transition duration-500" />
+                                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-black bg-black">
+                                    <video 
+                                        ref={videoRef}
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                                        autoPlay 
+                                        loop 
+                                        muted 
+                                        playsInline
+                                        className="w-full h-full object-cover transform scale-110"
+                                    />
+                                    {/* Play/Pause Overlay */}
+                                    {!isVideoPlaying && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <PlayCircle size={20} className="text-white" />
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Status Indicator */}
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full z-10" />
+                                
+                                {/* Tooltip */}
+                                <div className="absolute left-16 top-1/2 -translate-y-1/2 w-32 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <div className="bg-white text-black text-[9px] font-bold px-3 py-2 rounded-lg shadow-xl relative">
+                                        <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-white rotate-45" />
+                                        Gito is online.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* App Container (The "Screen") */}
-                    <div className="relative w-full aspect-[16/10] md:aspect-[21/9] bg-[#0c0c0e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col ring-1 ring-white/5">
+                    {/* RIGHT CONTENT AREA */}
+                    <div className="flex-1 flex flex-col relative bg-[#0c0c0e]">
                         
-                        {/* Fake Browser Chrome / Window Header */}
-                        <WindowHeader 
-                            title={stages[activeStage].label + "_Module"} 
-                            icon={stages[activeStage].icon}
-                            activeStage={activeStage}
-                        />
+                        {/* OS Header */}
+                        <WindowHeader title={`${stages[activeStage].label}_OS`} icon={stages[activeStage].icon} />
 
-                        {/* Content Area */}
-                        <div className="flex-1 relative overflow-hidden bg-black/50 backdrop-blur-sm">
+                        {/* Stage Component Container */}
+                        <div className="flex-1 relative overflow-hidden bg-[#050505] shadow-inner">
                             {stages.map((stage, idx) => {
                                 const Component = stage.comp;
+                                const isActive = activeStage === idx;
                                 return (
                                     <div 
                                         key={idx}
                                         className={cn(
-                                            "absolute inset-0 transition-all duration-500 ease-out flex flex-col",
-                                            activeStage === idx 
+                                            "absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
+                                            isActive 
                                                 ? "opacity-100 z-10 translate-y-0 scale-100 filter-none" 
-                                                : "opacity-0 z-0 translate-y-4 scale-95 pointer-events-none"
+                                                : "opacity-0 z-0 translate-y-8 scale-95 pointer-events-none"
                                         )}
                                     >
-                                        <Component active={activeStage === idx} />
+                                        <Component active={isActive} />
                                     </div>
                                 );
                             })}
                         </div>
 
                     </div>
-                    
-                    {/* Caption / Helper Text */}
-                    <div className="flex justify-between items-start text-white/30 text-sm font-mono mt-4">
-                        <div className="max-w-md">
-                            <span className="text-[#69B7B2] font-bold">
-                                {stages[activeStage].label}:
-                            </span> 
-                            <span className="ml-2">
-                                {activeStage === 0 && "Connects to fragmented silos (Drives, ERPs, APIs) to index raw business data."}
-                                {activeStage === 1 && "Ingests live operational events in real-time, creating a normalized activity stream."}
-                                {activeStage === 2 && "Structures unstructured text, identifying entities, sentiment, and risks."}
-                                {activeStage === 3 && "Allows leaders to define deterministic rules and triggers without writing code."}
-                                {activeStage === 4 && "Visualizes hidden relationships between clients, contracts, and assets."}
-                                {activeStage === 5 && "Deploys autonomous agents to execute tasks within defined boundaries."}
-                                {activeStage === 6 && "Monitors agent performance, detecting drift and initiating retraining loops."}
-                            </span>
-                        </div>
-                        <div className="flex gap-4">
-                            <button onClick={prevStage} className="hover:text-white transition-colors"><ArrowLeft size={20}/></button>
-                            <button onClick={nextStage} className="hover:text-white transition-colors"><ArrowRight size={20}/></button>
-                        </div>
-                    </div>
+                </div>
 
+                {/* Mobile Nav Helper */}
+                <div className="mt-6 flex justify-between items-center lg:hidden">
+                    <button onClick={() => setActiveStage(prev => (prev - 1 + stages.length) % stages.length)} className="text-white/50 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+                        <ArrowLeft size={14} /> Previous
+                    </button>
+                    <div className="flex gap-1.5">
+                        {stages.map((_, i) => (
+                            <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === activeStage ? 'bg-[#69B7B2]' : 'bg-white/10'}`} />
+                        ))}
+                    </div>
+                    <button onClick={() => setActiveStage(prev => (prev + 1) % stages.length)} className="text-white/50 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+                        Next <ArrowRight size={14} />
+                    </button>
                 </div>
 
             </div>
