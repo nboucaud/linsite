@@ -22,36 +22,36 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         let time = 0;
         
         // --- STATE MANAGEMENT ---
-        // We maintain state in a mutable object to persist across frames without React re-renders
         const state: any = {
             width: 0,
             height: 0,
             particles: [],
             nodes: [],
+            links: [], // For core mode network
             grid: [],
             columns: [], // For translation mode
+            task: null, // For swarm mode (legacy ref, reused for agent state)
+            agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 }, // New Agent State
+            boxes: [], // Conveyor items
+            stack: [], // Processed items
             initializedMode: null
         };
 
         const resize = () => {
             const rect = container.getBoundingClientRect();
-            // Scaling for high DPI displays
             const dpr = window.devicePixelRatio || 1;
             
             canvas.width = rect.width * dpr;
             canvas.height = rect.height * dpr;
             
-            // CSS size
             canvas.style.width = `${rect.width}px`;
             canvas.style.height = `${rect.height}px`;
             
-            // Normalize coordinate system
             ctx.scale(dpr, dpr);
             
             state.width = rect.width;
             state.height = rect.height;
             
-            // Re-init if dimensions changed significantly or first run
             if (mode !== state.initializedMode) {
                 init(rect.width, rect.height);
             }
@@ -60,21 +60,25 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         const init = (w: number, h: number) => {
             state.particles = [];
             state.nodes = [];
+            state.links = [];
             state.grid = [];
             state.columns = [];
+            state.task = null;
+            state.boxes = [];
+            state.stack = [];
+            state.agent = { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 };
             state.initializedMode = mode;
 
             if (mode === 'search') {
-                // DATA MODERNIZATION: Chaos to Order
                 const particleCount = 80;
                 for(let i=0; i<particleCount; i++) {
                     state.particles.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        vx: 2 + Math.random() * 1.5, // Faster base speed
-                        vy: (Math.random() - 0.5) * 0.5, // Subtle drift
-                        targetLane: Math.floor(Math.random() * 5), // 5 Clean Lanes
-                        size: 0.5 + Math.random() * 0.5 // Base size
+                        vx: 2 + Math.random() * 1.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        targetLane: Math.floor(Math.random() * 5),
+                        size: 0.5 + Math.random() * 0.5
                     });
                 }
             }
@@ -110,20 +114,50 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     });
                 }
             }
-            else if (mode === 'swarm') {
-                for(let i=0; i<30; i++) {
-                    state.particles.push({
-                        x: w/2, y: h/2,
-                        vx: (Math.random()-0.5)*2,
-                        vy: (Math.random()-0.5)*2
-                    });
-                }
-            }
-            else if (mode === 'translation') {
-                // Initial setup handled dynamically in render to adapt to resizing
-            }
             else if (mode === 'core') {
-                // Initial setup handled dynamically in render to ensure center consistency
+                // NETWORK INITIALIZATION
+                state.nodes.push({ x: 0, y: 0, layer: 0, active: 0, angle: 0, r: 0 });
+                const rings = [6, 12, 24]; 
+                const radii = [60, 120, 180]; 
+                rings.forEach((count, ringIdx) => {
+                    const radius = radii[ringIdx];
+                    for(let i=0; i<count; i++) {
+                        const angle = (i / count) * Math.PI * 2;
+                        const offset = (Math.random() - 0.5) * 20;
+                        state.nodes.push({
+                            x: Math.cos(angle) * (radius + offset),
+                            y: Math.sin(angle) * (radius + offset),
+                            layer: ringIdx + 1,
+                            active: 0,
+                            angle: angle,
+                            r: radius
+                        });
+                    }
+                });
+                for(let i=0; i<state.nodes.length; i++) {
+                    const n1 = state.nodes[i];
+                    if (n1.layer === 1) {
+                        state.links.push({ from: 0, to: i });
+                    }
+                    if (n1.layer < rings.length) {
+                        const nextLayerNodes = state.nodes.map((n: any, idx: number) => ({...n, idx})).filter((n: any) => n.layer === n1.layer + 1);
+                        nextLayerNodes.sort((a:any, b:any) => {
+                            const d1 = Math.abs(a.angle - n1.angle);
+                            const d2 = Math.abs(b.angle - n1.angle);
+                            return d1 - d2;
+                        });
+                        if(nextLayerNodes[0]) state.links.push({ from: i, to: nextLayerNodes[0].idx });
+                        if(nextLayerNodes[1]) state.links.push({ from: i, to: nextLayerNodes[1].idx });
+                    }
+                    const sameLayer = state.nodes.map((n: any, idx: number) => ({...n, idx})).filter((n: any) => n.layer === n1.layer && n.idx !== i);
+                    let closest = null; let minD = 100;
+                    sameLayer.forEach((n: any) => {
+                        let d = Math.abs(n.angle - n1.angle);
+                        if (d > Math.PI) d = Math.PI * 2 - d; 
+                        if (d < minD) { minD = d; closest = n.idx; }
+                    });
+                    if (closest !== null && i < closest) state.links.push({ from: i, to: closest });
+                }
             }
             else if (mode === 'identity') {
                 for(let i=0; i<60; i++) {
@@ -145,26 +179,18 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
 
             ctx.clearRect(0, 0, w, h);
             
-            // Draw Mode Specifics
             if (mode === 'search') {
-                const processLine = w * 0.4; // Scanner position
+                const processLine = w * 0.4;
                 const laneCount = 5;
                 const laneHeight = h / laneCount;
                 
-                // 1. Draw Architecture (Right Side Grid)
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; // Subtle grid
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
                 for(let i=0; i<laneCount; i++) {
                     const ly = i * laneHeight + laneHeight/2;
-                    ctx.beginPath();
-                    ctx.moveTo(processLine, ly);
-                    ctx.lineTo(w, ly);
-                    ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(processLine, ly); ctx.lineTo(w, ly); ctx.stroke();
                 }
 
-                // 2. Draw Strategy Layer (The Scanner Beam)
-                const beamWidth = 2;
-                // Beam Glow
                 const scannerGlow = ctx.createLinearGradient(processLine, 0, processLine + 60, 0);
                 scannerGlow.addColorStop(0, color);
                 scannerGlow.addColorStop(1, 'transparent');
@@ -172,68 +198,34 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.globalAlpha = 0.15;
                 ctx.fillRect(processLine, 0, 60, h);
                 
-                // Solid Beam
                 ctx.fillStyle = color;
                 ctx.globalAlpha = 0.8;
-                ctx.fillRect(processLine, 0, beamWidth, h);
+                ctx.fillRect(processLine, 0, 2, h);
                 
-                // 3. Process Data
                 state.particles.forEach((p: any) => {
                     p.x += p.vx;
-                    
                     if (p.x < processLine) {
-                        // --- INPUT PHASE: RAW DATA ---
-                        // Drifting, unstructured
                         p.y += p.vy;
-                        
-                        // Bounce off vertical bounds to keep in view
                         if (p.y < 0) p.y += h;
                         if (p.y > h) p.y -= h;
-                        
-                        // Visual: Faint, raw data points
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                         ctx.globalAlpha = 0.6;
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI*2);
-                        ctx.fill();
-                        
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI*2); ctx.fill();
                     } else {
-                        // --- OUTPUT PHASE: STRUCTURED ASSETS ---
                         const targetY = p.targetLane * laneHeight + laneHeight/2;
-                        
-                        // Magnetic Snap to Architecture
-                        const snapStrength = 0.15;
-                        p.y += (targetY - p.y) * snapStrength; 
-                        
-                        // Acceleration post-process
+                        p.y += (targetY - p.y) * 0.15; 
                         p.x += 1.5; 
-
-                        // Visual: High-Fidelity Data Packets
                         ctx.fillStyle = color;
                         ctx.globalAlpha = 1;
-                        
-                        // Packet Shape (Rectangle with rounded feel)
                         const packetWidth = 20 * p.size;
                         const packetHeight = 4;
-                        
-                        // Glow Effect
-                        ctx.shadowColor = color;
-                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = color; ctx.shadowBlur = 10;
                         ctx.fillRect(p.x, p.y - packetHeight/2, packetWidth, packetHeight);
                         ctx.shadowBlur = 0;
-                        
-                        // Trailing Data Stream
-                        if (Math.abs(p.y - targetY) < 1) {
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                            ctx.fillRect(p.x - packetWidth - 2, p.y - 1, 2, 2); // Little bits following
-                        }
                     }
-
-                    // Loop
                     if (p.x > w + 50) {
                         p.x = -20;
                         p.y = Math.random() * h;
-                        // Randomize slightly for next pass
                         p.vx = 2 + Math.random() * 1.5;
                         p.targetLane = Math.floor(Math.random() * laneCount);
                     }
@@ -257,12 +249,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.fillRect(0, scanY, w, 2);
             }
             else if (mode === 'logic') {
-                // Nodes
                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
                 state.nodes.forEach((n: any) => {
                     ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI*2); ctx.fill();
                 });
-                // Packets
                 state.particles.forEach((p: any) => {
                     p.prog += p.speed;
                     if (p.prog >= 1) {
@@ -282,325 +272,376 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'core') {
-                // KNOWLEDGE TREES: Radial Dependency Graph
-                // Represents data linking to rules, linking to outcomes.
-
-                // 1. Initialize Graph Structure (If empty)
-                if (state.nodes.length === 0) {
-                    // Root Node (Center)
-                    state.nodes.push({ x: 0, y: 0, layer: 0, active: 0 });
-                    
-                    // Layer 1 (Primary Branches)
-                    const l1Count = 6;
-                    for(let i=0; i<l1Count; i++) {
-                        const angle = (i / l1Count) * Math.PI * 2;
-                        const r = 50;
-                        state.nodes.push({ 
-                            x: Math.cos(angle) * r, 
-                            y: Math.sin(angle) * r, 
-                            layer: 1, 
-                            parent: 0,
-                            active: 0
-                        });
-                    }
-                    // Layer 2 (Secondary Nodes)
-                    const l1Nodes = state.nodes.filter((n:any) => n.layer === 1);
-                    l1Nodes.forEach((p:any, i:number) => {
-                        const parentIdx = i + 1; // Index in main array
-                        const pAngle = Math.atan2(p.y, p.x);
-                        // Fan out 3 children per L1 node
-                        for(let j=0; j<3; j++) {
-                            const angle = pAngle + (j-1) * 0.5;
-                            const r = 110;
-                            state.nodes.push({
-                                x: Math.cos(angle) * r,
-                                y: Math.sin(angle) * r,
-                                layer: 2,
-                                parent: parentIdx,
-                                active: 0
-                            });
-                        }
-                    });
-                }
-
-                // 2. Logic: Pulse Root to emit signals
+                // KNOWLEDGE NETWORK (Mesh)
                 if (Math.random() > 0.96) {
-                    // Flash root
-                    state.nodes[0].active = 1;
-                    // Send signals to all L1 nodes
-                    for(let i=1; i<=6; i++) {
+                    state.nodes[0].active = 1; 
+                    const startLink = state.links.filter((l: any) => l.from === 0)[Math.floor(Math.random() * 6)];
+                    if (startLink) {
                         state.particles.push({
-                            from: 0, 
-                            to: i, 
-                            t: 0, 
-                            speed: 0.05
+                            linkIdx: state.links.indexOf(startLink),
+                            t: 0,
+                            speed: 0.08
                         });
                     }
                 }
 
-                // 3. Render
                 ctx.translate(cx, cy);
-                // Slowly rotate the entire graph for dynamism
-                ctx.rotate(time * 0.1);
+                ctx.rotate(time * 0.05);
 
-                // Draw Edges
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
                 ctx.lineWidth = 1;
-                state.nodes.forEach((n:any) => {
-                    if (n.parent !== undefined) {
-                        const p = state.nodes[n.parent];
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(n.x, n.y);
-                        ctx.stroke();
-                    }
+                ctx.beginPath();
+                state.links.forEach((l: any) => {
+                    const n1 = state.nodes[l.from];
+                    const n2 = state.nodes[l.to];
+                    ctx.moveTo(n1.x, n1.y);
+                    ctx.lineTo(n2.x, n2.y);
                 });
+                ctx.stroke();
 
-                // Draw Nodes
                 state.nodes.forEach((n:any) => {
-                    // Decay active state
                     if (n.active > 0) {
                         ctx.fillStyle = color;
-                        ctx.shadowBlur = 15 * n.active;
+                        ctx.shadowBlur = 10 * n.active;
                         ctx.shadowColor = color;
                         n.active -= 0.05;
                     } else {
-                        ctx.fillStyle = n.layer === 0 ? color : 'rgba(255,255,255,0.2)';
+                        ctx.fillStyle = n.layer === 0 ? color : 'rgba(255,255,255,0.3)';
                         ctx.shadowBlur = 0;
                     }
-                    
-                    const size = n.layer === 0 ? 5 : (n.layer === 1 ? 3 : 2);
+                    const size = n.layer === 0 ? 4 : 2;
                     ctx.beginPath(); ctx.arc(n.x, n.y, size, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
                 });
 
-                // Update & Draw Signal Packets
                 for(let i=state.particles.length-1; i>=0; i--) {
                     const p = state.particles[i];
                     p.t += p.speed;
-                    
-                    const start = state.nodes[p.from];
-                    const end = state.nodes[p.to];
-                    
-                    const currX = start.x + (end.x - start.x) * p.t;
-                    const currY = start.y + (end.y - start.y) * p.t;
-                    
+                    const link = state.links[p.linkIdx];
+                    if (!link) { state.particles.splice(i,1); continue; }
+                    const n1 = state.nodes[link.from];
+                    const n2 = state.nodes[link.to];
+                    const currX = n1.x + (n2.x - n1.x) * p.t;
+                    const currY = n1.y + (n2.y - n1.y) * p.t;
                     ctx.fillStyle = '#fff';
                     ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
                     ctx.fillRect(currX-1.5, currY-1.5, 3, 3);
                     ctx.shadowBlur = 0;
-                    
                     if (p.t >= 1) {
-                        // Hit destination: Trigger flash
-                        end.active = 1;
-                        
-                        // If intermediate node (Layer 1), propagate to children (Layer 2)
-                        if (end.layer < 2) {
-                            state.nodes.forEach((n:any, idx:number) => {
-                                if (n.parent === p.to) {
-                                    state.particles.push({ 
-                                        from: p.to, 
-                                        to: idx, 
-                                        t: 0, 
-                                        speed: 0.05 + Math.random() * 0.02 
-                                    });
-                                }
-                            });
+                        n2.active = 1;
+                        if (n2.layer < 3 && Math.random() > 0.3) {
+                            const nextLinks = state.links.map((l: any, idx: number) => ({...l, idx})).filter((l: any) => l.from === link.to);
+                            if (nextLinks.length > 0) {
+                                const nextL = nextLinks[Math.floor(Math.random() * nextLinks.length)];
+                                state.particles.push({ linkIdx: nextL.idx, t: 0, speed: 0.08 });
+                            }
                         }
-                        
-                        // Remove finished packet
                         state.particles.splice(i, 1);
                     }
                 }
-
-                ctx.rotate(-time * 0.1);
+                ctx.rotate(-time * 0.05);
                 ctx.translate(-cx, -cy);
             }
             else if (mode === 'swarm') {
-                state.particles.forEach((p: any) => {
-                    // Center gravity
-                    p.vx += (cx - p.x) * 0.001;
-                    p.vy += (cy - p.y) * 0.001;
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    
-                    ctx.fillStyle = color;
-                    ctx.fillRect(p.x, p.y, 2, 2);
-                });
+                // BRIDGE AI: Conveyor Belt & Agent
+                const beltY = h * 0.75;
+                const agentX = w * 0.6;
+                const boxSize = 24;
+                const speed = 2;
+
+                // 1. Spawn Boxes (Left side)
+                if (Math.random() > 0.985) {
+                    state.boxes.push({
+                        x: -50,
+                        y: beltY - boxSize,
+                        w: boxSize,
+                        h: boxSize,
+                        state: 'conveyor', // conveyor, lifted, processed
+                        type: Math.random() > 0.8 ? 'priority' : 'normal'
+                    });
+                }
+
+                // 2. Draw Conveyor Belt
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillRect(0, beltY, w, 4);
                 
-                // Lines
-                ctx.strokeStyle = color;
-                ctx.globalAlpha = 0.2;
-                ctx.beginPath();
-                for(let i=0; i<state.particles.length; i++) {
-                    for(let j=i+1; j<state.particles.length; j++) {
-                        const p1 = state.particles[i];
-                        const p2 = state.particles[j];
-                        const d = Math.abs(p1.x-p2.x) + Math.abs(p1.y-p2.y);
-                        if (d < 50) {
-                            ctx.moveTo(p1.x, p1.y);
-                            ctx.lineTo(p2.x, p2.y);
-                        }
+                // Moving dashes on belt
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                const dashOffset = (time * 100) % 40;
+                for(let i=0; i<w; i+=40) {
+                    ctx.fillRect(i + dashOffset - 40, beltY, 4, 4);
+                }
+
+                // 3. Agent Logic
+                const agent = state.agent;
+                // Agent Base
+                ctx.fillStyle = '#333';
+                ctx.fillRect(agentX - 10, beltY + 10, 20, 20); // Base pedestal
+                
+                // Arm Pivot
+                const pivotX = agentX;
+                const pivotY = beltY + 10;
+                
+                // Identify target box
+                if (agent.state === 'idle') {
+                    // Look for box near pickup zone (agentX - 50)
+                    const target = state.boxes.find((b: any) => b.state === 'conveyor' && b.x > agentX - 80 && b.x < agentX - 20);
+                    if (target) {
+                        agent.state = 'reaching';
+                        agent.targetBox = target;
+                        agent.t = 0;
                     }
                 }
+
+                // Agent Animation State Machine
+                let armX = pivotX;
+                let armY = pivotY - 40; // Default rest height
+                let grabberOpen = 10; 
+
+                if (agent.state === 'reaching') {
+                    agent.t += 0.05;
+                    const t = Math.min(1, agent.t);
+                    const b = agent.targetBox;
+                    
+                    // IK-ish movement to box
+                    armX = pivotX + (b.x + b.w/2 - pivotX) * t;
+                    armY = (pivotY - 60) + (b.y - (pivotY - 60)) * t; // Arc down? No, straight reach for industrial look
+                    
+                    if (t >= 1) {
+                        agent.state = 'lifting';
+                        agent.t = 0;
+                        b.state = 'lifted';
+                    }
+                } else if (agent.state === 'lifting') {
+                    agent.t += 0.04;
+                    const t = Math.min(1, agent.t);
+                    const b = agent.targetBox;
+                    
+                    // Move box to stack position (Right of agent)
+                    const stackX = agentX + 80;
+                    const stackY = beltY - boxSize * (state.stack.length + 1); // Stack upwards
+                    
+                    armX = pivotX + (stackX - pivotX) * t; // Swing right
+                    armY = (pivotY - 60) - 40 * Math.sin(t * Math.PI); // Arc up
+                    
+                    // Update box pos to follow arm
+                    b.x = armX - b.w/2;
+                    b.y = armY + 10; 
+                    grabberOpen = 0; // Closed
+
+                    if (t >= 1) {
+                        // Drop
+                        b.state = 'processed';
+                        b.y = stackY;
+                        state.stack.push(b);
+                        // Remove from active boxes list? No, keep it there but static
+                        state.agent.targetBox = null;
+                        state.agent.state = 'returning';
+                        state.agent.t = 0;
+                    }
+                } else if (agent.state === 'returning') {
+                    agent.t += 0.05;
+                    const t = Math.min(1, agent.t);
+                    // Return to idle hover
+                    const idleX = agentX;
+                    const idleY = beltY - 60;
+                    
+                    armX = (agentX + 80) + (idleX - (agentX + 80)) * t;
+                    armY = (beltY - 60) - 20 * Math.sin(t * Math.PI);
+                    
+                    if (t >= 1) {
+                        agent.state = 'idle';
+                    }
+                } else {
+                    // Idle Hover
+                    armX = agentX;
+                    armY = beltY - 60 + Math.sin(time * 5) * 5;
+                }
+
+                // Draw Agent Arm
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                
+                // Shoulder to Elbow
+                ctx.beginPath();
+                ctx.moveTo(pivotX, pivotY);
+                ctx.lineTo(pivotX, armY - 20); // Vertical stem
+                ctx.lineTo(armX, armY); // Forearm
                 ctx.stroke();
+                
+                // Joint
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(pivotX, armY - 20, 3, 0, Math.PI*2); ctx.fill();
+                
+                // Grabber
+                ctx.strokeRect(armX - 6 - grabberOpen/2, armY, 4, 10);
+                ctx.strokeRect(armX + 2 + grabberOpen/2, armY, 4, 10);
+
+
+                // 4. Update & Draw Boxes
+                for (let i = state.boxes.length - 1; i >= 0; i--) {
+                    const b = state.boxes[i];
+                    
+                    if (b.state === 'conveyor') {
+                        b.x += speed;
+                        if (b.x > w) {
+                            state.boxes.splice(i, 1); // Remove if missed
+                            continue;
+                        }
+                    } else if (b.state === 'processed') {
+                        // Stack decay logic (if stack gets too high, remove bottom)
+                        if (state.stack.length > 5) {
+                             state.stack.shift(); // Remove oldest
+                             // Shift y of others down? 
+                             state.stack.forEach((sb: any, idx: number) => {
+                                 sb.y = beltY - boxSize * (idx + 1);
+                             });
+                             // Remove this box from main array if it was the shifted one
+                             if (!state.stack.includes(b)) {
+                                 state.boxes.splice(i, 1);
+                                 continue;
+                             }
+                        }
+                    }
+
+                    // Draw Box
+                    ctx.fillStyle = b.state === 'processed' ? color : (b.type === 'priority' ? '#ef4444' : 'rgba(255,255,255,0.2)');
+                    ctx.strokeStyle = b.state === 'processed' ? '#fff' : color;
+                    ctx.lineWidth = 1;
+                    
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
+                    
+                    // Label
+                    if (b.state === 'processed') {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(b.x + 8, b.y + 8, 8, 8); // "Data" icon
+                    }
+                }
             }
             else if (mode === 'translation') {
-                // KNOWLEDGE CAPTURE: Unstructured Stream -> Structured Architecture
+                // KNOWLEDGE CAPTURE (Code Ingestion)
+                const colWidth = 140; 
+                const numCols = 2; 
                 
-                // 1. Initialize Columns (Left Side) & Grid (Right Side) if needed
-                const colWidth = 15;
-                const numCols = Math.floor((w * 0.4) / colWidth);
-                
-                if (state.columns.length !== numCols) {
-                    state.columns = Array.from({ length: numCols }, () => ({
+                const SNIPPETS = [
+                    "POST /api/v1/ingest HTTP/1.1",
+                    "{ id: '8f3a', type: 'blob' }",
+                    "WARN: Latency > 200ms",
+                    "Converting stream...",
+                    "0x4F3E21 0x0021FF",
+                    "SELECT * FROM raw_logs",
+                    "Processing batch #4921",
+                    "struct Node { val: i32 }",
+                    "ERROR: Timeout (retry 1)",
+                    "> System.init()",
+                    "import { transform } from 'etl'",
+                    "User_Agent: Mozilla/5.0",
+                    "Connection: Keep-Alive"
+                ];
+
+                if (state.columns.length === 0) {
+                    state.columns = Array.from({ length: numCols }, (_, i) => ({
+                        x: 20 + i * (colWidth + 10),
                         y: Math.random() * h,
-                        speed: 1 + Math.random() * 2,
-                        chars: Array.from({ length: Math.ceil(h/15) }, () => String.fromCharCode(0x30A0 + Math.random() * 96)),
-                        active: false
+                        speed: 0.5 + Math.random() * 0.5,
+                        items: Array.from({ length: 15 }, () => ({
+                            text: SNIPPETS[Math.floor(Math.random() * SNIPPETS.length)],
+                            y: 0 
+                        }))
                     }));
                 }
 
-                const gridStartX = w * 0.5;
-                const gridCols = 6; 
-                const gridRows = 8;
-                const cellW = (w * 0.4) / gridCols;
-                const cellH = h / gridRows;
-                const totalCells = gridCols * gridRows;
-                
-                if (state.grid.length !== totalCells) {
-                    state.grid = Array.from({ length: totalCells }, (_, i) => ({
-                        x: gridStartX + (i % gridCols) * cellW + cellW/2,
-                        y: Math.floor(i / gridCols) * cellH + cellH/2,
-                        filled: false,
-                        alpha: 0.2
-                    }));
+                // Grid Init
+                const gridStartX = w * 0.55;
+                const gridCols = 6; const gridRows = 8;
+                const cellW = (w * 0.4) / gridCols; const cellH = h / gridRows;
+                if (state.grid.length === 0) {
+                    for(let i=0; i<gridCols*gridRows; i++) {
+                        state.grid.push({
+                            x: gridStartX + (i % gridCols) * cellW + cellW/2,
+                            y: Math.floor(i / gridCols) * cellH + cellH/2,
+                            filled: false, alpha: 0.2
+                        });
+                    }
                 }
 
-                // 2. Render Left Stream (Raw Data)
                 ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
+                ctx.textAlign = 'left';
                 
-                state.columns.forEach((col: any, i: number) => {
-                    const x = i * colWidth + 10;
-                    col.y += col.speed;
-                    if (col.y > h) col.y = -100;
+                state.columns.forEach((col: any) => {
+                    col.y -= col.speed; // Scroll UP
+                    if (col.y < -300) col.y = h; 
 
-                    // Draw Char Stream
-                    const headRow = Math.floor(col.y / 15);
-                    for(let r = 0; r < 8; r++) {
-                        const charY = col.y - r * 15;
-                        if (charY > 0 && charY < h) {
-                            const opacity = 1 - (r / 8);
-                            ctx.fillStyle = r === 0 ? '#fff' : 'rgba(255,255,255,0.3)';
-                            ctx.globalAlpha = opacity * 0.5;
-                            // Flicker char
-                            const char = (Math.random() > 0.98) ? String.fromCharCode(0x30A0 + Math.random() * 96) : col.chars[r % col.chars.length];
-                            ctx.fillText(char, x, charY);
-                        }
-                    }
-
-                    // Random Extraction Event
-                    if (!col.active && Math.abs(col.y - h/2) < 150 && Math.random() > 0.985) {
-                        col.active = true;
+                    col.items.forEach((item: any, i: number) => {
+                        const yPos = col.y + i * 20;
+                        const drawnY = yPos % (h + 300) - 50;
                         
-                        // Pick empty grid slot
-                        const emptySlots = state.grid.filter((g: any) => !g.filled);
-                        if (emptySlots.length > 0) {
-                            const target = emptySlots[Math.floor(Math.random() * emptySlots.length)];
-                            target.filled = true; // Reserve
+                        if (drawnY > -20 && drawnY < h + 20) {
+                            const isScanned = Math.abs(drawnY - h/2) < 20;
                             
-                            // Spawn Projectile
-                            state.particles.push({
-                                x: x,
-                                y: col.y,
-                                tx: target.x,
-                                ty: target.y,
-                                progress: 0,
-                                speed: 0.04 + Math.random() * 0.02,
-                                targetIdx: state.grid.indexOf(target)
-                            });
+                            ctx.fillStyle = isScanned ? '#fff' : 'rgba(255,255,255,0.3)';
+                            if (isScanned) {
+                                if (Math.random() > 0.98) {
+                                    const empty = state.grid.filter((g: any) => !g.filled);
+                                    if (empty.length > 0) {
+                                        const t = empty[Math.floor(Math.random() * empty.length)];
+                                        t.filled = true;
+                                        state.particles.push({
+                                            x: col.x + 80, y: drawnY,
+                                            tx: t.x, ty: t.y,
+                                            progress: 0, speed: 0.05,
+                                            target: t
+                                        });
+                                    }
+                                }
+                            }
+                            ctx.fillText(item.text, col.x, drawnY);
                         }
-                        
-                        setTimeout(() => { col.active = false; }, 600);
-                    }
+                    });
                 });
 
-                // 3. Render Extraction Projectiles
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.1;
+                ctx.fillRect(0, h/2 - 20, w * 0.45, 40);
+                ctx.globalAlpha = 0.8;
+                ctx.fillRect(0, h/2, w * 0.45, 1);
+
                 ctx.globalAlpha = 1;
                 for (let i = state.particles.length - 1; i >= 0; i--) {
                     const p = state.particles[i];
                     p.progress += p.speed;
-                    
-                    const dx = p.tx - p.x;
-                    const dy = p.ty - p.y;
-                    const currX = p.x + dx * p.progress;
-                    const currY = p.y + dy * p.progress;
-                    
-                    // Draw Head
-                    ctx.fillStyle = color;
-                    ctx.shadowBlur = 10; ctx.shadowColor = color;
-                    ctx.fillRect(currX - 2, currY - 2, 4, 4);
-                    ctx.shadowBlur = 0;
-                    
-                    // Draw Trail
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.3;
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(currX, currY);
-                    ctx.stroke();
-                    ctx.globalAlpha = 1;
+                    const t = p.progress;
+                    const lx = p.x + (p.tx - p.x) * t;
+                    const ly = p.y + (p.ty - p.y) * t;
 
+                    ctx.fillStyle = color;
+                    ctx.fillRect(lx - 2, ly - 2, 4, 4);
+                    
                     if (p.progress >= 1) {
-                        // Hit
-                        const cell = state.grid[p.targetIdx];
-                        if (cell) cell.alpha = 1.0;
+                        p.target.alpha = 1.0;
                         state.particles.splice(i, 1);
                     }
                 }
 
-                // 4. Render Structured Grid (Right)
                 state.grid.forEach((cell: any) => {
-                    if (cell.filled) {
-                        cell.alpha = Math.max(0.4, cell.alpha - 0.03); // Decay flash
-                    } else {
-                        cell.alpha = 0.1;
-                    }
-
-                    const size = Math.min(cellW, cellH) * 0.6;
+                    if (cell.filled) cell.alpha = Math.max(0.4, cell.alpha - 0.02);
+                    else cell.alpha = 0.1;
                     
+                    const s = Math.min(cellW, cellH) * 0.6;
                     ctx.strokeStyle = color;
                     ctx.globalAlpha = cell.alpha;
                     ctx.lineWidth = 1;
-                    
-                    // Draw Bracket Shape
-                    const s2 = size/2;
-                    ctx.beginPath();
-                    ctx.moveTo(cell.x - s2, cell.y - s2 + 4);
-                    ctx.lineTo(cell.x - s2, cell.y - s2);
-                    ctx.lineTo(cell.x - s2 + 4, cell.y - s2);
-                    
-                    ctx.moveTo(cell.x + s2, cell.y + s2 - 4);
-                    ctx.lineTo(cell.x + s2, cell.y + s2);
-                    ctx.lineTo(cell.x + s2 - 4, cell.y + s2);
-                    ctx.stroke();
+                    ctx.strokeRect(cell.x - s/2, cell.y - s/2, s, s);
                     
                     if (cell.filled) {
                         ctx.fillStyle = color;
                         ctx.globalAlpha = cell.alpha * 0.6;
-                        ctx.fillRect(cell.x - s2 + 3, cell.y - s2 + 3, size - 6, size - 6);
-                        
-                        // Occasionally clear filled slots to keep animation going
-                        if (Math.random() > 0.998) cell.filled = false;
+                        ctx.fillRect(cell.x - s/2 + 2, cell.y - s/2 + 2, s - 4, s - 4);
+                        if (Math.random() > 0.995) cell.filled = false;
                     }
                 });
-
-                // 5. Separator
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                ctx.globalAlpha = 0.3;
-                ctx.beginPath(); ctx.moveTo(w * 0.45, 20); ctx.lineTo(w * 0.45, h - 20); ctx.stroke();
             }
             else if (mode === 'identity') {
                 ctx.translate(cx, cy);
@@ -623,13 +664,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             frameId = requestAnimationFrame(render);
         };
 
-        // Resize Observer to handle layout changes
-        const observer = new ResizeObserver(() => {
-            resize();
-        });
+        const observer = new ResizeObserver(() => { resize(); });
         observer.observe(container);
-        
-        // Initial setup
         resize();
         render();
 
@@ -642,7 +678,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
     return (
         <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-[#0c0c0e]">
             <canvas ref={canvasRef} className="block absolute top-0 left-0" />
-            {/* Scanline Overlay */}
             <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
         </div>
     );
