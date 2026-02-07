@@ -15,113 +15,6 @@ import { SectionVisualizer } from './SectionVisualizer';
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
-// --- SPEED VISUALIZER (Treadmill Effect) ---
-const SpeedVisualizer = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let frameId: number;
-        
-        const render = () => {
-            // Use client dimensions directly to handle resizing gracefully
-            const width = canvas.parentElement?.clientWidth || 300;
-            const height = canvas.parentElement?.clientHeight || 200;
-            
-            // Match canvas buffer to display size
-            if (canvas.width !== width || canvas.height !== height) {
-                canvas.width = width;
-                canvas.height = height;
-            }
-
-            const t = performance.now() / 1000;
-
-            ctx.clearRect(0, 0, width, height);
-
-            // --- TREADMILL EFFECT ---
-            // Render only in the bottom 30% of the container
-            const floorHeightRatio = 0.3;
-            const floorH = height * floorHeightRatio;
-            const horizonY = height - floorH;
-            const cx = width / 2;
-
-            // 1. Fog/Fade Gradient at Horizon
-            // Creates a smooth transition from the video content to the grid floor
-            const grad = ctx.createLinearGradient(0, horizonY, 0, height);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(0.2, 'rgba(105, 183, 178, 0.05)');
-            grad.addColorStop(1, 'rgba(105, 183, 178, 0.3)'); // Teal tint at bottom
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, horizonY, width, floorH);
-
-            // 2. Vertical Perspective Lines (The Rails)
-            // Fan out from a vanishing point near the horizon
-            ctx.strokeStyle = 'rgba(105, 183, 178, 0.15)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            
-            const numVerts = 12;
-            const baseSpread = width * 3.5; // Fan width at bottom
-            
-            for (let i = -numVerts; i <= numVerts; i++) {
-                // Linear interpolation from center (horizon) to wide spread (bottom)
-                const factor = i / numVerts; 
-                const bottomX = cx + factor * baseSpread;
-                
-                ctx.moveTo(cx + (i * 15), horizonY); // Slight width at horizon for "tunnel" look
-                ctx.lineTo(bottomX, height);
-            }
-            ctx.stroke();
-
-            // 3. Horizontal Moving Lines (The Treads)
-            // Lines move from horizon downwards, spacing increases exponentially to simulate 3D speed
-            ctx.strokeStyle = '#69B7B2';
-            
-            const speed = 0.8; // Cycles per second
-            const offset = (t * speed) % 1;
-            
-            const numHoriz = 8;
-            for(let i=0; i<numHoriz; i++) {
-                // Calculate linear progress (0 at horizon, 1 at bottom) with loop offset
-                let p = (i / numHoriz) + offset;
-                if (p > 1) p -= 1; // Wrap around
-                
-                // Exponential mapping for perspective depth (p^3)
-                // This makes lines cluster at the horizon and speed up as they get closer
-                
-                // Skip lines too close to horizon to prevent flickering artifacts
-                if (p < 0.05) continue;
-
-                const yOffset = Math.pow(p, 3) * floorH;
-                const yPos = horizonY + yOffset;
-                
-                // Opacity fades in as lines approach the camera
-                const alpha = Math.pow(p, 3); 
-                
-                ctx.globalAlpha = alpha;
-                ctx.lineWidth = 1 + p * 1.5; // Lines get thicker closer to camera
-                
-                ctx.beginPath();
-                ctx.moveTo(0, yPos);
-                ctx.lineTo(width, yPos);
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
-
-            frameId = requestAnimationFrame(render);
-        };
-        render();
-
-        return () => cancelAnimationFrame(frameId);
-    }, []);
-
-    return <canvas ref={canvasRef} className="w-full h-full absolute inset-0 pointer-events-none mix-blend-screen" />;
-};
-
 // --- SCENARIO DATA ---
 const SCENARIOS = [
     {
@@ -880,14 +773,14 @@ export const FeatureShowcase: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Main Content Layout - Flex Row for Sidecar Video */}
-                <div className="flex flex-col lg:flex-row items-end w-full relative group gap-0">
+                {/* Main Content Layout */}
+                <div className="flex flex-col items-end w-full relative group gap-0">
                     
-                    {/* Main Window - Connects to Video on the right */}
-                    <div className="w-full lg:flex-1 bg-[#0a0a0c] border border-white/10 rounded-l-[2rem] rounded-tr-[2rem] rounded-br-none border-r-0 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[800px] ring-1 ring-white/5 relative z-10">
+                    {/* Main Window */}
+                    <div className="w-full flex-1 bg-[#0a0a0c] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[800px] ring-1 ring-white/5 relative z-10">
                         
                         {/* Sidebar Nav */}
-                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">
+                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 relative">
                             <div className="p-8 hidden md:block">
                                 <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Workflow Stages</div>
                                 <div className="h-0.5 w-8 bg-[#69B7B2]" />
@@ -916,6 +809,19 @@ export const FeatureShowcase: React.FC = () => {
                                         )}
                                     </button>
                                 ))}
+                            </div>
+
+                            {/* Integrated "Sidecar" Video - Now inside Sidebar at bottom right */}
+                            <div className="absolute bottom-0 right-0 w-36 h-36 bg-[#0a0a0c] border-t border-l border-white/10 rounded-tl-2xl overflow-hidden z-30 shadow-2xl">
+                                <video 
+                                    src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                                    autoPlay 
+                                    loop 
+                                    muted 
+                                    playsInline
+                                    className="w-full h-full object-cover opacity-80 mix-blend-screen"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
                             </div>
                         </div>
 
@@ -965,29 +871,6 @@ export const FeatureShowcase: React.FC = () => {
                             </div>
                         </div>
 
-                    </div>
-
-                    {/* The "Sidecar" Video Module - Bottom Right */}
-                    <div className="relative w-full lg:w-[220px] h-[220px] bg-[#0a0a0c] border-y border-r border-white/10 border-l-0 rounded-r-[2rem] rounded-tl-none rounded-bl-none overflow-hidden z-20 -ml-px shadow-2xl shrink-0 mt-[-1px] lg:mt-0">
-                        {/* Seam Hider to merge left border */}
-                        <div className="absolute left-[-1px] top-0 bottom-0 w-[2px] bg-[#0a0a0c] z-30" />
-
-                        <video 
-                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline
-                            className="w-full h-full object-cover opacity-80 mix-blend-screen"
-                        />
-                        
-                        {/* Speed Lines Effect */}
-                        <div className="absolute inset-0 z-10 pointer-events-none mix-blend-screen">
-                            <SpeedVisualizer />
-                        </div>
-
-                        {/* Gradient to blend seamlessly into the UI below */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
                     </div>
                 </div>
 

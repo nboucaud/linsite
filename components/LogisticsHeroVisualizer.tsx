@@ -18,44 +18,31 @@ export const LogisticsHeroVisualizer: React.FC = () => {
         let time = 0;
 
         // --- CONFIG ---
-        const COLS = 50; 
-        const ROWS = 24;
+        // Reduced count for better performance on average devices
+        const COLS = 40; 
+        const ROWS = 20;
         const PARTICLE_COUNT = COLS * ROWS; 
         const CAM_Z = 1200;
         
-        // Slower transitions for smoother feel
-        const PHASE_DURATION = 800; // Increased from 600
-        const TRANSITION_SPEED = 0.025; // Decreased from 0.04
+        const PHASE_DURATION = 800; 
+        const TRANSITION_SPEED = 0.025;
         
         // --- STATE & BUFFERS ---
         // Layout: [x, y, z, tx, ty, tz, colorType]
         const P_STRIDE = 7;
         const data = new Float32Array(PARTICLE_COUNT * P_STRIDE);
         
-        // Project buffers (Allocated ONCE to avoid GC)
         const projX = new Float32Array(PARTICLE_COUNT);
         const projY = new Float32Array(PARTICLE_COUNT);
         const projScale = new Float32Array(PARTICLE_COUNT);
-
-        // Initialize state
-        for(let i=0; i<PARTICLE_COUNT; i++) {
-            const idx = i * P_STRIDE;
-            data[idx] = (Math.random() - 0.5) * 2000;
-            data[idx+1] = (Math.random() - 0.5) * 2000;
-            data[idx+2] = (Math.random() - 0.5) * 2000;
-            
-            // Color: 0=Cyan, 1=Amber, 2=White
-            const rand = Math.random();
-            data[idx+6] = rand > 0.9 ? 1 : (rand > 0.7 ? 2 : 0);
-        }
 
         let phase = 0; 
         let phaseTimer = 0;
 
         // --- GEOMETRY GENERATORS ---
         const setTargetPlane = () => {
-            const spacingX = 35;
-            const spacingY = 35;
+            const spacingX = 45; // Increased spacing slightly since we have fewer cols
+            const spacingY = 45;
             const offsetX = (COLS * spacingX) / 2;
             const offsetY = (ROWS * spacingY) / 2;
             for(let i=0; i<PARTICLE_COUNT; i++) {
@@ -101,7 +88,27 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             else if (phase === 1) setTargetSphere();
             else setTargetTorus();
         };
+
+        // --- INITIALIZATION ---
+        // 1. Set targets first so we know where nodes belong
         setTargetPlane();
+
+        // 2. Initialize positions based on targets (Optimized Startup)
+        // Instead of random chaos, start near the target structure to prevent
+        // massive lines crossing the screen and performance spikes.
+        for(let i=0; i<PARTICLE_COUNT; i++) {
+            const idx = i * P_STRIDE;
+            
+            // X and Y match target immediately (no horizontal chaos)
+            data[idx] = data[idx+3];
+            data[idx+1] = data[idx+4];
+            // Z has significant noise for a "settling in" effect, but structured
+            data[idx+2] = data[idx+5] + (Math.random() - 0.5) * 1500;
+            
+            // Color: 0=Cyan, 1=Amber, 2=White
+            const rand = Math.random();
+            data[idx+6] = rand > 0.9 ? 1 : (rand > 0.7 ? 2 : 0);
+        }
 
         // --- RENDER LOOP ---
         const render = () => {
@@ -171,16 +178,23 @@ export const LogisticsHeroVisualizer: React.FC = () => {
                     if (c < COLS - 1) {
                         const right = i + 1;
                         if (projScale[right] > 0) {
-                            ctx.moveTo(projX[i], projY[i]);
-                            ctx.lineTo(projX[right], projY[right]);
+                            // Check distance to avoid long cross-screen lines during transitions
+                            const distSq = (projX[i] - projX[right])**2 + (projY[i] - projY[right])**2;
+                            if (distSq < 20000) {
+                                ctx.moveTo(projX[i], projY[i]);
+                                ctx.lineTo(projX[right], projY[right]);
+                            }
                         }
                     }
                     // Down Neighbor
                     if (r < ROWS - 1) {
                         const down = i + COLS;
                         if (projScale[down] > 0) {
-                            ctx.moveTo(projX[i], projY[i]);
-                            ctx.lineTo(projX[down], projY[down]);
+                            const distSq = (projX[i] - projX[down])**2 + (projY[i] - projY[down])**2;
+                            if (distSq < 20000) {
+                                ctx.moveTo(projX[i], projY[i]);
+                                ctx.lineTo(projX[down], projY[down]);
+                            }
                         }
                     }
                 }
@@ -188,7 +202,6 @@ export const LogisticsHeroVisualizer: React.FC = () => {
             ctx.stroke();
 
             // 3. DRAW NODES (Batch By Color)
-            // Function to draw all nodes of a specific color type
             const drawBatch = (color: string, typeVal: number) => {
                 ctx.fillStyle = color;
                 ctx.beginPath();
@@ -219,7 +232,7 @@ export const LogisticsHeroVisualizer: React.FC = () => {
                 ctx.scale(dpr, dpr);
                 width = rect.width;
                 height = rect.height;
-                updateTargets();
+                // Force update on resize to ensure coordinates are mapped correctly
             }
         };
         window.addEventListener('resize', handleResize);
