@@ -39,53 +39,49 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             feedTimer: 0,
             currentCardIndex: 0,
             swipeOffset: 0,
-            streak: 42,
-            xp: 1250,
+            streak: 12,
+            xp: 850,
             cursor: { x: 0, y: 0, targetX: 0, targetY: 0, clicking: false },
             feedCards: [
                 { 
-                    type: 'SECURITY_ALERT', 
+                    type: 'CYBER_SECURITY', 
                     bg: ['#1e1b4b', '#312e81'], // Indigo
-                    author: "@SecurOps_Bot",
-                    q: "Phishing Attempt Detected", 
-                    sub: "Email from 'IT-Support' asks for password reset via external link.", 
-                    opts: ["Click & Verify", "Report as Phishing"], 
-                    correct: 1, 
-                    likes: "12.4k",
-                    comments: "402"
+                    author: "@SecurOps",
+                    q: "Suspicious Email Detected", 
+                    sub: "Sender domain is 'goggle.com'. What's the protocol?", 
+                    opts: ["Report & Delete", "Reply to Verify"], 
+                    correct: 0, 
+                    likes: "12.4k" 
                 },
                 { 
-                    type: 'SAFETY_PROTOCOL', 
+                    type: 'SAFETY_PROTO', 
                     bg: ['#451a03', '#78350f'], // Amber
-                    author: "@SiteSafety_Lead",
-                    q: "Forklift Zone Violation", 
-                    sub: "Pedestrian observed in yellow zone while lift is active.", 
-                    opts: ["Sound Alarm", "Ignore"], 
-                    correct: 0, 
-                    likes: "8.2k",
-                    comments: "156"
+                    author: "@PlantManager",
+                    q: "Forklift in Zone B", 
+                    sub: "Pedestrian light is flashing red.", 
+                    opts: ["Right of Way", "Stop & Wait"], 
+                    correct: 1, 
+                    likes: "8.2k" 
                 },
                 { 
                     type: 'DATA_PRIVACY', 
                     bg: ['#022c22', '#115e59'], // Emerald
-                    author: "@Compliance_AI",
-                    q: "PII in Ticket Comments", 
-                    sub: "Customer posted credit card info in support chat.", 
-                    opts: ["Leave it", "Redact Immediately"], 
+                    author: "@ComplianceBot",
+                    q: "PII in Comments?", 
+                    sub: "Customer put SSN in 'Notes' field.", 
+                    opts: ["Ignore", "Redact Immediately"], 
                     correct: 1, 
-                    likes: "45k",
-                    comments: "2.1k"
+                    likes: "45k" 
                 },
                 { 
-                    type: 'ETHICS_CHECK', 
+                    type: 'HR_POLICY', 
                     bg: ['#4c0519', '#9f1239'], // Rose
-                    author: "@HR_Partner",
-                    q: "Vendor Gift Policy", 
-                    sub: "Supplier offers front-row tickets worth $500.", 
-                    opts: ["Decline Gift", "Accept Gift"], 
+                    author: "@PeopleTeam",
+                    q: "Gift Policy", 
+                    sub: "Vendor offers $200 tickets.", 
+                    opts: ["Decline", "Accept"], 
                     correct: 0, 
-                    likes: "3.1k",
-                    comments: "89"
+                    likes: "2.1k" 
                 }
             ],
             // Logic/Strategy Mode State
@@ -130,6 +126,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.feedTimer = 0;
             state.currentCardIndex = 0;
             state.swipeOffset = 0;
+            state.streak = 12;
             state.cursor = { x: w/2, y: h*0.8, targetX: w/2, targetY: h*0.8, clicking: false };
 
             state.initializedMode = mode;
@@ -159,6 +156,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.links.push({ from: 2, to: 3 });
                 state.links.push({ from: 2, to: 4 });
             }
+            // ... (Other modes omitted for brevity, logic remains in 'render')
         };
 
         const render = () => {
@@ -171,7 +169,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             ctx.clearRect(0, 0, w, h);
             
             if (mode === 'identity') {
-                // --- "SkillStream": Corporate Learning Feed ---
+                // --- "SkillStream": TikTok-style Corporate Learning Feed ---
                 
                 // 1. UPDATE STATE & PHYSICS
                 state.feedTimer++;
@@ -179,11 +177,11 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 
                 // -- Cursor Simulation Logic --
                 if (state.feedState === 'reading') {
-                    // Idle hover
-                    state.cursor.targetX = w/2 + Math.sin(time) * 30;
-                    state.cursor.targetY = h * 0.7 + Math.cos(time * 1.5) * 30;
+                    // Hover around a bit
+                    state.cursor.targetX = w/2 + Math.sin(time) * 20;
+                    state.cursor.targetY = h * 0.75 + Math.cos(time * 1.5) * 20;
                     
-                    if (state.feedTimer > 100) { 
+                    if (state.feedTimer > 120) { // Wait 2s before acting
                         state.feedState = 'selecting';
                     }
                 } 
@@ -221,7 +219,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 }
                 else if (state.feedState === 'feedback') {
                     state.cursor.clicking = false;
-                    if (state.feedTimer > 60) { 
+                    if (state.feedTimer > 80) { // Wait 1.5s viewing success
                         state.feedState = 'swiping';
                         state.cursor.targetY = h * 0.2; // Move up to swipe
                         state.feedTimer = 0;
@@ -250,66 +248,62 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.save();
                 ctx.translate(0, state.swipeOffset);
 
-                // 1. Dynamic Video Background (Simulated)
+                // 1. Dynamic Video Background
                 const grad = ctx.createLinearGradient(0, 0, 0, h);
                 grad.addColorStop(0, card.bg[0]);
                 grad.addColorStop(1, card.bg[1]);
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, w, h);
                 
-                // Animated Abstract Blobs (The "Content")
+                // Animated BG Elements (Subtle movement)
                 ctx.save();
-                ctx.globalAlpha = 0.2;
+                ctx.globalAlpha = 0.1;
                 ctx.fillStyle = '#fff';
-                for(let i=0; i<3; i++) {
-                    const bx = (Math.sin(time + i) * 100 + w/2);
-                    const by = (Math.cos(time * 0.5 + i) * 100 + h/2);
-                    ctx.beginPath(); ctx.arc(bx, by, 80 + i*20, 0, Math.PI*2); ctx.fill();
+                for(let i=0; i<5; i++) {
+                    const bx = (time * 20 + i * 50) % w;
+                    const by = (Math.sin(time + i) * 100 + h/2);
+                    ctx.beginPath(); ctx.arc(bx, by, 50 + i*20, 0, Math.PI*2); ctx.fill();
                 }
                 ctx.restore();
 
-                // 2. Right Sidebar (Social Actions)
+                // 2. Right Sidebar (TikTok style actions)
                 const rightMargin = w - 40;
                 const bottomMargin = h - 100;
                 
                 // Avatar
-                ctx.beginPath(); ctx.arc(rightMargin, bottomMargin - 160, 18, 0, Math.PI*2); 
+                ctx.beginPath(); ctx.arc(rightMargin, bottomMargin - 150, 20, 0, Math.PI*2); 
                 ctx.fillStyle = '#fff'; ctx.fill();
-                ctx.lineWidth = 2; ctx.strokeStyle = '#22c55e'; ctx.stroke();
+                ctx.lineWidth = 2; ctx.strokeStyle = '#ef4444'; ctx.stroke();
+                // Plus icon
+                ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(rightMargin, bottomMargin - 135, 8, 0, Math.PI*2); ctx.fill();
                 
                 // Heart
-                ctx.fillStyle = state.feedState === 'feedback' ? '#ef4444' : 'rgba(255,255,255,0.8)';
-                ctx.font = '24px serif'; ctx.textAlign='center'; ctx.fillText('♥', rightMargin, bottomMargin - 100);
-                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText(card.likes, rightMargin, bottomMargin - 85);
+                ctx.fillStyle = state.feedState === 'feedback' || state.feedState === 'swiping' ? '#ef4444' : 'rgba(255,255,255,0.8)';
+                ctx.font = '24px serif'; ctx.textAlign='center'; ctx.fillText('♥', rightMargin, bottomMargin - 90);
+                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText(card.likes, rightMargin, bottomMargin - 75);
 
-                // Comment
+                // Share
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.font = '24px serif'; ctx.fillText('💬', rightMargin, bottomMargin - 40);
-                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText(card.comments, rightMargin, bottomMargin - 25);
+                ctx.font = '24px serif'; ctx.fillText('➤', rightMargin, bottomMargin - 30);
+                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText("Share", rightMargin, bottomMargin - 15);
 
                 // 3. Bottom Content Overlay
                 ctx.textAlign = 'left';
                 
-                // Author Tag
+                // Author
                 ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#fff';
-                ctx.fillText(card.author, 20, h * 0.42);
+                ctx.fillText(card.author, 20, h * 0.45);
                 
-                // Question
+                // Question (The Caption)
                 ctx.font = 'bold 18px sans-serif'; 
-                ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
-                ctx.fillText(card.q, 20, h * 0.42 + 25);
-                ctx.shadowBlur=0;
+                const lines = card.q.split(' '); // Simple wrap logic could go here
+                ctx.fillText(card.q, 20, h * 0.45 + 25);
                 
                 // Subtext
                 ctx.font = '12px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                const subWidth = ctx.measureText(card.sub).width;
-                if (subWidth > w - 80) {
-                    ctx.fillText(card.sub.substring(0, 30) + "...", 20, h * 0.42 + 45);
-                } else {
-                    ctx.fillText(card.sub, 20, h * 0.42 + 45);
-                }
+                ctx.fillText(card.sub, 20, h * 0.45 + 45);
 
-                // 4. Interactive Options
+                // 4. Interactive Quiz Buttons
                 card.opts.forEach((opt: string, i: number) => {
                     const btnH = 50;
                     const spacing = 15;
@@ -338,7 +332,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.shadowBlur = 0;
                 });
 
-                // 5. Success Feedback Banner
+                // 5. Feedback Banner (Duolingo Style)
                 if (state.feedState === 'feedback' || state.feedState === 'swiping') {
                     const bannerY = state.feedState === 'feedback' ? 
                         h - 80 - Math.min(1, state.feedTimer/10) * 20 : // Pop up
@@ -349,9 +343,9 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     
                     ctx.fillStyle = '#fff';
                     ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'left';
-                    ctx.fillText("Nice work!", 20, bannerY + 40);
+                    ctx.fillText("Nice job!", 20, bannerY + 40);
                     ctx.font = '12px sans-serif';
-                    ctx.fillText(`Streak: ${state.streak} 🔥  XP: ${state.xp}`, 20, bannerY + 65);
+                    ctx.fillText(`Streak: ${state.streak} days 🔥`, 20, bannerY + 60);
                 }
 
                 // 6. Particles
@@ -369,29 +363,29 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     
                     ctx.fillStyle = p.color;
                     ctx.globalAlpha = p.life;
-                    ctx.fillRect(p.x, p.y, 5, 5); 
+                    ctx.fillRect(p.x, p.y, 6, 6); // Confetti squares
                 }
                 ctx.globalAlpha = 1;
 
-                // 7. Header UI
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                // 7. Top Header (Progress)
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
                 ctx.fillRect(0, 0, w, 60);
                 
-                // Progress Segmented
-                const totalCards = state.feedCards.length;
-                const segW = (w - 40 - (totalCards-1)*5) / totalCards;
-                for(let i=0; i<totalCards; i++) {
-                    ctx.fillStyle = i <= state.currentCardIndex ? '#fff' : 'rgba(255,255,255,0.2)';
-                    ctx.fillRect(20 + i*(segW+5), 20, segW, 4);
-                }
+                // Progress bar
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.fillRect(20, 20, w-40, 4);
+                ctx.fillStyle = '#fff';
+                // Simulated progress
+                const prog = ((state.currentCardIndex + 1) / state.feedCards.length) * (w-40);
+                ctx.fillRect(20, 20, prog, 4);
 
-                ctx.restore(); // End Translate
+                ctx.restore(); // End Swipe Transform
 
-                // 8. Simulated Cursor Overlay
+                // 8. Simulated Cursor
                 if (state.feedState !== 'swiping') {
                     ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(0,0,0,0.5)';
                     ctx.fillStyle = '#fff';
-                    // Arrow cursor
+                    // Pointer shape
                     ctx.beginPath();
                     ctx.moveTo(state.cursor.x, state.cursor.y);
                     ctx.lineTo(state.cursor.x + 12, state.cursor.y + 12);
@@ -409,7 +403,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.shadowBlur = 0;
                 }
             }
-            // ... (Existing logic for other modes)
+            // ... (Existing render logic for other modes)
             else if (mode === 'search') {
                 const processLine = w * 0.4;
                 const laneCount = 5;
@@ -585,7 +579,358 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.restore();
                 });
             }
-            // ... (Other modes omitted for brevity, logic remains in 'render')
+            else if (mode === 'core') {
+                if (Math.random() > 0.96) {
+                    state.nodes[0].active = 1; 
+                    const startLink = state.links.filter((l: any) => l.from === 0)[Math.floor(Math.random() * 6)];
+                    if (startLink) {
+                        state.particles.push({
+                            linkIdx: state.links.indexOf(startLink),
+                            t: 0,
+                            speed: 0.08
+                        });
+                    }
+                }
+
+                ctx.translate(cx, cy);
+                ctx.rotate(time * 0.05);
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                state.links.forEach((l: any) => {
+                    const n1 = state.nodes[l.from];
+                    const n2 = state.nodes[l.to];
+                    ctx.moveTo(n1.x, n1.y);
+                    ctx.lineTo(n2.x, n2.y);
+                });
+                ctx.stroke();
+
+                state.nodes.forEach((n:any) => {
+                    if (n.active > 0) {
+                        ctx.fillStyle = color;
+                        ctx.shadowBlur = 10 * n.active;
+                        ctx.shadowColor = color;
+                        n.active -= 0.05;
+                    } else {
+                        ctx.fillStyle = n.layer === 0 ? color : 'rgba(255,255,255,0.3)';
+                        ctx.shadowBlur = 0;
+                    }
+                    const size = n.layer === 0 ? 4 : 2;
+                    ctx.beginPath(); ctx.arc(n.x, n.y, size, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                for(let i=state.particles.length-1; i>=0; i--) {
+                    const p = state.particles[i];
+                    p.t += p.speed;
+                    const link = state.links[p.linkIdx];
+                    if (!link) { state.particles.splice(i,1); continue; }
+                    const n1 = state.nodes[link.from];
+                    const n2 = state.nodes[link.to];
+                    const currX = n1.x + (n2.x - n1.x) * p.t;
+                    const currY = n1.y + (n2.y - n1.y) * p.t;
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
+                    ctx.fillRect(currX-1.5, currY-1.5, 3, 3);
+                    ctx.shadowBlur = 0;
+                    if (p.t >= 1) {
+                        n2.active = 1;
+                        if (n2.layer < 3 && Math.random() > 0.3) {
+                            const nextLinks = state.links.map((l: any, idx: number) => ({...l, idx})).filter((l: any) => l.from === link.to);
+                            if (nextLinks.length > 0) {
+                                const nextL = nextLinks[Math.floor(Math.random() * nextLinks.length)];
+                                state.particles.push({ linkIdx: nextL.idx, t: 0, speed: 0.08 });
+                            }
+                        }
+                        state.particles.splice(i, 1);
+                    }
+                }
+                ctx.rotate(-time * 0.05);
+                ctx.translate(-cx, -cy);
+            }
+            else if (mode === 'swarm') {
+                const beltY = h * 0.65; 
+                const inputEnd = w * 0.45;
+                const outputStart = w * 0.55;
+                const agentX = w * 0.5;
+                const agentBaseY = beltY + 40;
+                
+                const boxSize = 18;
+                const speed = 1.0; 
+                const animSpeed = 0.03;
+
+                const COLORS = ['#22d3ee', '#a78bfa', '#fbbf24']; 
+                const TARGET_YS = [beltY - 80, beltY - 40, beltY];
+
+                const lastBox = state.boxes.length > 0 ? state.boxes[state.boxes.length - 1] : null;
+                const safeToSpawn = !lastBox || (lastBox.x > 80); 
+
+                if (safeToSpawn && Math.random() > 0.99) {
+                    const typeIdx = Math.floor(Math.random() * 3);
+                    state.boxes.push({
+                        x: -20,
+                        y: beltY - boxSize,
+                        w: boxSize,
+                        h: boxSize,
+                        color: COLORS[typeIdx],
+                        targetLane: typeIdx,
+                        state: 'conveyor_in' 
+                    });
+                }
+
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillRect(0, beltY, inputEnd, 4);
+                TARGET_YS.forEach(y => {
+                    ctx.fillRect(outputStart, y + boxSize, w - outputStart, 4);
+                });
+
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                const dashOffset = (time * 60) % 40; 
+                for(let i=0; i<inputEnd; i+=40) {
+                    const x = i + dashOffset;
+                    if(x < inputEnd) ctx.fillRect(x, beltY, 4, 4);
+                }
+                TARGET_YS.forEach(y => {
+                    for(let i=outputStart; i<w; i+=40) {
+                        const x = i + dashOffset; 
+                        if(x > outputStart) ctx.fillRect(x, y + boxSize, 4, 4);
+                    }
+                });
+
+                const agent = state.agent;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(agentX - 15, agentBaseY - 20, 30, 20); 
+                
+                const pivotX = agentX;
+                const pivotY = agentBaseY - 20;
+
+                let armX = pivotX;
+                let armY = beltY - 60; 
+                let grabberGap = 10;
+
+                if (agent.state === 'idle') {
+                    const target = state.boxes.find((b: any) => 
+                        b.state === 'conveyor_in' && 
+                        b.x > inputEnd - 60 && 
+                        b.x < inputEnd
+                    );
+                    if (target) {
+                        agent.state = 'reaching';
+                        agent.targetBox = target;
+                        agent.t = 0;
+                    }
+                }
+
+                if (agent.state === 'reaching') {
+                    agent.t += animSpeed;
+                    const t = Math.min(1, agent.t);
+                    const b = agent.targetBox;
+                    if(b.x < inputEnd - 20) b.x += speed;
+                    armX = pivotX + (b.x + b.w/2 - pivotX) * t;
+                    armY = (pivotY - 80) + (b.y - (pivotY - 80)) * t;
+                    if (t >= 1) { agent.state = 'grasping'; agent.t = 0; }
+                } 
+                else if (agent.state === 'grasping') {
+                    agent.t += animSpeed * 2;
+                    grabberGap = 10 * (1 - Math.min(1, agent.t));
+                    armX = agent.targetBox.x + agent.targetBox.w/2;
+                    armY = agent.targetBox.y;
+                    if (agent.t >= 1) { agent.state = 'moving'; agent.targetBox.state = 'lifted'; agent.t = 0; }
+                }
+                else if (agent.state === 'moving') {
+                    agent.t += animSpeed;
+                    const t = Math.min(1, agent.t);
+                    const b = agent.targetBox;
+                    const targetY = TARGET_YS[b.targetLane];
+                    
+                    const startX = inputEnd - 20;
+                    const targetX = outputStart + 20;
+                    
+                    armX = startX + (targetX - startX) * t;
+                    const midY = Math.min(beltY, targetY) - 60;
+                    armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY;
+                    
+                    grabberGap = 0;
+                    b.x = armX - b.w/2;
+                    b.y = armY;
+
+                    if (t >= 1) { agent.state = 'releasing'; agent.t = 0; }
+                }
+                else if (agent.state === 'releasing') {
+                    agent.t += animSpeed * 2;
+                    const b = agent.targetBox;
+                    armX = b.x + b.w/2;
+                    armY = b.y;
+                    grabberGap = 10 * Math.min(1, agent.t);
+                    
+                    if (agent.t >= 1) {
+                        b.state = 'conveyor_out';
+                        b.y = TARGET_YS[b.targetLane];
+                        agent.state = 'returning';
+                        agent.targetBox = null;
+                        agent.t = 0;
+                    }
+                }
+                else if (agent.state === 'returning') {
+                    agent.t += animSpeed;
+                    const t = Math.min(1, agent.t);
+                    const startX = outputStart + 20;
+                    const startY = armY;
+                    const targetX = pivotX;
+                    const targetY = beltY - 60;
+                    armX = startX + (targetX - startX) * t;
+                    armY = startY + (targetY - startY) * t;
+                    if (t >= 1) agent.state = 'idle';
+                }
+                else {
+                    armX = pivotX + Math.sin(time * 2) * 5;
+                    armY = beltY - 60 + Math.cos(time * 3) * 5;
+                }
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(pivotX, pivotY);
+                const elbowX = (pivotX + armX) / 2 - 20; 
+                const elbowY = Math.min(pivotY, armY) - 30;
+                ctx.quadraticCurveTo(elbowX, elbowY, armX, armY);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(armX, armY, 3, 0, Math.PI*2); ctx.fill();
+                
+                ctx.save();
+                ctx.translate(armX, armY);
+                ctx.fillStyle = color;
+                ctx.fillRect(-8 - grabberGap/2, -5, 4, 15);
+                ctx.fillRect(4 + grabberGap/2, -5, 4, 15);
+                ctx.restore();
+
+                for (let i = state.boxes.length - 1; i >= 0; i--) {
+                    const b = state.boxes[i];
+                    if (b.state === 'conveyor_in') {
+                        if (agent.targetBox !== b || agent.state === 'reaching') {
+                             if (b.x < inputEnd - 20) b.x += speed; 
+                        }
+                    } else if (b.state === 'conveyor_out') {
+                        b.x += speed;
+                    }
+                    if (b.x > w + 20) { state.boxes.splice(i, 1); continue; }
+
+                    ctx.fillStyle = b.color;
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.fillRect(b.x + 2, b.y + 2, 4, 4);
+                }
+            }
+            else if (mode === 'translation') {
+                const colWidth = 140; 
+                const numCols = 2; 
+                const SNIPPETS = ["POST /api/v1/ingest", "{ id: '8f3a' }", "WARN: Latency", "Converting...", "0x4F3E21", "SELECT * FROM logs", "Processing...", "struct Node", "ERROR: Timeout", "> System.init()"];
+
+                if (state.columns.length === 0) {
+                    state.columns = Array.from({ length: numCols }, (_, i) => ({
+                        x: 20 + i * (colWidth + 10),
+                        y: Math.random() * h,
+                        speed: 0.5 + Math.random() * 0.5,
+                        items: Array.from({ length: 15 }, () => ({
+                            text: SNIPPETS[Math.floor(Math.random() * SNIPPETS.length)],
+                            y: 0 
+                        }))
+                    }));
+                }
+
+                const gridStartX = w * 0.55;
+                const gridCols = 6; const gridRows = 8;
+                const cellW = (w * 0.4) / gridCols; const cellH = h / gridRows;
+                if (state.grid.length === 0) {
+                    for(let i=0; i<gridCols*gridRows; i++) {
+                        state.grid.push({
+                            x: gridStartX + (i % gridCols) * cellW + cellW/2,
+                            y: Math.floor(i / gridCols) * cellH + cellH/2,
+                            filled: false, alpha: 0.2
+                        });
+                    }
+                }
+
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'left';
+                
+                state.columns.forEach((col: any) => {
+                    col.y -= col.speed;
+                    if (col.y < -300) col.y = h; 
+
+                    col.items.forEach((item: any, i: number) => {
+                        const yPos = col.y + i * 20;
+                        const drawnY = yPos % (h + 300) - 50;
+                        
+                        if (drawnY > -20 && drawnY < h + 20) {
+                            const isScanned = Math.abs(drawnY - h/2) < 20;
+                            ctx.fillStyle = isScanned ? '#fff' : 'rgba(255,255,255,0.3)';
+                            if (isScanned) {
+                                if (Math.random() > 0.98) {
+                                    const empty = state.grid.filter((g: any) => !g.filled);
+                                    if (empty.length > 0) {
+                                        const t = empty[Math.floor(Math.random() * empty.length)];
+                                        t.filled = true;
+                                        state.particles.push({
+                                            x: col.x + 80, y: drawnY,
+                                            tx: t.x, ty: t.y,
+                                            progress: 0, speed: 0.05,
+                                            target: t
+                                        });
+                                    }
+                                }
+                            }
+                            ctx.fillText(item.text, col.x, drawnY);
+                        }
+                    });
+                });
+
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.1;
+                ctx.fillRect(0, h/2 - 20, w * 0.45, 40);
+                ctx.globalAlpha = 0.8;
+                ctx.fillRect(0, h/2, w * 0.45, 1);
+
+                ctx.globalAlpha = 1;
+                for (let i = state.particles.length - 1; i >= 0; i--) {
+                    const p = state.particles[i];
+                    p.progress += p.speed;
+                    const t = p.progress;
+                    const lx = p.x + (p.tx - p.x) * t;
+                    const ly = p.y + (p.ty - p.y) * t;
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(lx - 2, ly - 2, 4, 4);
+                    
+                    if (p.progress >= 1) {
+                        p.target.alpha = 1.0;
+                        state.particles.splice(i, 1);
+                    }
+                }
+
+                state.grid.forEach((cell: any) => {
+                    if (cell.filled) cell.alpha = Math.max(0.4, cell.alpha - 0.02);
+                    else cell.alpha = 0.1;
+                    const s = Math.min(cellW, cellH) * 0.6;
+                    ctx.strokeStyle = color; ctx.globalAlpha = cell.alpha; ctx.lineWidth = 1;
+                    ctx.strokeRect(cell.x - s/2, cell.y - s/2, s, s);
+                    if (cell.filled) {
+                        ctx.fillStyle = color; ctx.globalAlpha = cell.alpha * 0.6;
+                        ctx.fillRect(cell.x - s/2 + 2, cell.y - s/2 + 2, s - 4, s - 4);
+                        if (Math.random() > 0.995) cell.filled = false;
+                    }
+                });
+            }
+
+            ctx.globalAlpha = 1;
+            frameId = requestAnimationFrame(render);
         };
 
         const observer = new ResizeObserver(() => { resize(); });
