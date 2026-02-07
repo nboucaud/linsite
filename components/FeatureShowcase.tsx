@@ -14,7 +14,7 @@ import {
     File, HardDrive, Plus, Sliders, Table, Columns,
     GitBranch, GitCommit, GitMerge, AlertOctagon,
     ArrowUpRight, PieChart, Bell, Settings,
-    Server, Trash2, Sparkles, Mail
+    Server, Trash2, Sparkles, Mail, MousePointer2
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -23,7 +23,7 @@ const cn = (...classes: (string | undefined | null | false)[]) => classes.filter
 // --- SHARED COMPONENTS ---
 
 const WindowHeader = ({ title, icon: Icon, activeStage }: { title: string, icon: any, activeStage: number }) => (
-    <div className="h-12 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
+    <div className="h-10 md:h-12 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
         <div className="flex items-center gap-4">
             <div className="flex gap-2 group">
                 <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
@@ -37,7 +37,7 @@ const WindowHeader = ({ title, icon: Icon, activeStage }: { title: string, icon:
             </div>
         </div>
         <div className="flex items-center gap-3 text-white/30">
-            <span className="text-[10px] font-mono uppercase tracking-widest">v2.4.0</span>
+            <span className="text-[10px] font-mono uppercase tracking-widest hidden md:inline">v2.4.0</span>
         </div>
     </div>
 );
@@ -46,11 +46,11 @@ const WindowHeader = ({ title, icon: Icon, activeStage }: { title: string, icon:
 const LocateApp = ({ active }: { active: boolean }) => {
     const [loading, setLoading] = useState(true);
     
-    // Simulate loading state on mount
     useEffect(() => {
         if(active) {
             setLoading(true);
-            setTimeout(() => setLoading(false), 800);
+            const t = setTimeout(() => setLoading(false), 800);
+            return () => clearTimeout(t);
         }
     }, [active]);
 
@@ -81,7 +81,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
 
             <div className="flex-1 flex overflow-hidden">
                 {/* Sidebar */}
-                <div className="w-56 border-r border-white/5 py-4 hidden md:flex flex-col bg-[#0f0f11]">
+                <div className="w-48 border-r border-white/5 py-4 hidden md:flex flex-col bg-[#0f0f11]">
                     <div className="px-4 mb-6">
                         <button className="flex items-center justify-center gap-2 w-full bg-white text-black rounded-lg py-2 text-sm font-bold shadow-lg hover:bg-gray-100 transition-colors">
                             <Plus size={16} /> New Connection
@@ -125,7 +125,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
                             ))
                         ) : (
                             files.map((f, i) => (
-                                <div key={i} className="group bg-[#1a1a1c] hover:bg-[#202022] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between h-32 relative overflow-hidden">
+                                <div key={i} className="group bg-[#1a1a1c] hover:bg-[#202022] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between h-32 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${i*100}ms` }}>
                                     <div className="flex justify-between items-start">
                                         {f.type === 'folder' ? <Folder className="text-blue-400 fill-blue-400/20" size={24} /> : 
                                          f.type === 'sheet' ? <FileSpreadsheet className="text-green-400" size={24} /> :
@@ -167,6 +167,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
 
     useEffect(() => {
         if(!active) return;
+        setLogs([]);
         
         const types = ['INFO', 'WARN', 'SUCCESS', 'DEBUG'];
         const sources = ['stripe_connector', 'auth_service', 'pdf_parser', 'crm_sync'];
@@ -212,9 +213,9 @@ const StreamApp = ({ active }: { active: boolean }) => {
                 </div>
             </div>
             
-            <div className="flex-1 p-4 overflow-y-auto space-y-1">
+            <div className="flex-1 p-4 overflow-y-auto space-y-1 custom-scrollbar">
                 {logs.map(log => (
-                    <div key={log.id} className="grid grid-cols-[80px_60px_120px_1fr] gap-2 hover:bg-white/5 p-1 rounded transition-colors border-l-2 border-transparent hover:border-white/20">
+                    <div key={log.id} className="grid grid-cols-[80px_60px_120px_1fr] gap-2 hover:bg-white/5 p-1 rounded transition-colors border-l-2 border-transparent hover:border-white/20 animate-in slide-in-from-left-2 duration-200">
                         <span className="text-gray-500">{log.ts}</span>
                         <span className={`${log.type === 'WARN' ? 'text-amber-400' : log.type === 'SUCCESS' ? 'text-green-400' : log.type === 'DEBUG' ? 'text-gray-600' : 'text-blue-400'} font-bold`}>
                             {log.type}
@@ -237,9 +238,9 @@ const StreamApp = ({ active }: { active: boolean }) => {
 // --- 3. CONTEXT (Simulated Doc Editor / Analysis) ---
 const ContextApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#191919] flex">
+        <div className="w-full h-full bg-[#191919] flex overflow-hidden">
             {/* Doc View */}
-            <div className="flex-1 bg-white p-8 md:p-12 shadow-inner overflow-y-auto">
+            <div className="flex-1 bg-white p-8 md:p-12 shadow-inner overflow-y-auto custom-scrollbar text-black">
                 <div className="max-w-2xl mx-auto space-y-6">
                     <div className="h-8 w-3/4 bg-gray-100 rounded animate-pulse" />
                     <div className="space-y-2">
@@ -249,13 +250,13 @@ const ContextApp = ({ active }: { active: boolean }) => {
                     </div>
                     
                     {/* Highlighted Section */}
-                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 relative group">
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 relative group transition-all hover:bg-purple-100">
                         <div className="absolute -right-3 -top-3 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
                             <Bot size={12} />
                         </div>
-                        <p className="text-gray-800 text-sm leading-relaxed">
+                        <p className="text-gray-800 text-sm leading-relaxed font-serif">
                             "The Contractor agrees to indemnify the Client against all claims arising from negligence. 
-                            <span className="bg-yellow-200/50 px-1 rounded mx-1 cursor-pointer border-b-2 border-yellow-400">Termination requires 30 days notice</span> 
+                            <span className="bg-yellow-200/50 px-1 rounded mx-1 cursor-pointer border-b-2 border-yellow-400 font-semibold">Termination requires 30 days notice</span> 
                             via certified mail."
                         </p>
                     </div>
@@ -276,7 +277,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 </div>
                 <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {/* Entity Card */}
-                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5">
+                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5 animate-in slide-in-from-right-4 duration-500 delay-100">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Detected Entity</div>
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400">
@@ -290,7 +291,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                     </div>
 
                     {/* Sentiment */}
-                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5">
+                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5 animate-in slide-in-from-right-4 duration-500 delay-200">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Analysis</div>
                         <p className="text-xs text-gray-300 leading-relaxed">
                             This clause deviates from the standard MSA template. Usually 14 days notice is sufficient. 
@@ -299,7 +300,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 animate-in slide-in-from-right-4 duration-500 delay-300">
                         <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-xs text-white transition-colors">
                             Draft Amendment
                         </button>
@@ -326,7 +327,7 @@ const CaptureApp = ({ active }: { active: boolean }) => {
             />
 
             {/* Nodes */}
-            <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2">
+            <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2 z-10 animate-in zoom-in-95 duration-500">
                 <div className="w-64 bg-[#1a1a1c] border border-green-500/50 rounded-xl shadow-xl p-4 relative group">
                     <div className="absolute -top-3 left-4 bg-green-500/10 border border-green-500/50 text-green-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Trigger</div>
                     <div className="flex items-center gap-3 mb-2">
@@ -341,11 +342,11 @@ const CaptureApp = ({ active }: { active: boolean }) => {
             </div>
 
             {/* Connector Line */}
-            <svg className="absolute inset-0 pointer-events-none">
-                <path d="M 350 300 C 450 300, 450 300, 550 300" fill="none" stroke="#69B7B2" strokeWidth="2" strokeDasharray="5 5" className="animate-[dash_20s_linear_infinite]" />
+            <svg className="absolute inset-0 pointer-events-none z-0">
+                <path d="M 300 300 C 400 300, 400 300, 500 300" fill="none" stroke="#69B7B2" strokeWidth="2" strokeDasharray="5 5" className="animate-[dash_20s_linear_infinite]" />
             </svg>
 
-            <div className="absolute top-1/2 left-3/4 -translate-y-1/2 -translate-x-1/2">
+            <div className="absolute top-1/2 left-3/4 -translate-y-1/2 -translate-x-1/2 z-10 animate-in zoom-in-95 duration-500 delay-100">
                 <div className="w-64 bg-[#1a1a1c] border border-blue-500/50 rounded-xl shadow-xl p-4 relative">
                     {/* Input Dot */}
                     <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-500 rounded-full z-10" />
@@ -360,7 +361,7 @@ const CaptureApp = ({ active }: { active: boolean }) => {
             </div>
 
             {/* Floating Palette */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#1a1a1c] border border-white/10 rounded-full px-6 py-3 flex gap-6 shadow-2xl">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#1a1a1c] border border-white/10 rounded-full px-6 py-3 flex gap-6 shadow-2xl z-20">
                 <div className="flex flex-col items-center gap-1 group cursor-pointer">
                     <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Zap size={14} className="text-yellow-400"/></div>
                     <span className="text-[9px] text-gray-500">Trigger</span>
@@ -388,24 +389,25 @@ const ControlApp = ({ active }: { active: boolean }) => {
                     <Network size={14} /> Knowledge Graph
                 </div>
                 <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
                         <span>Acme Corp</span>
-                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 rounded">Client</span>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Client</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
                         <span>MSA_2024.pdf</span>
-                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 rounded">Contract</span>
+                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Contract</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10 transition-colors">
                         <span>Risk Policy A</span>
-                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 rounded">Rule</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Rule</span>
                     </div>
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-white/10">
                     <div className="text-[10px] text-gray-500 mb-2">Cypher Query</div>
+                    {/* Fixed: Escape the '>' character in the query string */}
                     <div className="font-mono text-[10px] text-[#69B7B2] bg-black p-2 rounded border border-white/10">
-                        MATCH (n:Client)-[r:HAS_CONTRACT]->(c) RETURN n,r,c LIMIT 1
+                        MATCH (n:Client)-[r:HAS_CONTRACT]-&gt;(c) RETURN n,r,c LIMIT 1
                     </div>
                 </div>
             </div>
@@ -413,13 +415,13 @@ const ControlApp = ({ active }: { active: boolean }) => {
             {/* Simulated Graph */}
             <div className="flex-1 relative flex items-center justify-center">
                 {/* Center Node */}
-                <div className="absolute w-16 h-16 bg-white rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center justify-center z-10 border-4 border-[#050505] text-black font-bold text-xs">
+                <div className="absolute w-16 h-16 bg-white rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center justify-center z-10 border-4 border-[#050505] text-black font-bold text-xs animate-pulse">
                     ACME
                 </div>
                 
                 {/* Connections */}
                 {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                    <div key={i} className="absolute w-[200px] h-[2px] bg-white/10 origin-left" style={{ transform: `rotate(${deg}deg) translateX(30px)` }}>
+                    <div key={i} className="absolute w-[200px] h-[2px] bg-white/10 origin-left animate-in fade-in duration-1000" style={{ transform: `rotate(${deg}deg) translateX(30px)`, animationDelay: `${i*100}ms` }}>
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center hover:scale-125 transition-transform cursor-pointer" style={{ transform: `rotate(${-deg}deg)` }}>
                             {i % 2 === 0 ? <FileText size={12} className="text-red-400"/> : <ShieldCheck size={12} className="text-amber-400"/>}
                         </div>
@@ -481,7 +483,7 @@ const BridgeApp = ({ active }: { active: boolean }) => {
                 <div className="w-72 flex-shrink-0 flex flex-col">
                     <div className="text-xs font-bold text-gray-500 mb-3">PROCESSING (1)</div>
                     <div className="space-y-3">
-                        <div className="bg-white p-3 rounded shadow-sm border-l-4 border-green-500 cursor-pointer">
+                        <div className="bg-white p-3 rounded shadow-sm border-l-4 border-green-500 cursor-pointer hover:bg-green-50/10 transition-colors">
                             <div className="text-sm font-medium mb-2">Drafting Renewal Contracts</div>
                             <div className="w-full bg-gray-100 h-1.5 rounded-full mb-3 overflow-hidden">
                                 <div className="bg-green-500 h-full w-2/3 animate-[pulse_2s_infinite]" />
@@ -515,7 +517,7 @@ const BridgeApp = ({ active }: { active: boolean }) => {
 // --- 7. REFLECT (Performance Dashboard) ---
 const ReflectApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#0f1117] text-white p-6 grid grid-cols-3 gap-6">
+        <div className="w-full h-full bg-[#0f1117] text-white p-6 grid grid-cols-3 gap-6 font-sans">
             {/* Header / Stats */}
             <div className="col-span-3 flex items-end justify-between mb-2">
                 <div>
@@ -539,7 +541,7 @@ const ReflectApp = ({ active }: { active: boolean }) => {
                 <div className="h-40 flex items-end justify-between gap-1 px-2">
                     {[40, 65, 55, 80, 70, 85, 90, 85, 95, 92, 96, 94, 98].map((h, i) => (
                         <div key={i} className="w-full bg-blue-500/20 hover:bg-blue-500 transition-colors rounded-t-sm relative group" style={{ height: `${h}%` }}>
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 border border-white/20">
                                 {h}%
                             </div>
                         </div>
