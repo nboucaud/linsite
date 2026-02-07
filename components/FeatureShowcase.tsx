@@ -10,7 +10,11 @@ import {
     ChevronRight, ChevronDown, Filter, Download, 
     MoreHorizontal, User, Tag,
     Users, Share2, Globe, Cpu, BarChart3, RefreshCw, Layers,
-    MessageSquare, Briefcase, CreditCard, Box
+    MessageSquare, Briefcase, CreditCard, Box,
+    File, HardDrive, Plus, Sliders, Table, Columns,
+    GitBranch, GitCommit, GitMerge, AlertOctagon,
+    ArrowUpRight, PieChart, Bell, Settings,
+    Server, Trash2, Sparkles, Mail
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -18,500 +22,407 @@ const cn = (...classes: (string | undefined | null | false)[]) => classes.filter
 
 // --- SHARED COMPONENTS ---
 
-const WindowHeader = ({ title, color = "bg-[#0c0c0e]" }: { title: string, color?: string }) => (
-    <div className={`h-12 border-b border-white/5 flex items-center justify-center px-4 ${color} select-none rounded-t-xl z-20 relative`}>
-        <div className="absolute left-4 flex items-center gap-4">
+const WindowHeader = ({ title, icon: Icon, activeStage }: { title: string, icon: any, activeStage: number }) => (
+    <div className="h-12 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
+        <div className="flex items-center gap-4">
             <div className="flex gap-2 group">
                 <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
                 <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50" />
                 <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/50" />
             </div>
-            {/* Fake Browser Tabs */}
-            <div className="flex gap-2">
-                <div className="px-4 py-1.5 bg-white/10 rounded-t-lg text-[10px] text-white/80 font-medium flex items-center gap-2 border-t border-x border-white/5 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-[#69B7B2] animate-pulse"/> {title} <X size={10} className="opacity-50 ml-2" />
-                </div>
-                <div className="px-4 py-1.5 hover:bg-white/5 rounded-t-lg text-[10px] text-white/40 font-medium flex items-center gap-2 border-b border-transparent hover:border-white/5 transition-colors cursor-pointer">
-                    <span className="opacity-50">+</span>
-                </div>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-2 text-white/60 text-xs font-medium">
+                <Icon size={14} className="text-[#69B7B2]" />
+                <span>{title}</span>
             </div>
         </div>
-        <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-white/30 ml-auto">
-            infogito-agent-v2.4.0
+        <div className="flex items-center gap-3 text-white/30">
+            <span className="text-[10px] font-mono uppercase tracking-widest">v2.4.0</span>
         </div>
     </div>
 );
 
-const Cursor = ({ x, y, label }: { x: number, y: number, label?: string }) => (
-    <div 
-        className="absolute pointer-events-none transition-all duration-500 ease-in-out z-50 drop-shadow-xl"
-        style={{ left: `${x}%`, top: `${y}%` }}
-    >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="transform -translate-x-1 -translate-y-1">
-            <path d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z" fill="#69B7B2" stroke="white"/>
-        </svg>
-        {label && (
-            <div className="absolute left-4 top-4 bg-[#69B7B2] text-black text-[9px] font-bold px-2 py-1 rounded-full whitespace-nowrap shadow-sm">
-                {label}
-            </div>
-        )}
-    </div>
-);
-
-// --- 1. LOCATE (Sources) ---
-const LocateInterface = ({ active }: { active: boolean }) => {
-    const [scanProgress, setScanProgress] = useState<Record<string, number>>({});
-    const [cursor, setCursor] = useState({ x: 50, y: 50 });
+// --- 1. LOCATE (Simulated File System / "Drive") ---
+const LocateApp = ({ active }: { active: boolean }) => {
+    const [loading, setLoading] = useState(true);
     
-    // SMB / Modern Tech Stack Sources
-    const sources = [
-        { id: '1', name: 'CRM_Export_Q3', type: 'crm', status: 'connected', icon: Users },
-        { id: '2', name: 'Stripe_Transactions', type: 'finance', status: 'indexing', icon: CreditCard },
-        { id: '3', name: 'Support_Tickets', type: 'api', status: 'scanning', icon: MessageSquare },
-        { id: '4', name: 'Legal_Contracts.pdf', type: 'doc', status: 'synced', icon: FileText },
-        { id: '5', name: 'Legacy_SQL_Dump', type: 'db', status: 'ingesting', icon: Database },
-        { id: '6', name: 'Slack_History', type: 'cloud', status: 'connected', icon: Briefcase },
-    ];
-
+    // Simulate loading state on mount
     useEffect(() => {
-        if (!active) {
-            setScanProgress({});
-            return;
+        if(active) {
+            setLoading(true);
+            setTimeout(() => setLoading(false), 800);
         }
-
-        const sequence = async () => {
-            setCursor({ x: 20, y: 35 });
-            await new Promise(r => setTimeout(r, 600));
-            setScanProgress(p => ({ ...p, '1': 100 })); 
-
-            setCursor({ x: 50, y: 35 });
-            await new Promise(r => setTimeout(r, 500));
-            setScanProgress(p => ({ ...p, '2': 40 })); 
-
-            setCursor({ x: 80, y: 35 });
-            await new Promise(r => setTimeout(r, 500));
-            setScanProgress(p => ({ ...p, '3': 60 }));
-
-            // Rapid scan rest
-            setTimeout(() => { setScanProgress(prev => ({...prev, '2': 100})); }, 1000);
-            setTimeout(() => { setScanProgress(prev => ({...prev, '3': 100})); }, 1500);
-            setTimeout(() => { setScanProgress(prev => ({...prev, '5': 100})); }, 1800);
-        };
-
-        sequence();
     }, [active]);
 
+    const files = [
+        { name: "Q3_Financials.xlsx", type: "sheet", size: "2.4 MB", date: "Just now", status: "sync" },
+        { name: "Client_Contracts_2025", type: "folder", size: "--", date: "Yesterday", status: "check" },
+        { name: "Vendor_API_Keys.txt", type: "code", size: "4 KB", date: "2 days ago", status: "lock" },
+        { name: "Employee_Roster_Full.csv", type: "sheet", size: "1.1 MB", date: "Oct 24", status: "check" },
+        { name: "Strategic_Plan_v4.pdf", type: "pdf", size: "8.2 MB", date: "Oct 22", status: "check" },
+        { name: "CRM_Export_Raw.json", type: "code", size: "45 MB", date: "Oct 20", status: "check" },
+    ];
+
     return (
-        <div className="w-full h-full bg-[#1a1a1c] text-gray-300 font-sans flex flex-col relative overflow-hidden text-xs">
-            <Cursor x={cursor.x} y={cursor.y} label="Identifying Sources..." />
-            
+        <div className="w-full h-full bg-[#0f0f11] text-gray-300 font-sans flex flex-col">
             {/* Toolbar */}
-            <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#202124]">
-                <div className="flex items-center gap-4 w-full max-w-xl">
-                    <span className="text-lg font-medium text-white tracking-tight flex items-center gap-2">
-                        <Globe size={18} className="text-[#69B7B2]" />
-                        Source Map
-                    </span>
-                    <div className="flex-1 bg-[#303134] rounded-lg h-9 flex items-center px-4 gap-2 text-gray-400 font-mono text-[10px]">
+            <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
+                <div className="flex items-center gap-4 w-full max-w-2xl">
+                    <div className="bg-[#1e1e20] rounded-md h-9 flex items-center px-3 gap-2 text-gray-500 w-full border border-white/5 hover:border-white/10 transition-colors">
                         <Search size={14} />
-                        <span>Searching integrated ecosystem...</span>
+                        <span className="text-xs">Search files, folders, and connected apps...</span>
                     </div>
+                </div>
+                <div className="flex items-center gap-3 text-gray-500">
+                    <Bell size={16} />
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 text-[10px] text-white flex items-center justify-center font-bold">JD</div>
                 </div>
             </div>
 
-            <div className="flex-1 p-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {sources.map(s => {
-                        const scanned = scanProgress[s.id] === 100;
-                        const scanning = scanProgress[s.id] > 0 && scanProgress[s.id] < 100;
-                        const Icon = s.icon;
-                        
-                        return (
-                            <div key={s.id} className="relative group bg-[#252528] rounded-xl p-4 border border-white/5 hover:border-white/20 transition-all overflow-hidden shadow-lg">
-                                {(scanning || scanned) && (
-                                    <div className={`absolute inset-0 bg-[#69B7B2]/5 z-10 flex items-center justify-center backdrop-blur-[1px] transition-opacity ${scanned ? 'opacity-0' : 'opacity-100'}`}>
-                                        <div className="text-[#69B7B2] font-mono font-bold text-[9px] uppercase tracking-widest animate-pulse">Connecting...</div>
-                                    </div>
-                                )}
-                                {scanned && (
-                                    <div className="absolute top-2 right-2 text-[#69B7B2] animate-in zoom-in">
-                                        <CheckCircle2 size={14} />
-                                    </div>
-                                )}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Sidebar */}
+                <div className="w-56 border-r border-white/5 py-4 hidden md:flex flex-col bg-[#0f0f11]">
+                    <div className="px-4 mb-6">
+                        <button className="flex items-center justify-center gap-2 w-full bg-white text-black rounded-lg py-2 text-sm font-bold shadow-lg hover:bg-gray-100 transition-colors">
+                            <Plus size={16} /> New Connection
+                        </button>
+                    </div>
+                    <div className="space-y-1 px-2">
+                        {[{ l: "All Sources", i: HardDrive, a: true }, { l: "External Drives", i: Server }, { l: "Cloud Apps", i: Cloud }, { l: "Trash", i: Trash2 }].map((item, i) => (
+                            <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium cursor-pointer ${item.a ? 'bg-[#69B7B2]/10 text-[#69B7B2]' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}>
+                                <item.i size={14} /> {item.l}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-auto px-4 pb-4">
+                        <div className="bg-[#1e1e20] rounded-lg p-3 border border-white/5">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] text-gray-400">Storage</span>
+                                <span className="text-[10px] text-[#69B7B2]">82%</span>
+                            </div>
+                            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#69B7B2] w-[82%]" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className={`p-2 rounded-lg ${scanned ? 'bg-[#69B7B2]/20 text-[#69B7B2]' : 'bg-white/5 text-white/30'}`}>
-                                        <Icon size={16} />
+                {/* Main View */}
+                <div className="flex-1 p-6 overflow-y-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-bold text-white">Connected Sources</h2>
+                        <div className="flex gap-2">
+                            <button className="p-1.5 rounded hover:bg-white/5 text-gray-400"><List size={16}/></button>
+                            <button className="p-1.5 rounded bg-white/10 text-white"><Grid size={16}/></button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {loading ? (
+                            [1,2,3,4].map(i => (
+                                <div key={i} className="h-32 bg-white/5 rounded-xl animate-pulse" />
+                            ))
+                        ) : (
+                            files.map((f, i) => (
+                                <div key={i} className="group bg-[#1a1a1c] hover:bg-[#202022] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between h-32 relative overflow-hidden">
+                                    <div className="flex justify-between items-start">
+                                        {f.type === 'folder' ? <Folder className="text-blue-400 fill-blue-400/20" size={24} /> : 
+                                         f.type === 'sheet' ? <FileSpreadsheet className="text-green-400" size={24} /> :
+                                         f.type === 'code' ? <Code className="text-amber-400" size={24} /> :
+                                         <FileText className="text-red-400" size={24} />}
+                                        <MoreHorizontal size={14} className="text-gray-600 group-hover:text-gray-400" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-white truncate">{s.name}</div>
-                                        <div className="text-[9px] text-white/40 font-mono capitalize">{s.type}</div>
+                                        <div className="text-sm font-medium text-gray-200 truncate mb-1">{f.name}</div>
+                                        <div className="flex items-center justify-between text-[10px] text-gray-500">
+                                            <span>{f.size}</span>
+                                            {f.status === 'sync' ? <RefreshCw size={10} className="animate-spin text-[#69B7B2]" /> : 
+                                             f.status === 'lock' ? <Lock size={10} className="text-amber-500" /> :
+                                             <CheckCircle2 size={10} className="text-gray-600" />}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${scanned ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
-                                    <span className="text-[9px] uppercase tracking-wider font-bold text-white/30">{scanned ? 'Sync Active' : s.status}</span>
-                                </div>
+                            ))
+                        )}
+                        
+                        {/* Dropzone visual */}
+                        <div className="border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-gray-500 gap-2 h-32 hover:border-[#69B7B2]/50 hover:bg-[#69B7B2]/5 transition-colors cursor-pointer group">
+                            <div className="p-2 rounded-full bg-white/5 group-hover:bg-[#69B7B2]/20 transition-colors">
+                                <Plus size={16} className="group-hover:text-[#69B7B2]" />
                             </div>
-                        );
-                    })}
+                            <span className="text-xs font-medium group-hover:text-[#69B7B2]">Add Source</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-// --- 2. STREAM (Live Events) ---
-const StreamInterface = ({ active }: { active: boolean }) => {
-    const [lines, setLines] = useState<string[]>([]);
-    const [dataRate, setDataRate] = useState(0);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [sparkline, setSparkline] = useState<number[]>(new Array(30).fill(5));
+// --- 2. STREAM (Simulated Terminal / Log Aggregator) ---
+const StreamApp = ({ active }: { active: boolean }) => {
+    const [logs, setLogs] = useState<any[]>([]);
+    const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!active) {
-            setLines([]);
-            setSparkline(new Array(30).fill(5));
-            return;
-        }
-
-        const logs = [
-            "EVENT: New Ticket #9921 (Billing Issue) received via Email.",
-            "INGEST: Parsing PDF attachment 'Invoice_Oct.pdf'...",
-            "MATCH: Client 'Acme Corp' identified in CRM.",
-            "ACTION: Slack notification sent to #sales-team.",
-            "STREAM: Updating revenue dashboard (+$4,200).",
-            "WARN: Sentiment Analysis: Negative (Priority Escalated).",
-            "EVENT: Stripe payment succeeded for User_882.",
-            "LINK: Correlating support ticket with payment history...",
-            "DETECT: Churn risk identified based on usage patterns.",
-            "SYNC: Operational baseline updated."
+        if(!active) return;
+        
+        const types = ['INFO', 'WARN', 'SUCCESS', 'DEBUG'];
+        const sources = ['stripe_connector', 'auth_service', 'pdf_parser', 'crm_sync'];
+        const messages = [
+            "Payment webhook received id=evt_1M",
+            "Rate limit approaching (80%)",
+            "Successfully extracted metadata from INV-2024.pdf",
+            "User session established",
+            "Syncing batch #4921...",
+            "Detected PII in payload, applying redaction",
+            "Latency spike detected on node us-east-1a"
         ];
 
-        let i = 0;
         const interval = setInterval(() => {
-            if (i < logs.length) {
-                setLines(prev => [...prev, logs[i]]);
-                setDataRate(Math.floor(Math.random() * 800) + 2400);
-                setSparkline(prev => [...prev.slice(1), Math.random() * 24]);
-                i++;
-            } else {
-                setLines(prev => [...prev, "STREAM: Monitoring active..."]);
-                setSparkline(prev => [...prev.slice(1), Math.random() * 24]);
-            }
-        }, 300);
+            const newLog = {
+                id: Date.now(),
+                ts: new Date().toISOString().split('T')[1].split('.')[0],
+                type: types[Math.floor(Math.random() * types.length)],
+                source: sources[Math.floor(Math.random() * sources.length)],
+                msg: messages[Math.floor(Math.random() * messages.length)]
+            };
+            setLogs(prev => [...prev.slice(-15), newLog]);
+        }, 800);
 
         return () => clearInterval(interval);
     }, [active]);
 
     useEffect(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, [lines]);
+        if(bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
 
     return (
-        <div className="w-full h-full bg-[#0c0c0e] font-mono text-xs md:text-sm p-4 flex flex-col border border-white/5 rounded-b-xl">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-                <div className="flex gap-3 text-white/50 items-center">
-                    <Activity size={14} className="text-[#69B7B2] animate-pulse" />
-                    <span className="font-bold text-white/80">Business_Stream_v1</span>
-                    <span className="bg-[#69B7B2]/10 px-2 py-0.5 rounded text-[9px] text-[#69B7B2] border border-[#69B7B2]/20">LIVE FEED</span>
+        <div className="w-full h-full bg-[#0c0c0e] font-mono text-xs flex flex-col">
+            <div className="h-10 bg-[#1a1a1c] border-b border-white/5 flex items-center px-4 justify-between">
+                <div className="flex gap-4 text-gray-400">
+                    <span className="text-white font-bold border-b-2 border-[#69B7B2] pb-2.5">Live Tail</span>
+                    <span className="hover:text-white cursor-pointer">Analytics</span>
+                    <span className="hover:text-white cursor-pointer">Settings</span>
                 </div>
-                <div className="flex gap-4 items-center">
-                    <div className="flex items-end gap-0.5 h-4 w-24">
-                        {sparkline.map((val, i) => (
-                            <div key={i} className="w-1 bg-[#69B7B2]" style={{ height: `${val + 2}px`, opacity: i/30 }} />
-                        ))}
-                    </div>
-                    <span className="text-[#69B7B2] text-[10px] font-bold">{dataRate} events/s</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-green-500">Connected</span>
                 </div>
             </div>
             
-            <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 text-white/70 font-mono text-[10px] md:text-[11px] leading-relaxed">
-                {lines.map((line, i) => (
-                    <div key={i} className="animate-in slide-in-from-left-2 fade-in duration-300 flex border-l-2 border-transparent hover:border-white/10 hover:bg-white/5 pl-2 py-0.5">
-                        <span className="text-white/20 mr-4 w-14 shrink-0 text-right select-none">
-                            {new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
+            <div className="flex-1 p-4 overflow-y-auto space-y-1">
+                {logs.map(log => (
+                    <div key={log.id} className="grid grid-cols-[80px_60px_120px_1fr] gap-2 hover:bg-white/5 p-1 rounded transition-colors border-l-2 border-transparent hover:border-white/20">
+                        <span className="text-gray-500">{log.ts}</span>
+                        <span className={`${log.type === 'WARN' ? 'text-amber-400' : log.type === 'SUCCESS' ? 'text-green-400' : log.type === 'DEBUG' ? 'text-gray-600' : 'text-blue-400'} font-bold`}>
+                            {log.type}
                         </span>
-                        <span className={
-                            line.includes("WARN") ? "text-amber-400 font-bold" :
-                            line.includes("EVENT") ? "text-[#69B7B2]" :
-                            line.includes("LINK") ? "text-purple-400" :
-                            line.includes("ACTION") ? "text-blue-400" : "text-white/80"
-                        }>
-                            {line}
-                        </span>
+                        <span className="text-purple-400">{log.source}</span>
+                        <span className="text-gray-300 truncate">{log.msg}</span>
                     </div>
                 ))}
-                <div className="w-2 h-4 bg-[#69B7B2] animate-pulse inline-block align-middle ml-[4.5rem] mt-1" />
+                <div ref={bottomRef} />
+            </div>
+
+            <div className="h-8 bg-[#1a1a1c] border-t border-white/5 flex items-center px-4 text-gray-500 gap-4">
+                <Terminal size={12} />
+                <span>Filter: service:production</span>
             </div>
         </div>
     );
 };
 
-// --- 3. CONTEXT (Attribution) ---
-const ContextInterface = ({ active }: { active: boolean }) => {
-    const [rawText, setRawText] = useState("");
-    const [jsonContent, setJsonContent] = useState<any>({});
-    const [highlight, setHighlight] = useState(false);
-
-    useEffect(() => {
-        if (!active) {
-            setRawText("");
-            setJsonContent({});
-            setHighlight(false);
-            return;
-        }
-
-        const source = "Received email from 'Enterprise Client A'. Subject: 'Platform issues / Renewal?'. Sentiment score is low. Contract expires in 14 days.";
-        
-        let i = 0;
-        const typeInterval = setInterval(() => {
-            setRawText(source.substring(0, i));
-            i++;
-            if (i > source.length) {
-                clearInterval(typeInterval);
-                setHighlight(true);
-                
-                // Build JSON step-by-step
-                setTimeout(() => setJsonContent(prev => ({ ...prev, type: "Client_Communication" })), 300);
-                setTimeout(() => setJsonContent(prev => ({ ...prev, sentiment: "NEGATIVE" })), 800);
-                setTimeout(() => setJsonContent(prev => ({ ...prev, intent: "Renewal_Risk" })), 1200);
-                setTimeout(() => setJsonContent(prev => ({ ...prev, deal_value: "$50,000 ARR" })), 1600);
-                setTimeout(() => setJsonContent(prev => ({ ...prev, action: "Notify_Founder_Immediate" })), 2000);
-            }
-        }, 30);
-
-        return () => clearInterval(typeInterval);
-    }, [active]);
-
-    // Simple syntax highlighter for JSON
-    const renderJSON = (data: any) => {
-        if (Object.keys(data).length === 0) return <span className="text-white/20 italic">Awaiting Context...</span>;
-        
-        return (
-            <div className="font-mono text-xs">
-                <span className="text-yellow-400">{'{'}</span>
-                {Object.entries(data).map(([key, value], idx) => (
-                    <div key={key} className="pl-4 animate-in slide-in-from-left-2 fade-in duration-300">
-                        <span className="text-sky-300">"{key}"</span>: <span className="text-orange-300">"{value}"</span>
-                        {idx < Object.keys(data).length - 1 && <span className="text-white/50">,</span>}
-                    </div>
-                ))}
-                <span className="text-yellow-400">{'}'}</span>
-            </div>
-        );
-    };
-
+// --- 3. CONTEXT (Simulated Doc Editor / Analysis) ---
+const ContextApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#1e1e1e] flex text-sm font-mono overflow-hidden">
-            {/* Sidebar */}
-            <div className="w-10 border-r border-white/5 flex flex-col items-center py-4 gap-4 text-white/40 bg-[#252526]">
-                <FileText size={18} className="text-white" />
-                <Search size={18} />
-                <Network size={18} />
-            </div>
-
-            {/* Editor Area */}
-            <div className="flex-1 flex flex-col md:flex-row">
-                {/* Left: Raw Input */}
-                <div className="flex-1 border-r border-white/5 relative flex flex-col">
-                    <div className="bg-[#2d2d2d] px-4 py-2 text-[10px] uppercase text-white/50 font-bold flex justify-between">
-                        <span>input_stream.txt</span>
-                        <span className="opacity-50">READ-ONLY</span>
-                    </div>
-                    <div className="flex-1 p-6 relative bg-[#1e1e1e]">
-                        <div className="text-white/60 leading-relaxed whitespace-pre-wrap relative z-10 font-mono text-xs">
-                            {rawText}
-                        </div>
-                        {highlight && <div className="absolute inset-0 bg-[#69B7B2]/5 animate-pulse pointer-events-none" />}
-                    </div>
-                </div>
-
-                {/* Right: Structured Output */}
-                <div className="flex-1 bg-[#1a1a1a] flex flex-col">
-                    <div className="bg-[#2d2d2d] px-4 py-2 text-[10px] uppercase text-[#69B7B2] font-bold flex justify-between border-l border-white/5">
-                        <span className="flex items-center gap-2"><Bot size={12}/> semantic_layer.json</span>
-                        {highlight && <span className="animate-pulse flex items-center gap-1"><RefreshCw size={10} className="animate-spin"/> Attributing...</span>}
+        <div className="w-full h-full bg-[#191919] flex">
+            {/* Doc View */}
+            <div className="flex-1 bg-white p-8 md:p-12 shadow-inner overflow-y-auto">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="h-8 w-3/4 bg-gray-100 rounded animate-pulse" />
+                    <div className="space-y-2">
+                        <div className="h-4 w-full bg-gray-50 rounded" />
+                        <div className="h-4 w-full bg-gray-50 rounded" />
+                        <div className="h-4 w-2/3 bg-gray-50 rounded" />
                     </div>
                     
-                    <div className="flex-1 flex">
-                        <div className="w-8 bg-[#1e1e1e] text-right pr-2 pt-6 text-[10px] text-white/20 select-none border-r border-white/5 font-mono leading-relaxed">
-                            {[1,2,3,4,5,6,7].map(n => <div key={n}>{n}</div>)}
+                    {/* Highlighted Section */}
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 relative group">
+                        <div className="absolute -right-3 -top-3 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                            <Bot size={12} />
                         </div>
-                        
-                        <div className="p-6 flex-1">
-                            {renderJSON(jsonContent)}
-                        </div>
+                        <p className="text-gray-800 text-sm leading-relaxed">
+                            "The Contractor agrees to indemnify the Client against all claims arising from negligence. 
+                            <span className="bg-yellow-200/50 px-1 rounded mx-1 cursor-pointer border-b-2 border-yellow-400">Termination requires 30 days notice</span> 
+                            via certified mail."
+                        </p>
                     </div>
-                </div>
-            </div>
-        </div>
-    );
-};
 
-// --- 4. CAPTURE (Logic Builder) ---
-interface TaskItem {
-    id: string;
-    title: string;
-    tag: string;
-    priority: string;
-    avatar: string;
-}
-
-const GovernanceCard: React.FC<{ item: TaskItem }> = ({ item }) => (
-    <div className="bg-[#2c2c2e] p-3 rounded-lg shadow-md border border-white/5 mb-2 animate-in slide-in-from-bottom-2 fade-in group cursor-default hover:border-white/20 transition-all">
-        <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-mono text-white/30">{item.id}</span>
-            {item.priority === 'High' && (
-                <div className="w-4 h-4 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-[8px] font-bold">!</div>
-            )}
-        </div>
-        <div className="text-xs font-bold text-white mb-3 leading-tight">{item.title}</div>
-        <div className="flex items-center justify-between mt-auto">
-            <span className="px-1.5 py-0.5 rounded bg-[#69B7B2]/10 text-[#69B7B2] text-[9px] font-bold uppercase tracking-wider border border-[#69B7B2]/20">{item.tag}</span>
-            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white border border-[#2c2c2e] -ml-2">
-                {item.avatar}
-            </div>
-        </div>
-    </div>
-);
-
-const CaptureInterface = ({ active }: { active: boolean }) => {
-    const [columns, setColumns] = useState<{
-        todo: TaskItem[];
-        active: TaskItem[];
-        encoded: TaskItem[];
-    }>({
-        todo: [
-            { id: 'RULE-101', title: 'If Sentiment < Neutral & Value > 10k', tag: 'Logic', priority: 'High', avatar: 'AI' },
-            { id: 'RULE-102', title: 'Auto-Draft Response from FAQ', tag: 'Action', priority: 'Med', avatar: 'AI' }
-        ],
-        active: [],
-        encoded: []
-    });
-
-    useEffect(() => {
-        if (!active) return;
-
-        const moveCard = async () => {
-            await new Promise(r => setTimeout(r, 800));
-            // Move to Active
-            setColumns(prev => {
-                if (prev.todo.length === 0) return prev;
-                return {
-                    todo: [prev.todo[1]],
-                    active: [prev.todo[0]],
-                    encoded: []
-                };
-            });
-
-            await new Promise(r => setTimeout(r, 1200));
-            // Move to Encoded
-            setColumns(prev => {
-                if (prev.active.length === 0) return prev;
-                return {
-                    todo: prev.todo,
-                    active: [],
-                    encoded: [prev.active[0]]
-                };
-            });
-        };
-
-        moveCard();
-    }, [active]);
-
-    return (
-        <div className="w-full h-full bg-[#151517] p-6 font-sans flex flex-col">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white border border-white/10">
-                        <Layout size={16} />
-                    </div>
-                    <div>
-                        <h2 className="text-white font-bold text-sm">Logic Engine</h2>
-                        <span className="text-[10px] text-white/30 uppercase tracking-widest">Formalizing Rules</span>
+                    <div className="space-y-2">
+                        <div className="h-4 w-full bg-gray-50 rounded" />
+                        <div className="h-4 w-5/6 bg-gray-50 rounded" />
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 flex-1">
-                {[
-                    { id: 'todo', label: 'Context Inputs', items: columns.todo },
-                    { id: 'active', label: 'Processing Logic', items: columns.active },
-                    { id: 'encoded', label: 'Active Rules', items: columns.encoded }
-                ].map((col, i) => (
-                    <div key={col.id} className="bg-[#0a0a0c] rounded-xl p-3 border border-white/5 flex flex-col relative">
-                        <div className="flex justify-between items-center mb-3 px-1">
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{col.label}</span>
-                            <span className="bg-white/5 px-1.5 py-0.5 rounded text-[9px] text-white/30 font-mono">
-                                {col.items.length}
-                            </span>
-                        </div>
-                        <div className="space-y-2 flex-1 min-h-[100px] relative">
-                            {col.items.map(c => <GovernanceCard key={c.id} item={c} />)}
-                            
-                            {/* Empty State visual */}
-                            {col.items.length === 0 && (
-                                <div className="absolute inset-0 border-2 border-dashed border-white/5 rounded-lg flex items-center justify-center">
-                                    <span className="text-[9px] text-white/10 uppercase font-bold tracking-widest">Awaiting Signal</span>
-                                </div>
-                            )}
-                        </div>
-                        {col.id === 'encoded' && col.items.length > 0 && (
-                            <div className="absolute bottom-4 left-0 right-0 text-center animate-in slide-in-from-bottom-2 fade-in">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 text-[9px] font-bold uppercase tracking-widest rounded-full border border-green-500/20">
-                                    <Check size={10} /> Logic Enforced
-                                </div>
+            {/* Analysis Sidebar */}
+            <div className="w-80 bg-[#0f0f11] border-l border-white/5 flex flex-col">
+                <div className="p-4 border-b border-white/5">
+                    <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                        <Sparkles size={14} className="text-[#69B7B2]" /> Context AI
+                    </h3>
+                </div>
+                <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                    {/* Entity Card */}
+                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Detected Entity</div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                <Briefcase size={16} />
                             </div>
-                        )}
+                            <div>
+                                <div className="text-white text-xs font-bold">Termination Clause</div>
+                                <div className="text-gray-500 text-[10px]">Legal • High Risk</div>
+                            </div>
+                        </div>
                     </div>
-                ))}
+
+                    {/* Sentiment */}
+                    <div className="bg-[#1a1a1c] p-3 rounded-lg border border-white/5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Analysis</div>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                            This clause deviates from the standard MSA template. Usually 14 days notice is sufficient. 
+                            <span className="text-[#69B7B2] cursor-pointer hover:underline ml-1">View precedent</span>
+                        </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="space-y-2">
+                        <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-xs text-white transition-colors">
+                            Draft Amendment
+                        </button>
+                        <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-xs text-white transition-colors">
+                            Flag for Review
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-// --- 5. CONTROL (Knowledge Graph) ---
-const ControlInterface = ({ active }: { active: boolean }) => {
+// --- 4. CAPTURE (Simulated Workflow/Logic Builder) ---
+const CaptureApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#050505] relative flex items-center justify-center overflow-hidden">
+        <div className="w-full h-full bg-[#111113] relative overflow-hidden flex cursor-grab active:cursor-grabbing">
+            {/* Background Grid */}
             <div className="absolute inset-0 opacity-20 pointer-events-none" 
                 style={{ 
-                    backgroundImage: 'radial-gradient(circle, #333 1px, transparent 1px)', 
-                    backgroundSize: '30px 30px' 
+                    backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', 
+                    backgroundSize: '20px 20px' 
                 }} 
             />
 
-            <div className="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur-md border border-white/10 p-4 rounded-xl max-w-xs shadow-2xl animate-in fade-in slide-in-from-left duration-700">
-                <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <Terminal size={10} /> Knowledge Graph
-                </div>
-                <div className="text-xs text-[#69B7B2] font-mono bg-black/50 p-2 rounded border border-white/5">
-                    MATCH (n:Client)-[:HAS_RISK]->(d:Contract)<br/>
-                    WHERE d.status == 'Renewal'<br/>
-                    RETURN n,d
+            {/* Nodes */}
+            <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2">
+                <div className="w-64 bg-[#1a1a1c] border border-green-500/50 rounded-xl shadow-xl p-4 relative group">
+                    <div className="absolute -top-3 left-4 bg-green-500/10 border border-green-500/50 text-green-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Trigger</div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-white/5 rounded-lg"><Mail size={16} className="text-white"/></div>
+                        <div className="text-sm font-bold text-white">New Invoice Email</div>
+                    </div>
+                    <div className="text-[10px] text-gray-500">Source: billing@company.com</div>
+                    
+                    {/* Output Dot */}
+                    <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-green-500 rounded-full z-10" />
                 </div>
             </div>
 
-            <div className="relative w-64 h-64">
-                {/* Center Node */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#69B7B2] rounded-full flex items-center justify-center shadow-[0_0_40px_#69B7B2] z-20 animate-pulse border-4 border-black">
-                    <Briefcase className="text-black" size={32} />
+            {/* Connector Line */}
+            <svg className="absolute inset-0 pointer-events-none">
+                <path d="M 350 300 C 450 300, 450 300, 550 300" fill="none" stroke="#69B7B2" strokeWidth="2" strokeDasharray="5 5" className="animate-[dash_20s_linear_infinite]" />
+            </svg>
+
+            <div className="absolute top-1/2 left-3/4 -translate-y-1/2 -translate-x-1/2">
+                <div className="w-64 bg-[#1a1a1c] border border-blue-500/50 rounded-xl shadow-xl p-4 relative">
+                    {/* Input Dot */}
+                    <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-500 rounded-full z-10" />
+                    
+                    <div className="absolute -top-3 left-4 bg-blue-500/10 border border-blue-500/50 text-blue-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Action</div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-white/5 rounded-lg"><Database size={16} className="text-white"/></div>
+                        <div className="text-sm font-bold text-white">Update CRM</div>
+                    </div>
+                    <div className="text-[10px] text-gray-500">Match Record ID & Attach PDF</div>
+                </div>
+            </div>
+
+            {/* Floating Palette */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#1a1a1c] border border-white/10 rounded-full px-6 py-3 flex gap-6 shadow-2xl">
+                <div className="flex flex-col items-center gap-1 group cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Zap size={14} className="text-yellow-400"/></div>
+                    <span className="text-[9px] text-gray-500">Trigger</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 group cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><GitMerge size={14} className="text-purple-400"/></div>
+                    <span className="text-[9px] text-gray-500">Logic</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 group cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Play size={14} className="text-blue-400"/></div>
+                    <span className="text-[9px] text-gray-500">Action</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- 5. CONTROL (Graph / Knowledge Base) ---
+const ControlApp = ({ active }: { active: boolean }) => {
+    return (
+        <div className="w-full h-full bg-[#050505] relative flex overflow-hidden">
+            {/* Sidebar Overlay */}
+            <div className="absolute left-4 top-4 z-10 w-64 bg-black/80 backdrop-blur border border-white/10 rounded-lg p-4 shadow-xl">
+                <div className="flex items-center gap-2 mb-4 text-white/50 text-xs">
+                    <Network size={14} /> Knowledge Graph
+                </div>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                        <span>Acme Corp</span>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 rounded">Client</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                        <span>MSA_2024.pdf</span>
+                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 rounded">Contract</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-gray-300 bg-white/5 p-2 rounded cursor-pointer hover:bg-white/10">
+                        <span>Risk Policy A</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 rounded">Rule</span>
+                    </div>
                 </div>
                 
-                {/* Orbiting Satellites */}
-                {[0, 72, 144, 216, 288].map((deg, i) => (
-                    <div 
-                        key={i}
-                        className={`absolute w-12 h-12 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center text-white/50 z-10 transition-all duration-1000 ease-out hover:scale-110 hover:border-white hover:text-white cursor-pointer group ${active ? 'opacity-100' : 'opacity-0 scale-0'}`}
-                        style={{
-                            top: '50%', left: '50%',
-                            transform: `translate(-50%, -50%) rotate(${deg}deg) translate(${active ? 140 : 0}px) rotate(-${deg}deg)`
-                        }}
-                    >
-                        {i===0 ? <FileText size={16}/> : i===1 ? <User size={16}/> : i===2 ? <MessageSquare size={16}/> : i===3 ? <CreditCard size={16}/> : <Globe size={16}/>}
-                        <div className="absolute top-1/2 left-1/2 w-32 h-px bg-gradient-to-r from-transparent via-white/20 to-[#69B7B2]/50 -z-10 origin-left" style={{ transform: `rotate(${deg + 180}deg)` }} />
+                <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="text-[10px] text-gray-500 mb-2">Cypher Query</div>
+                    <div className="font-mono text-[10px] text-[#69B7B2] bg-black p-2 rounded border border-white/10">
+                        MATCH (n:Client)-[r:HAS_CONTRACT]->(c) RETURN n,r,c LIMIT 1
+                    </div>
+                </div>
+            </div>
+
+            {/* Simulated Graph */}
+            <div className="flex-1 relative flex items-center justify-center">
+                {/* Center Node */}
+                <div className="absolute w-16 h-16 bg-white rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center justify-center z-10 border-4 border-[#050505] text-black font-bold text-xs">
+                    ACME
+                </div>
+                
+                {/* Connections */}
+                {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                    <div key={i} className="absolute w-[200px] h-[2px] bg-white/10 origin-left" style={{ transform: `rotate(${deg}deg) translateX(30px)` }}>
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center hover:scale-125 transition-transform cursor-pointer" style={{ transform: `rotate(${-deg}deg)` }}>
+                            {i % 2 === 0 ? <FileText size={12} className="text-red-400"/> : <ShieldCheck size={12} className="text-amber-400"/>}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -519,118 +430,143 @@ const ControlInterface = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 6. BRIDGE (Agent Fleet) ---
-const BridgeInterface = ({ active }: { active: boolean }) => {
-    const agents = [
-        { id: 'A-01', name: 'Invoice_Bot', status: 'active', task: 'Processing #INV-291' },
-        { id: 'A-02', name: 'Support_Triage', status: 'active', task: 'Escalating Ticket' },
-        { id: 'A-03', name: 'Outreach_Agent', status: 'idle', task: 'Awaiting Leads' },
-        { id: 'A-04', name: 'Ops_Scheduler', status: 'deploying', task: 'Syncing Cal...' },
-    ];
-
+// --- 6. BRIDGE (Task / Agent Fleet) ---
+const BridgeApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#08080a] p-8 font-sans flex flex-col">
-            <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
-                <div>
-                    <h2 className="text-white font-bold text-sm flex items-center gap-2">
-                        <Cpu size={16} className="text-[#69B7B2]" /> Bridge Command
-                    </h2>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Deploying Agents into Workflows</p>
+        <div className="w-full h-full bg-[#f4f5f7] text-gray-800 font-sans flex flex-col">
+            <div className="h-12 border-b border-gray-200 bg-white flex items-center px-4 justify-between">
+                <div className="flex items-center gap-4">
+                    <span className="font-bold text-gray-700">Agent Operations</span>
+                    <div className="flex bg-gray-100 p-0.5 rounded">
+                        <div className="px-3 py-0.5 bg-white shadow rounded text-xs font-medium">Board</div>
+                        <div className="px-3 py-0.5 text-gray-500 text-xs font-medium">List</div>
+                    </div>
                 </div>
-                <div className="text-[#69B7B2] text-[10px] font-bold uppercase tracking-widest border border-[#69B7B2]/30 px-3 py-1 rounded-full animate-pulse">
-                    4 Agents Online
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">4 Active Agents</span>
+                    <div className="flex -space-x-2">
+                        {[1,2,3].map(i => (
+                            <div key={i} className="w-6 h-6 rounded-full bg-gray-300 border-2 border-white" />
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 flex-1">
-                {agents.map((agent, i) => (
-                    <div 
-                        key={i} 
-                        className={`
-                            relative bg-[#121214] border rounded-xl p-4 flex flex-col justify-between transition-all duration-500
-                            ${active 
-                                ? 'opacity-100 translate-y-0 border-white/10 hover:border-white/20' 
-                                : 'opacity-0 translate-y-4 border-transparent'
-                            }
-                        `}
-                        style={{ transitionDelay: `${i * 100}ms` }}
-                    >
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-white/60">
-                                <Bot size={16} />
+            <div className="flex-1 p-6 overflow-x-auto flex gap-6">
+                {/* Column 1: Backlog */}
+                <div className="w-72 flex-shrink-0 flex flex-col">
+                    <div className="text-xs font-bold text-gray-500 mb-3 flex justify-between">
+                        <span>AWAITING (2)</span>
+                        <Plus size={14} />
+                    </div>
+                    <div className="space-y-3">
+                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow">
+                            <div className="text-sm font-medium mb-2">Parse Q3 Invoices</div>
+                            <div className="flex items-center justify-between">
+                                <div className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Finance</div>
+                                <Bot size={14} className="text-gray-400" />
                             </div>
-                            <div className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : agent.status === 'deploying' ? 'bg-amber-500 animate-ping' : 'bg-white/20'}`} />
                         </div>
-                        <div>
-                            <div className="text-xs font-bold text-white mb-1">{agent.name}</div>
-                            <div className="text-[9px] font-mono text-white/40 uppercase">{agent.task}</div>
+                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move">
+                            <div className="text-sm font-medium mb-2">Sync Salesforce Contacts</div>
+                            <div className="flex items-center justify-between">
+                                <div className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Sales</div>
+                                <Bot size={14} className="text-gray-400" />
+                            </div>
                         </div>
-                        {agent.status === 'active' && (
-                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500/50" />
-                        )}
                     </div>
-                ))}
+                </div>
+
+                {/* Column 2: Active */}
+                <div className="w-72 flex-shrink-0 flex flex-col">
+                    <div className="text-xs font-bold text-gray-500 mb-3">PROCESSING (1)</div>
+                    <div className="space-y-3">
+                        <div className="bg-white p-3 rounded shadow-sm border-l-4 border-green-500 cursor-pointer">
+                            <div className="text-sm font-medium mb-2">Drafting Renewal Contracts</div>
+                            <div className="w-full bg-gray-100 h-1.5 rounded-full mb-3 overflow-hidden">
+                                <div className="bg-green-500 h-full w-2/3 animate-[pulse_2s_infinite]" />
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <div className="w-4 h-4 rounded bg-green-100 flex items-center justify-center text-green-600"><Bot size={10}/></div>
+                                <span>Legal_Agent_01</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Column 3: Done */}
+                <div className="w-72 flex-shrink-0 flex flex-col">
+                    <div className="text-xs font-bold text-gray-500 mb-3">COMPLETE</div>
+                    <div className="space-y-3 opacity-60">
+                        <div className="bg-white p-3 rounded shadow-sm border border-gray-200">
+                            <div className="text-sm font-medium mb-2 line-through text-gray-400">Daily Audit Report</div>
+                            <div className="flex items-center justify-between">
+                                <div className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] font-bold">Compliance</div>
+                                <Check size={14} className="text-green-500" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-// --- 7. REFLECT (Training Dashboard) ---
-const ReflectInterface = ({ active }: { active: boolean }) => {
-    const [progress, setProgress] = useState(0);
-    
-    useEffect(() => {
-        if (!active) { setProgress(0); return; }
-        const interval = setInterval(() => {
-            setProgress(p => Math.min(100, p + 1));
-        }, 50);
-        return () => clearInterval(interval);
-    }, [active]);
-
+// --- 7. REFLECT (Performance Dashboard) ---
+const ReflectApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#0c0c0e] p-8 flex flex-col justify-center">
-            <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 border border-purple-500/20">
-                    <RefreshCw size={24} className={progress < 100 ? "animate-spin" : ""} />
-                </div>
+        <div className="w-full h-full bg-[#0f1117] text-white p-6 grid grid-cols-3 gap-6">
+            {/* Header / Stats */}
+            <div className="col-span-3 flex items-end justify-between mb-2">
                 <div>
-                    <h2 className="text-lg font-bold text-white">Reflective Cycle</h2>
-                    <p className="text-xs text-white/40 uppercase tracking-widest">Performance Monitoring & Retraining</p>
+                    <h2 className="text-xl font-bold">Model Performance</h2>
+                    <p className="text-xs text-gray-500">Last 24 Hours • Production Env</p>
+                </div>
+                <div className="flex gap-2">
+                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Retrain</button>
+                    <button className="bg-[#1f2937] hover:bg-[#374151] px-3 py-1.5 rounded text-xs font-bold transition-colors">Export Logs</button>
                 </div>
             </div>
 
-            <div className="space-y-6">
-                {/* Drift Chart Placeholder */}
-                <div className="h-32 bg-[#151517] rounded-xl border border-white/5 relative overflow-hidden flex items-end p-4 gap-1">
-                    {[30, 45, 40, 55, 50, 65, 60, 80, 75, 90, 85, 95].map((h, i) => (
-                        <div key={i} className="flex-1 bg-[#69B7B2]/20 hover:bg-[#69B7B2] transition-colors rounded-t-sm" style={{ height: `${h}%` }} />
+            {/* Main Chart */}
+            <div className="col-span-2 bg-[#1f2937] rounded-xl p-4 border border-white/5 relative overflow-hidden">
+                <div className="flex justify-between items-center mb-6">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Accuracy vs Confidence</span>
+                    <MoreHorizontal size={14} className="text-gray-500" />
+                </div>
+                
+                {/* Fake Chart CSS */}
+                <div className="h-40 flex items-end justify-between gap-1 px-2">
+                    {[40, 65, 55, 80, 70, 85, 90, 85, 95, 92, 96, 94, 98].map((h, i) => (
+                        <div key={i} className="w-full bg-blue-500/20 hover:bg-blue-500 transition-colors rounded-t-sm relative group" style={{ height: `${h}%` }}>
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {h}%
+                            </div>
+                        </div>
                     ))}
-                    <div className="absolute top-4 left-4 text-[9px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-                        <BarChart3 size={12} /> Accuracy Trend
-                    </div>
                 </div>
+                {/* Overlay Line */}
+                <svg className="absolute bottom-4 left-6 right-6 h-40 w-[90%] pointer-events-none" preserveAspectRatio="none">
+                    <path d="M0,100 C 50,80 100,90 150,40 S 300,50 400,20 S 500,10 600,5" fill="none" stroke="#69B7B2" strokeWidth="2" />
+                </svg>
+            </div>
 
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/50">
-                        <span>Model Update 2.4.1</span>
-                        <span>{progress}%</span>
-                    </div>
-                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-500 transition-all duration-100 ease-out" style={{ width: `${progress}%` }} />
-                    </div>
+            {/* Right Column Stats */}
+            <div className="col-span-1 space-y-4">
+                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Drift Detected</div>
+                    <div className="text-2xl font-bold text-amber-400">2.4%</div>
+                    <div className="text-[10px] text-gray-500 mt-1">Within tolerance (5%)</div>
                 </div>
-
-                {/* Alerts */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                        <div className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Knowledge Gaps</div>
-                        <div className="text-white font-bold">2 Detected</div>
-                    </div>
-                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                        <div className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Drift Status</div>
-                        <div className="text-green-400 font-bold">Stable</div>
-                    </div>
+                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Human Review</div>
+                    <div className="text-2xl font-bold text-white">14</div>
+                    <div className="text-[10px] text-gray-500 mt-1">Items flagged for review</div>
+                </div>
+                <div className="bg-[#1f2937] p-4 rounded-xl border border-white/5">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Est. Cost Savings</div>
+                    <div className="text-2xl font-bold text-green-400">$4,200</div>
+                    <div className="text-[10px] text-gray-500 mt-1">This month</div>
                 </div>
             </div>
         </div>
@@ -640,160 +576,112 @@ const ReflectInterface = ({ active }: { active: boolean }) => {
 // --- MAIN CONTAINER ---
 export const FeatureShowcase: React.FC = () => {
     const [activeStage, setActiveStage] = useState(0);
-    const [agentMessage, setAgentMessage] = useState<string | null>(null);
 
     const stages = [
-        { id: 'locate', label: 'Locate', desc: "Identify & Connect", icon: Globe, comp: LocateInterface },
-        { id: 'stream', label: 'Stream', desc: "Observe & Translate", icon: Activity, comp: StreamInterface },
-        { id: 'context', label: 'Context', desc: "Structure & Attribute", icon: Layers, comp: ContextInterface },
-        { id: 'capture', label: 'Capture', desc: "Formalize Logic", icon: Zap, comp: CaptureInterface },
-        { id: 'control', label: 'Control', desc: "Visualize Knowledge", icon: Network, comp: ControlInterface },
-        { id: 'bridge', label: 'Bridge', desc: "Deploy Agents", icon: Cpu, comp: BridgeInterface },
-        { id: 'reflect', label: 'Reflect', desc: "Monitor & Develop", icon: RefreshCw, comp: ReflectInterface },
+        { id: 'locate', label: 'Locate', icon: HardDrive, comp: LocateApp, color: '#FF5F56' },
+        { id: 'stream', label: 'Stream', icon: Activity, comp: StreamApp, color: '#FFBD2E' },
+        { id: 'context', label: 'Context', icon: Layers, comp: ContextApp, color: '#27C93F' },
+        { id: 'capture', label: 'Capture', icon: Zap, comp: CaptureApp, color: '#22d3ee' },
+        { id: 'control', label: 'Control', icon: Network, comp: ControlApp, color: '#a78bfa' },
+        { id: 'bridge', label: 'Bridge', icon: Cpu, comp: BridgeApp, color: '#f472b6' },
+        { id: 'reflect', label: 'Reflect', icon: RefreshCw, comp: ReflectApp, color: '#34d399' },
     ];
 
     const nextStage = () => { setActiveStage(prev => (prev + 1) % stages.length); };
     const prevStage = () => { setActiveStage(prev => (prev - 1 + stages.length) % stages.length); };
-
-    const handleAgentClick = () => {
-        const msgs = [
-            "Scanning for schema drift...",
-            "Just optimized 4TB of logs. Feeling light.",
-            "That query latency is looking delicious.",
-            "Ingesting unstructured PDFs is my cardio.",
-            "Detecting 99.9% uptime vibes.",
-            "I dream in SQL.",
-            "Checking the data pipeline... flow is clean.",
-            "Normalizing JSON objects just for fun."
-        ];
-        setAgentMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-        setTimeout(() => setAgentMessage(null), 3000);
-    }
 
     return (
         <section className="py-32 bg-[#020202] border-t border-white/5 relative">
             <div className="max-w-7xl mx-auto px-6">
                 
                 {/* Header */}
-                <div className="mb-12 md:flex md:items-end md:justify-between">
+                <div className="mb-16 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
-                            Agents designed to think like <span className="text-white/40">you do.</span>
+                            The Agentic <span className="text-[#69B7B2] italic">Operating System.</span>
                         </h2>
+                        <p className="mt-6 text-lg text-white/50 font-light">
+                            Seven specialized engines working in concert to locate, understand, and act on your enterprise data.
+                        </p>
                     </div>
                 </div>
 
                 {/* Main Content Layout */}
-                <div className="flex flex-col items-center w-full relative group gap-0">
+                <div className="flex flex-col gap-8">
                     
-                    {/* Main Window - 16:9 Aspect Ratio Container */}
-                    <div className="w-full max-w-[1600px] aspect-video bg-[#0a0a0c] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row ring-1 ring-white/5 relative z-10">
+                    {/* Navigation Pills */}
+                    <div className="flex overflow-x-auto gap-2 pb-4 no-scrollbar">
+                        {stages.map((stage, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setActiveStage(idx)}
+                                className={cn(
+                                    "flex items-center gap-3 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 border flex-shrink-0",
+                                    activeStage === idx 
+                                        ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
+                                        : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white"
+                                )}
+                            >
+                                <stage.icon size={14} />
+                                {stage.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* App Container (The "Screen") */}
+                    <div className="relative w-full aspect-[16/10] md:aspect-[21/9] bg-[#0c0c0e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col ring-1 ring-white/5">
                         
-                        {/* Sidebar Nav */}
-                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 relative h-full">
-                            <div className="p-8 hidden md:block">
-                                <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Architecture</div>
-                                <div className="h-0.5 w-8 bg-[#69B7B2]" />
-                            </div>
-                            
-                            <div className="flex-1 p-4 space-x-2 md:space-x-0 md:space-y-2 flex md:block overflow-x-auto custom-scrollbar">
-                                {stages.map((stage, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => { setActiveStage(idx); }}
-                                        className={cn(
-                                            "flex-1 md:w-full flex items-center gap-4 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 relative overflow-hidden group/btn min-w-[140px]",
-                                            activeStage === idx 
-                                                ? "bg-[#151517] text-white shadow-lg border border-white/10" 
-                                                : "text-white/30 hover:text-white hover:bg-white/5 border border-transparent"
-                                        )}
-                                    >
-                                        <stage.icon size={16} className={activeStage === idx ? "text-[#69B7B2]" : "text-current opacity-50"} />
-                                        <div className="relative z-10 text-left">
-                                            <div className="block text-[11px] mb-0.5">{stage.label}</div>
-                                            <div className="text-[8px] opacity-50 normal-case tracking-normal hidden md:block font-mono">{stage.desc}</div>
-                                        </div>
-                                        
-                                        {/* Active Indicator Line */}
-                                        {activeStage === idx && (
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#69B7B2]" />
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Floating "Chat Bubble" Video Agent */}
-                            <div className="absolute bottom-6 right-6 z-50 group hidden md:block">
-                                {/* Chat Bubble Tooltip */}
-                                <div className={`absolute bottom-full right-0 mb-3 w-40 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
-                                    {agentMessage}
-                                    <div className="absolute -bottom-1 right-0 w-3 h-3 bg-white rotate-45 translate-x-[-6px]" />
-                                </div>
-
-                                {/* Video Bubble */}
-                                <div 
-                                    onClick={handleAgentClick}
-                                    className="w-16 h-16 rounded-full overflow-hidden cursor-pointer hover:scale-110 transition-transform relative group/vid shadow-lg"
-                                >
-                                    <video 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                                        autoPlay 
-                                        loop 
-                                        muted 
-                                        playsInline
-                                        className="w-full h-full object-cover opacity-90 mix-blend-screen group-hover/vid:opacity-100 transition-opacity"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        {/* Fake Browser Chrome / Window Header */}
+                        <WindowHeader 
+                            title={stages[activeStage].label + "_Module"} 
+                            icon={stages[activeStage].icon}
+                            activeStage={activeStage}
+                        />
 
                         {/* Content Area */}
-                        <div className="flex-1 relative bg-[#0c0c0e] flex flex-col h-full overflow-hidden">
-                            
-                            {/* OS Header */}
-                            <WindowHeader title={`${stages[activeStage].label}_Protocol`} />
-
-                            {/* Stage View */}
-                            <div className="flex-1 relative overflow-hidden bg-black/20">
-                                {stages.map((stage, idx) => {
-                                    const Component = stage.comp;
-                                    return (
-                                        <div 
-                                            key={idx}
-                                            className={cn(
-                                                "absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
-                                                activeStage === idx 
-                                                    ? "opacity-100 z-10 translate-y-0 scale-100 filter-none" 
-                                                    : "opacity-0 z-0 translate-y-4 scale-95 blur-sm pointer-events-none"
-                                            )}
-                                        >
-                                            <Component active={activeStage === idx} />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Bottom Navigation Control Bar */}
-                            <div className="h-16 border-t border-white/5 bg-[#0a0a0c] flex items-center justify-between px-8 z-20">
-                                <button onClick={prevStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
-                                    <ArrowLeft size={14} className="group-hover/nav:-translate-x-1 transition-transform" />
-                                    Previous Stage
-                                </button>
-                                
-                                <div className="flex gap-2">
-                                    {stages.map((_, i) => (
-                                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === activeStage ? 'bg-[#69B7B2] w-4' : 'bg-white/10'}`} />
-                                    ))}
-                                </div>
-
-                                <button onClick={nextStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
-                                    Next Stage
-                                    <ArrowRight size={14} className="group-hover/nav:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
+                        <div className="flex-1 relative overflow-hidden bg-black/50 backdrop-blur-sm">
+                            {stages.map((stage, idx) => {
+                                const Component = stage.comp;
+                                return (
+                                    <div 
+                                        key={idx}
+                                        className={cn(
+                                            "absolute inset-0 transition-all duration-500 ease-out flex flex-col",
+                                            activeStage === idx 
+                                                ? "opacity-100 z-10 translate-y-0 scale-100 filter-none" 
+                                                : "opacity-0 z-0 translate-y-4 scale-95 pointer-events-none"
+                                        )}
+                                    >
+                                        <Component active={activeStage === idx} />
+                                    </div>
+                                );
+                            })}
                         </div>
 
                     </div>
+                    
+                    {/* Caption / Helper Text */}
+                    <div className="flex justify-between items-start text-white/30 text-sm font-mono mt-4">
+                        <div className="max-w-md">
+                            <span className="text-[#69B7B2] font-bold">
+                                {stages[activeStage].label}:
+                            </span> 
+                            <span className="ml-2">
+                                {activeStage === 0 && "Connects to fragmented silos (Drives, ERPs, APIs) to index raw business data."}
+                                {activeStage === 1 && "Ingests live operational events in real-time, creating a normalized activity stream."}
+                                {activeStage === 2 && "Structures unstructured text, identifying entities, sentiment, and risks."}
+                                {activeStage === 3 && "Allows leaders to define deterministic rules and triggers without writing code."}
+                                {activeStage === 4 && "Visualizes hidden relationships between clients, contracts, and assets."}
+                                {activeStage === 5 && "Deploys autonomous agents to execute tasks within defined boundaries."}
+                                {activeStage === 6 && "Monitors agent performance, detecting drift and initiating retraining loops."}
+                            </span>
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={prevStage} className="hover:text-white transition-colors"><ArrowLeft size={20}/></button>
+                            <button onClick={nextStage} className="hover:text-white transition-colors"><ArrowRight size={20}/></button>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
