@@ -830,15 +830,15 @@ export const FeatureShowcase: React.FC = () => {
                             {/* Floating "Chat Bubble" Video Agent */}
                             <div className="absolute bottom-6 right-6 z-50 group">
                                 {/* Chat Bubble Tooltip */}
-                                <div className={`absolute bottom-full right-0 mb-4 w-40 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
+                                <div className={`absolute bottom-full right-0 mb-3 w-40 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
                                     {agentMessage}
                                     <div className="absolute -bottom-1 right-0 w-3 h-3 bg-white rotate-45 translate-x-[-6px]" />
                                 </div>
 
-                                {/* Video Bubble */}
+                                {/* Video Bubble - Resized and Box Removed */}
                                 <div 
                                     onClick={handleAgentClick}
-                                    className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl cursor-pointer hover:scale-105 transition-transform bg-[#0a0a0c] relative group/vid"
+                                    className="w-16 h-16 rounded-full overflow-hidden cursor-pointer hover:scale-110 transition-transform relative group/vid shadow-lg"
                                 >
                                     <video 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
@@ -846,12 +846,9 @@ export const FeatureShowcase: React.FC = () => {
                                         loop 
                                         muted 
                                         playsInline
-                                        className="w-full h-full object-cover opacity-80 mix-blend-screen group-hover/vid:opacity-100 transition-opacity"
+                                        className="w-full h-full object-cover opacity-90 mix-blend-screen group-hover/vid:opacity-100 transition-opacity"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/10 to-[#0a0a0c]/40 pointer-events-none" />
-                                    
-                                    {/* Inner Ring Glow */}
-                                    <div className="absolute inset-0 border border-white/5 rounded-2xl pointer-events-none" />
+                                    {/* Removed box borders and backgrounds, kept just the video shape */}
                                 </div>
                             </div>
                         </div>
