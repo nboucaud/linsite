@@ -28,50 +28,89 @@ const SpeedVisualizer = () => {
         let width = canvas.width = canvas.parentElement?.clientWidth || 0;
         let height = canvas.height = canvas.parentElement?.clientHeight || 0;
         
-        const entities: any[] = [];
-        const count = 60; // Reduced count for smaller area
+        const count = 180;
+        const particles: any[] = [];
+
+        // 3D Perspective Settings
+        const fl = 300; // Focal length
+        
+        const resetParticle = (p: any) => {
+            // Distribute particles in 3D space
+            // Favor the "floor" (positive Y relative to horizon) for the condensed bottom effect
+            const isFloor = Math.random() > 0.3; 
+            const yBase = isFloor ? Math.random() * 800 : (Math.random() - 0.5) * 800;
+            
+            p.x = (Math.random() - 0.5) * width * 4; 
+            p.y = yBase;
+            p.z = 200 + Math.random() * 1500;
+            
+            // Velocity: Moving towards camera (Z decreases) and slightly left (X decreases)
+            p.vz = 8 + Math.random() * 15;
+            p.vx = 4 + Math.random() * 6; // Left drift
+            p.size = 1 + Math.random() * 2;
+            
+            return p;
+        };
 
         for(let i=0; i<count; i++) {
-            entities.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                speed: 4 + Math.random() * 20,
-                len: Math.random() > 0.6 ? Math.random() * 80 + 10 : 2, // Shorter lines for square
-                width: Math.random() > 0.9 ? 2 : 1,
-                opacity: Math.random() * 0.5 + 0.1
-            });
+            particles.push(resetParticle({}));
         }
 
         let frameId: number;
         const render = () => {
             ctx.clearRect(0, 0, width, height);
             
-            entities.forEach(p => {
-                p.x -= p.speed;
-                if (p.x + p.len < 0) {
-                    p.x = width + Math.random() * 50;
-                    p.y = Math.random() * height;
-                    p.speed = 4 + Math.random() * 20;
+            // Vanishing Point: Slightly right and up to simulate "Head On + Left Drift"
+            const vpX = width * 0.7; 
+            const vpY = height * 0.4; 
+
+            particles.forEach(p => {
+                // Move
+                p.z -= p.vz;
+                p.x -= p.vx;
+
+                // Reset if behind camera or out of bounds
+                if (p.z <= 10 || p.x < -width * 2) {
+                    resetParticle(p);
+                    p.z = 1500;
                 }
 
-                ctx.fillStyle = '#69B7B2';
-                ctx.globalAlpha = p.opacity;
+                // Project
+                const scale = fl / (fl + p.z);
+                const px = vpX + p.x * scale;
+                const py = vpY + p.y * scale;
+
+                // Density/Opacity Logic
+                const isBottom = py > height * 0.85; // Bottom 15%
                 
-                if (p.len > 5) {
-                    // Line with fading tail
-                    const grad = ctx.createLinearGradient(p.x, 0, p.x + p.len, 0);
-                    grad.addColorStop(0, 'rgba(105, 183, 178, 0)');
-                    grad.addColorStop(1, `rgba(105, 183, 178, ${p.opacity})`);
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(p.x, p.y, p.len, p.width);
-                } else {
-                    // Particle
+                // Base opacity: Much lower for ambient particles, higher for bottom floor
+                let alpha = isBottom ? 0.8 : 0.15;
+                
+                // Fade in/out based on Z depth
+                alpha *= Math.min(1, (1500 - p.z) / 500); 
+                // Fade out if it gets too close to edges
+                if (px < 0 || px > width || py < 0 || py > height) alpha *= 0.5;
+
+                if (alpha > 0.01) {
+                    // Draw Streak (Motion Blur)
+                    const pastScale = fl / (fl + (p.z + p.vz * 3));
+                    const pastPx = vpX + (p.x + p.vx * 3) * pastScale;
+                    const pastPy = vpY + p.y * pastScale;
+
+                    const grad = ctx.createLinearGradient(px, py, pastPx, pastPy);
+                    grad.addColorStop(0, `rgba(105, 183, 178, ${alpha})`);
+                    grad.addColorStop(1, `rgba(105, 183, 178, 0)`);
+
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = p.size * scale * (isBottom ? 1.5 : 0.8);
+                    ctx.lineCap = 'round';
                     ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.width, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(pastPx, pastPy);
+                    ctx.stroke();
                 }
             });
-            ctx.globalAlpha = 1;
+
             frameId = requestAnimationFrame(render);
         };
         render();
@@ -850,31 +889,11 @@ export const FeatureShowcase: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Main Content Layout - Flex Column for stacking Video Tab on top of Main Window */}
-                <div className="flex flex-col items-end w-full relative group">
+                {/* Main Content Layout - Flex Row for Sidecar Video */}
+                <div className="flex flex-col lg:flex-row items-end w-full relative group gap-0">
                     
-                    {/* The "Periscope" Video Module - Square, Top-Right Bound */}
-                    <div className="relative w-full max-w-[320px] h-[320px] bg-[#0a0a0c] border-x border-t border-white/10 rounded-t-3xl overflow-hidden z-10 -mb-px shadow-2xl">
-                        <video 
-                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline
-                            className="w-full h-full object-cover opacity-80 mix-blend-screen"
-                        />
-                        
-                        {/* Speed Lines Effect */}
-                        <div className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none mix-blend-screen">
-                            <SpeedVisualizer />
-                        </div>
-
-                        {/* Gradient to blend seamlessly into the UI below */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
-                    </div>
-
-                    {/* Main Window - Connected to Video via flattened top-right corner */}
-                    <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-3xl rounded-tr-none shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative z-20">
+                    {/* Main Window - Connects to Video on the right */}
+                    <div className="w-full lg:flex-1 bg-[#0a0a0c] border border-white/10 rounded-l-[2rem] rounded-tr-[2rem] rounded-br-none border-r-0 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative z-10">
                         
                         {/* Sidebar Nav */}
                         <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">
@@ -955,6 +974,29 @@ export const FeatureShowcase: React.FC = () => {
                             </div>
                         </div>
 
+                    </div>
+
+                    {/* The "Sidecar" Video Module - Bottom Right */}
+                    <div className="relative w-full lg:w-[320px] h-[320px] bg-[#0a0a0c] border-y border-r border-white/10 border-l-0 rounded-r-[2rem] rounded-tl-[2rem] rounded-bl-none overflow-hidden z-20 -ml-px shadow-2xl shrink-0 mt-[-1px] lg:mt-0">
+                        {/* Seam Hider to merge left border */}
+                        <div className="absolute left-[-1px] top-0 bottom-0 w-[2px] bg-[#0a0a0c] z-30" />
+
+                        <video 
+                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                            autoPlay 
+                            loop 
+                            muted 
+                            playsInline
+                            className="w-full h-full object-cover opacity-80 mix-blend-screen"
+                        />
+                        
+                        {/* Speed Lines Effect */}
+                        <div className="absolute inset-0 z-10 pointer-events-none mix-blend-screen">
+                            <SpeedVisualizer />
+                        </div>
+
+                        {/* Gradient to blend seamlessly into the UI below */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
                     </div>
                 </div>
 
