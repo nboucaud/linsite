@@ -893,7 +893,7 @@ export const FeatureShowcase: React.FC = () => {
                 <div className="flex flex-col lg:flex-row items-end w-full relative group gap-0">
                     
                     {/* Main Window - Connects to Video on the right */}
-                    <div className="w-full lg:flex-1 bg-[#0a0a0c] border border-white/10 rounded-l-[2rem] rounded-tr-[2rem] rounded-br-none border-r-0 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative z-10">
+                    <div className="w-full lg:flex-1 bg-[#0a0a0c] border border-white/10 rounded-l-[2rem] rounded-tr-[2rem] rounded-br-none border-r-0 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[800px] ring-1 ring-white/5 relative z-10">
                         
                         {/* Sidebar Nav */}
                         <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">
@@ -977,7 +977,7 @@ export const FeatureShowcase: React.FC = () => {
                     </div>
 
                     {/* The "Sidecar" Video Module - Bottom Right */}
-                    <div className="relative w-full lg:w-[320px] h-[320px] bg-[#0a0a0c] border-y border-r border-white/10 border-l-0 rounded-r-[2rem] rounded-tl-[2rem] rounded-bl-none overflow-hidden z-20 -ml-px shadow-2xl shrink-0 mt-[-1px] lg:mt-0">
+                    <div className="relative w-full lg:w-[220px] h-[220px] bg-[#0a0a0c] border-y border-r border-white/10 border-l-0 rounded-r-[2rem] rounded-tl-none rounded-bl-none overflow-hidden z-20 -ml-px shadow-2xl shrink-0 mt-[-1px] lg:mt-0">
                         {/* Seam Hider to merge left border */}
                         <div className="absolute left-[-1px] top-0 bottom-0 w-[2px] bg-[#0a0a0c] z-30" />
 

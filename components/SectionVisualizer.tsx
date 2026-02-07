@@ -63,12 +63,16 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.initializedMode = mode;
 
             if (mode === 'search') {
-                for(let i=0; i<40; i++) {
+                // DATA MODERNIZATION: Chaos to Order
+                const particleCount = 80;
+                for(let i=0; i<particleCount; i++) {
                     state.particles.push({
-                        theta: Math.random() * Math.PI * 2,
-                        phi: Math.acos((Math.random() * 2) - 1),
-                        radius: 60 + Math.random() * 40,
-                        speed: (Math.random() - 0.5) * 0.02
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        vx: 2 + Math.random() * 1.5, // Faster base speed
+                        vy: (Math.random() - 0.5) * 0.5, // Subtle drift
+                        targetLane: Math.floor(Math.random() * 5), // 5 Clean Lanes
+                        size: 0.5 + Math.random() * 0.5 // Base size
                     });
                 }
             }
@@ -146,23 +150,97 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             
             // Draw Mode Specifics
             if (mode === 'search') {
-                ctx.translate(cx, cy);
+                const processLine = w * 0.4; // Scanner position
+                const laneCount = 5;
+                const laneHeight = h / laneCount;
+                
+                // 1. Draw Architecture (Right Side Grid)
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; // Subtle grid
+                for(let i=0; i<laneCount; i++) {
+                    const ly = i * laneHeight + laneHeight/2;
+                    ctx.beginPath();
+                    ctx.moveTo(processLine, ly);
+                    ctx.lineTo(w, ly);
+                    ctx.stroke();
+                }
+
+                // 2. Draw Strategy Layer (The Scanner Beam)
+                const beamWidth = 2;
+                // Beam Glow
+                const scannerGlow = ctx.createLinearGradient(processLine, 0, processLine + 60, 0);
+                scannerGlow.addColorStop(0, color);
+                scannerGlow.addColorStop(1, 'transparent');
+                ctx.fillStyle = scannerGlow;
+                ctx.globalAlpha = 0.15;
+                ctx.fillRect(processLine, 0, 60, h);
+                
+                // Solid Beam
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.8;
+                ctx.fillRect(processLine, 0, beamWidth, h);
+                
+                // 3. Process Data
                 state.particles.forEach((p: any) => {
-                    p.theta += p.speed;
-                    const x = p.radius * Math.sin(p.phi) * Math.cos(p.theta);
-                    const y = p.radius * Math.sin(p.phi) * Math.sin(p.theta);
-                    const z = p.radius * Math.cos(p.phi);
-                    const scale = 200 / (200 + z);
+                    p.x += p.vx;
                     
-                    if (scale > 0) {
-                        ctx.fillStyle = color;
-                        ctx.globalAlpha = 0.6 * scale;
+                    if (p.x < processLine) {
+                        // --- INPUT PHASE: RAW DATA ---
+                        // Drifting, unstructured
+                        p.y += p.vy;
+                        
+                        // Bounce off vertical bounds to keep in view
+                        if (p.y < 0) p.y += h;
+                        if (p.y > h) p.y -= h;
+                        
+                        // Visual: Faint, raw data points
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.globalAlpha = 0.6;
                         ctx.beginPath();
-                        ctx.arc(x*scale, y*scale, 2*scale, 0, Math.PI*2);
+                        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI*2);
                         ctx.fill();
+                        
+                    } else {
+                        // --- OUTPUT PHASE: STRUCTURED ASSETS ---
+                        const targetY = p.targetLane * laneHeight + laneHeight/2;
+                        
+                        // Magnetic Snap to Architecture
+                        const snapStrength = 0.15;
+                        p.y += (targetY - p.y) * snapStrength; 
+                        
+                        // Acceleration post-process
+                        p.x += 1.5; 
+
+                        // Visual: High-Fidelity Data Packets
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 1;
+                        
+                        // Packet Shape (Rectangle with rounded feel)
+                        const packetWidth = 20 * p.size;
+                        const packetHeight = 4;
+                        
+                        // Glow Effect
+                        ctx.shadowColor = color;
+                        ctx.shadowBlur = 10;
+                        ctx.fillRect(p.x, p.y - packetHeight/2, packetWidth, packetHeight);
+                        ctx.shadowBlur = 0;
+                        
+                        // Trailing Data Stream
+                        if (Math.abs(p.y - targetY) < 1) {
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                            ctx.fillRect(p.x - packetWidth - 2, p.y - 1, 2, 2); // Little bits following
+                        }
+                    }
+
+                    // Loop
+                    if (p.x > w + 50) {
+                        p.x = -20;
+                        p.y = Math.random() * h;
+                        // Randomize slightly for next pass
+                        p.vx = 2 + Math.random() * 1.5;
+                        p.targetLane = Math.floor(Math.random() * laneCount);
                     }
                 });
-                ctx.translate(-cx, -cy);
             }
             else if (mode === 'redaction') {
                 const scanY = (time * 100) % (h + 100) - 50;
