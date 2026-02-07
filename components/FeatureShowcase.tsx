@@ -41,7 +41,7 @@ const SCENARIOS = [
             ],
             highlightText: "Obstruction of egress path",
         },
-        // STAGE 3: MAP (Knowledge Graph) - Reverted to richer data structure
+        // STAGE 3: MAP (Knowledge Graph)
         map: { 
             nodes: [
                 { id: 'A', label: 'Safety Officer', sub: 'Person', type: 'person', x: -80, y: -40, details: "Role: L3 Admin" },
@@ -745,6 +745,7 @@ const KnowledgeBase = ({ active, scenario }: { active: boolean, scenario: any })
 export const FeatureShowcase: React.FC = () => {
     const [activeStage, setActiveStage] = useState(0);
     const [isPaused, setIsPaused] = useState(true); // Default to manual nav now
+    const [agentMessage, setAgentMessage] = useState<string | null>(null);
     const scenario = SCENARIOS[0]; 
 
     const stages = [
@@ -759,6 +760,12 @@ export const FeatureShowcase: React.FC = () => {
 
     const nextStage = () => { setActiveStage(prev => (prev + 1) % 7); setIsPaused(true); };
     const prevStage = () => { setActiveStage(prev => (prev - 1 + 7) % 7); setIsPaused(true); };
+
+    const handleAgentClick = () => {
+        const msgs = ["Processing Request...", "Monitoring Compliance...", "Analyzing Data Stream...", "System Nominal.", "Hello, Operator."];
+        setAgentMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        setTimeout(() => setAgentMessage(null), 3000);
+    }
 
     return (
         <section className="py-32 bg-[#020202] border-t border-white/5 relative">
@@ -811,17 +818,32 @@ export const FeatureShowcase: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Integrated "Sidecar" Video - Now inside Sidebar at bottom right */}
-                            <div className="absolute bottom-0 right-0 w-36 h-36 bg-[#0a0a0c] border-t border-l border-white/10 rounded-tl-2xl overflow-hidden z-30 shadow-2xl">
-                                <video 
-                                    src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                                    autoPlay 
-                                    loop 
-                                    muted 
-                                    playsInline
-                                    className="w-full h-full object-cover opacity-80 mix-blend-screen"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
+                            {/* Floating "Chat Bubble" Video Agent */}
+                            <div className="absolute bottom-4 right-4 z-50 group">
+                                {/* Chat Bubble Tooltip */}
+                                <div className={`absolute bottom-full right-0 mb-3 w-32 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
+                                    {agentMessage}
+                                    <div className="absolute -bottom-1 right-0 w-2 h-2 bg-white rotate-45 translate-x-[-4px]" />
+                                </div>
+
+                                {/* Video Bubble */}
+                                <div 
+                                    onClick={handleAgentClick}
+                                    className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl cursor-pointer hover:scale-105 transition-transform bg-[#0a0a0c] relative group/vid"
+                                >
+                                    <video 
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                                        autoPlay 
+                                        loop 
+                                        muted 
+                                        playsInline
+                                        className="w-full h-full object-cover opacity-80 mix-blend-screen group-hover/vid:opacity-100 transition-opacity"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/10 to-[#0a0a0c]/40 pointer-events-none" />
+                                    
+                                    {/* Inner Ring Glow */}
+                                    <div className="absolute inset-0 border border-white/5 rounded-2xl pointer-events-none" />
+                                </div>
                             </div>
                         </div>
 
