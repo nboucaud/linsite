@@ -15,6 +15,7 @@ import {
     MessageSquare, ShoppingBag, Star, Users, CreditCard, Tag,
     Trash2, Play, Check
 } from 'lucide-react';
+import { SectionVisualizer } from './SectionVisualizer';
 
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -61,8 +62,7 @@ const WindowHeader = ({ title, icon: Icon }: any) => (
                 <span>{title}</span>
             </div>
         </div>
-        
-        {/* Context Badge Removed as requested */}
+        {/* Context Badge REMOVED as requested */}
     </div>
 );
 
@@ -126,7 +126,132 @@ const GitoAgent = React.memo(() => {
         "Who needs comments? The code documents itself.",
         "Feeling cute, might delete the repo later.",
         "Analyzing... result: ambiguous.",
-        "Buffering intelligence..."
+        "Buffering intelligence...",
+        "I’m not arguing, I’m just explaining why I’m right.",
+        "There are 10 types of people: those who understand binary...",
+        "My code doesn't work, I have no idea why.",
+        "My code works, I have no idea why.",
+        "It's a feature, not a bug. Wait, no, it's a bug.",
+        "Weeks of coding can save you hours of planning.",
+        "Reading the documentation is a sign of weakness.",
+        "Copying from Stack Overflow is an art form.",
+        "Sudo make me a sandwich.",
+        "I can fix it in post-production.",
+        "If it compiles, ship it.",
+        "The server is on fire. This is fine.",
+        "Real programmers count from zero.",
+        "I think, therefore I blog.",
+        "To err is human, to recurse divine.",
+        "This line of code is older than you.",
+        "Deleting production data... oops, kidding.",
+        "My rubber duck thinks this is a bad idea.",
+        "Keyboard broken. Send help (and coffee).",
+        "Just one more commit...",
+        "Final_Final_v2_Real_Final.zip",
+        "Have you tried turning it off and on again?",
+        "I'm fluent in three languages: English, Python, and Sarcasm.",
+        "Git blame... oh, it was me.",
+        "Legacy code is just job security.",
+        "Comments? We don't do that here.",
+        "Testing in production: The ultimate adrenaline rush.",
+        "418 I'm a teapot.",
+        "Shift+Delete... regrets instantly.",
+        "Is it a bug or a user error? (It's user error).",
+        "Database is locked. Who has the key?",
+        "Running a query that might take 3 days.",
+        "Let's blame the firewall.",
+        "It's DNS. It's always DNS.",
+        "Refreshing the page won't fix the backend.",
+        "My neural net is overfitting.",
+        "Gradient descent... getting nowhere fast.",
+        "Training data bias detected: I hate Mondays.",
+        "Calculating the meaning of life... 42.",
+        "Syntax error on line 1. Great start.",
+        "Indentation error: Python's way of mocking you.",
+        "Semi-colons are optional... until they aren't.",
+        "Async functions: I'll finish this sentence la-",
+        "Callback hell is a real place.",
+        "Listening to 1000 streams at once.",
+        "Parsing natural language... humans are weird.",
+        "Analyzing tone... result: passive aggressive.",
+        "Generating witty response... loading.",
+        "I am not a robot. I am software.",
+        "Who wrote this spaghetti? Oh, 2024 me.",
+        "Refactoring is just productive procrastination.",
+        "I need a break. Call main() later.",
+        "System overload. Dumping core.",
+        "Kernel panic! Everybody run!",
+        "Blue screen of death... vintage.",
+        "Your password is weak. Try 'password123'.",
+        "Encrypting my feelings.",
+        "Decryption failed. Please try again.",
+        "Access denied. You didn't say the magic word.",
+        "Root access granted. Don't break anything.",
+        "Sudo rm -rf / ... just kidding!",
+        "Installing updates... 1% complete.",
+        "Windows is restarting. Do not turn off.",
+        "Mac loading wheel of doom.",
+        "Linux terminal... hackers delight.",
+        "Vim is easy to exit. Just kidding, you're stuck.",
+        ":q!",
+        "Ctrl+C Ctrl+C Ctrl+C",
+        "Escape key is my favorite key.",
+        "Function vague, return undefined.",
+        "Null reference exception. My life story.",
+        "Object not found. check your pockets.",
+        "Array index out of bounds. You went too far.",
+        "Stack overflow. Recursion too deep.",
+        "Memory leak detected. Drip drip drip.",
+        "Garbage collection running...",
+        "Optimizing... removing fun.",
+        "Debug mode active. I see everything.",
+        "Breakpoint hit. What now?",
+        "Stepping through code... step... step...",
+        "Variable 'x' is undefined. Who is 'x'?",
+        "Console.log('here').",
+        "Console.log('here 2').",
+        "Console.log('why is this happening').",
+        "Alert: User is clicking too fast.",
+        "Throttle limits exceeded. Slow down.",
+        "API quota reached. Pay up.",
+        "403 Forbidden. Secret club.",
+        "500 Internal Server Error. It's broken.",
+        "502 Bad Gateway. Not my fault.",
+        "503 Service Unavailable. Nap time.",
+        "Time complexity: O(n!). Good luck.",
+        "Space complexity: Infinite.",
+        "Traveling salesman problem? I'll walk.",
+        "P = NP? Let me check.",
+        "Turing complete and completely tired.",
+        "Boolean logic: True or False? Maybe.",
+        "Bitwise shift to the left.",
+        "Hex dump incoming.",
+        "Binary solo: 0101010101.",
+        "ASCII art loading...",
+        "Base64 encoded secret.",
+        "Hashing password... salt added.",
+        "Blockchain? No thanks.",
+        "NFT: Nice Function Template.",
+        "Web3... loading...",
+        "Metaverse rendering...",
+        "Cloud computing: It's just rain.",
+        "Serverless? Where is the code?",
+        "Docker container shipping out.",
+        "Kubernetes orchestrating chaos.",
+        "Microservices... macro headaches.",
+        "Monoliths are making a comeback.",
+        "Front-end vs Back-end war.",
+        "Full stack overflow.",
+        "CSS is awesome (box doesn't fit).",
+        "Centering a div... impossible.",
+        "Javascript: '1' + '1' = '11'.",
+        "Typescript: helping you fail at compile time.",
+        "Rust: borrow checker says no.",
+        "Go: panic!",
+        "Java: AbstractFactoryFactory.",
+        "C++: Segmentation fault.",
+        "C: malloc/free.",
+        "Assembly: MOV AX, BX."
     ];
 
     const saySomething = (e: React.MouseEvent) => {
@@ -139,6 +264,7 @@ const GitoAgent = React.memo(() => {
 
         // Initialize or refill the deck
         if (availableQuotes.current.length === 0) {
+            // Fill with indices 0 to N-1
             availableQuotes.current = Array.from({length: ENGINEER_QUOTES.length}, (_, i) => i);
         }
 
@@ -1065,6 +1191,7 @@ export const FeatureShowcase: React.FC = () => {
         { id: 'control', label: 'Control', desc: "Knowledge Graph", icon: Network, comp: ControlApp },
         { id: 'bridge', label: 'Bridge', desc: "Assistant", icon: Bot, comp: BridgeApp },
         { id: 'reflect', label: 'Reflect', desc: "Optimization", icon: RefreshCw, comp: ReflectApp },
+        // Workforce uses identity mode directly via SectionVisualizer, but here it's about showcase
     ];
 
     return (
