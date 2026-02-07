@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { 
     Activity, FileText, CheckCircle2, 
     Database, Search, Zap, Network, 
@@ -17,13 +17,41 @@ import {
     PlayCircle, PauseCircle, Scan,
     Cloud, Box, ChevronRight,
     ArrowUp, Command, Hash,
-    MousePointer2, Square
+    MousePointer2, Square,
+    Filter, Download, ExternalLink,
+    AlertCircle, Info
 } from 'lucide-react';
 
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
 // --- SHARED COMPONENTS ---
+
+const GuideOverlay = ({ title, description, onDismiss }: { title: string, description: string, onDismiss: () => void }) => (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-500">
+        <div className="bg-[#0c0c0e] border border-white/10 p-8 rounded-2xl shadow-2xl max-w-md text-center relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-[#69B7B2]" />
+            
+            <div className="mb-4 flex justify-center">
+                <div className="w-12 h-12 bg-[#69B7B2]/10 rounded-full flex items-center justify-center text-[#69B7B2] animate-pulse">
+                    <Info size={24} />
+                </div>
+            </div>
+            
+            <h3 className="text-2xl font-serif text-white mb-3">{title}</h3>
+            <p className="text-white/60 text-sm leading-relaxed mb-8">
+                {description}
+            </p>
+            
+            <button 
+                onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+                className="bg-white text-black hover:bg-[#69B7B2] hover:text-white transition-colors px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+            >
+                Explore Demo
+            </button>
+        </div>
+    </div>
+);
 
 const WindowHeader = ({ title, icon: Icon, videoRef, isVideoPlaying, toggleVideo }: any) => (
     <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#0a0a0c] select-none z-20 relative">
@@ -70,94 +98,135 @@ const WindowHeader = ({ title, icon: Icon, videoRef, isVideoPlaying, toggleVideo
     </div>
 );
 
-// --- 1. LOCATE (Simulated File System) ---
+// --- 1. LOCATE (Data Sources) ---
 const LocateApp = ({ active }: { active: boolean }) => {
-    const [scannedCount, setScannedCount] = useState(0);
-    
+    const [selectedType, setSelectedType] = useState('all');
+    const [scannedItems, setScannedItems] = useState<Record<string, number>>({});
+    const [showIntro, setShowIntro] = useState(true);
+
     useEffect(() => {
         if(active) {
-            setScannedCount(0);
+            setShowIntro(true); // Reset intro on tab switch
             const interval = setInterval(() => {
-                setScannedCount(prev => Math.min(prev + 1, 8));
-            }, 200);
+                setScannedItems(prev => {
+                    const next = {...prev};
+                    Object.keys(prev).forEach(k => {
+                        if (next[k] < 100) next[k] += Math.random() * 5;
+                    });
+                    return next;
+                });
+            }, 100);
             return () => clearInterval(interval);
         }
     }, [active]);
 
+    // Initialize progress on mount
+    useEffect(() => {
+        const initial: any = {};
+        integrations.forEach(i => initial[i.name] = 0);
+        setScannedItems(initial);
+    }, []);
+
     const integrations = [
-        { name: "Google Drive", type: "cloud", icon: Cloud, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", items: "14.2k items" },
-        { name: "Dropbox", type: "cloud", icon: Box, color: "text-indigo-400", bg: "bg-indigo-400/10", border: "border-indigo-400/20", items: "8.1k items" },
-        { name: "AWS S3 Bucket", type: "server", icon: Server, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", items: "1.2TB data" },
-        { name: "Salesforce", type: "db", icon: Database, color: "text-sky-400", bg: "bg-sky-400/10", border: "border-sky-400/20", items: "450k records" },
-        { name: "SharePoint", type: "cloud", icon: Globe, color: "text-teal-400", bg: "bg-teal-400/10", border: "border-teal-400/20", items: "Indexing..." },
-        { name: "Notion Workspace", type: "doc", icon: FileText, color: "text-white", bg: "bg-white/10", border: "border-white/20", items: "Connected" },
+        { name: "Google Drive", type: "cloud", icon: Cloud, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", items: "14.2k" },
+        { name: "Dropbox", type: "cloud", icon: Box, color: "text-indigo-400", bg: "bg-indigo-400/10", border: "border-indigo-400/20", items: "8.1k" },
+        { name: "S3 Bucket", type: "server", icon: Server, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", items: "1.2TB" },
+        { name: "Salesforce", type: "db", icon: Database, color: "text-sky-400", bg: "bg-sky-400/10", border: "border-sky-400/20", items: "450k" },
+        { name: "SharePoint", type: "cloud", icon: Globe, color: "text-teal-400", bg: "bg-teal-400/10", border: "border-teal-400/20", items: "Syncing" },
+        { name: "Notion", type: "doc", icon: FileText, color: "text-white", bg: "bg-white/10", border: "border-white/20", items: "Docs" },
     ];
 
+    const filtered = selectedType === 'all' ? integrations : integrations.filter(i => i.type === selectedType);
+
     return (
-        <div className="w-full h-full bg-[#0c0c0e] flex flex-col font-sans">
-            <div className="h-12 border-b border-white/5 flex items-center px-6 justify-between bg-[#151517]">
-                <div className="flex items-center gap-3 text-white/40 text-xs">
-                    <span className="hover:text-white cursor-pointer transition-colors">Data Sources</span>
-                    <ChevronRight size={12} />
-                    <span className="text-white font-medium">Active Integrations</span>
+        <div className="w-full h-full bg-[#0c0c0e] flex flex-col font-sans relative">
+            {showIntro && (
+                <GuideOverlay 
+                    title="Unified Search"
+                    description="Stop digging through silos. Locate connects to every drive, server, and database you own, indexing it all into one searchable map."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
+            {/* Toolbar */}
+            <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
+                <div className="flex gap-2">
+                    {['all', 'cloud', 'db', 'server'].map(t => (
+                        <button 
+                            key={t}
+                            onClick={() => setSelectedType(t)}
+                            className={`px-3 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all ${selectedType === t ? 'bg-white text-black' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                        >
+                            {t}
+                        </button>
+                    ))}
                 </div>
-                <button className="bg-[#69B7B2] hover:bg-[#5aa09c] text-black text-[10px] font-bold px-4 py-1.5 rounded-full flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(105,183,178,0.2)]">
-                    <Plus size={12} /> Connect New Source
-                </button>
+                <div className="flex items-center gap-3">
+                    <div className="h-2 w-24 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500 w-2/3 animate-pulse" />
+                    </div>
+                    <span className="text-[10px] text-white/30 font-mono">INDEXING...</span>
+                </div>
             </div>
 
-            <div className="p-8">
+            <div className="p-6 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {integrations.map((s, i) => {
-                        const isScanned = i < scannedCount;
+                    {filtered.map((s, i) => {
+                        const progress = Math.min(100, Math.round(scannedItems[s.name] || 0));
                         return (
-                            <div key={i} className={`group bg-[#121214] border border-white/5 hover:border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all duration-500 hover:-translate-y-1 ${isScanned ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className={`p-3 rounded-xl ${s.bg} ${s.color} border ${s.border}`}>
-                                        <s.icon size={20} />
+                            <div key={i} className="group bg-[#121214] border border-white/5 hover:border-white/20 p-4 rounded-xl relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className={`p-2.5 rounded-lg ${s.bg} ${s.color} border ${s.border}`}>
+                                        <s.icon size={18} />
                                     </div>
-                                    <div className="flex gap-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    </div>
+                                    <div className="text-[9px] font-mono text-white/30">{progress}%</div>
                                 </div>
                                 <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
-                                <p className="text-white/40 text-xs font-mono">{s.items}</p>
+                                <div className="flex items-center gap-2 text-white/40 text-xs">
+                                    <span className="font-mono">{s.items}</span>
+                                    {progress < 100 && <RefreshCw size={10} className="animate-spin" />}
+                                </div>
                                 
-                                {/* Hover Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                {/* Progress Bar Bottom */}
+                                <div className="absolute bottom-0 left-0 h-1 bg-white/5 w-full">
+                                    <div 
+                                        className={`h-full transition-all duration-300 ${progress === 100 ? 'bg-green-500' : 'bg-[#69B7B2]'}`} 
+                                        style={{ width: `${progress}%` }} 
+                                    />
+                                </div>
                             </div>
                         );
                     })}
                     
                     {/* Add Button */}
-                    <div className="border border-dashed border-white/10 hover:border-white/30 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/20 hover:text-white/60 transition-all cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] group">
-                        <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
-                            <Plus size={20} />
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Add Integration</span>
-                    </div>
+                    <button className="border border-dashed border-white/10 hover:border-white/30 rounded-xl flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/60 transition-all min-h-[120px] bg-white/[0.01] hover:bg-white/[0.03]">
+                        <Plus size={24} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Connect Source</span>
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-// --- 2. STREAM (AI Agent Data Processing) ---
+// --- 2. STREAM (Live Ingest) ---
 const StreamApp = ({ active }: { active: boolean }) => {
     const [events, setEvents] = useState<any[]>([]);
+    const [showIntro, setShowIntro] = useState(true);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     
-    // Simulate incoming data stream
     useEffect(() => {
         if (!active) {
             setEvents([]);
             return;
         }
+        setShowIntro(true);
 
         const templates = [
-            { type: 'invoice', raw: "INV-2921 from Acme Corp ($4,200) - Overdue", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
-            { type: 'email', raw: "Subject: Project Alpha delays - Urgent", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
-            { type: 'log', raw: "Error: Database timeout on cluster us-east-1", color: "text-red-400", bg: "bg-red-400/10", border: "border-red-400/20" },
-            { type: 'slack', raw: "@channel deployment failed in staging", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" }
+            { type: 'invoice', raw: "INV-2921 / Acme Corp / $4,200", status: "Parsing", icon: FileText, color: "text-amber-400" },
+            { type: 'email', raw: "Re: Project Alpha / High Priority", status: "Analyzing", icon: Mail, color: "text-blue-400" },
+            { type: 'alert', raw: "DB_TIMEOUT / Cluster-B / 500ms", status: "Flagged", icon: AlertCircle, color: "text-red-400" },
+            { type: 'chat', raw: "@team deployment scheduled", status: "Logged", icon: MessageSquare, color: "text-purple-400" }
         ];
 
         const interval = setInterval(() => {
@@ -165,115 +234,97 @@ const StreamApp = ({ active }: { active: boolean }) => {
             const newEvent = {
                 id: Date.now(),
                 ...template,
-                status: 'pending', // pending -> processing -> done
-                agent: null
+                progress: 0
             };
-            
-            setEvents(prev => [newEvent, ...prev].slice(0, 5)); // Keep last 5
-        }, 1500);
+            setEvents(prev => [newEvent, ...prev].slice(0, 7));
+        }, 1200);
 
         return () => clearInterval(interval);
     }, [active]);
 
-    // Simulate Agent Processing
+    // Canvas Visualizer for Traffic
     useEffect(() => {
-        if (!active) return;
-        
-        const processInterval = setInterval(() => {
-            setEvents(prev => {
-                // Find pending event
-                const targetIdx = prev.findIndex(e => e.status === 'pending');
-                if (targetIdx === -1) return prev; // Nothing to do
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-                const next = [...prev];
-                // Start processing
-                next[targetIdx] = { ...next[targetIdx], status: 'processing', agent: 'Analyzer_Bot' };
-                
-                // Finish processing shortly after
-                setTimeout(() => {
-                    setEvents(curr => {
-                        const doneNext = [...curr];
-                        const doneIdx = doneNext.findIndex(e => e.id === next[targetIdx].id);
-                        if (doneIdx !== -1) {
-                            doneNext[doneIdx] = { ...doneNext[doneIdx], status: 'done', agent: null };
-                        }
-                        return doneNext;
-                    });
-                }, 1000);
+        let w = canvas.parentElement?.clientWidth || 300;
+        let h = canvas.parentElement?.clientHeight || 60;
+        canvas.width = w;
+        canvas.height = h;
 
-                return next;
+        const dataPoints = new Array(Math.ceil(w/4)).fill(0);
+        let t = 0;
+
+        const render = () => {
+            if (!active) return;
+            t += 0.1;
+            
+            // Shift data
+            dataPoints.shift();
+            const val = Math.max(0, Math.sin(t) * 10 + Math.random() * 20);
+            dataPoints.push(val);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; 
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            dataPoints.forEach((v, i) => {
+                const x = i * 4;
+                const y = h - v;
+                ctx.lineTo(x, y);
             });
-        }, 800);
+            ctx.lineTo(w, h);
+            ctx.fill();
+            ctx.stroke();
 
-        return () => clearInterval(processInterval);
+            requestAnimationFrame(render);
+        };
+        render();
     }, [active]);
 
     return (
         <div className="w-full h-full bg-[#0a0a0c] flex flex-col font-mono text-xs overflow-hidden relative">
-            {/* Header */}
-            <div className="h-10 bg-[#111] border-b border-white/5 flex items-center px-4 gap-4">
-                <div className="flex items-center gap-2 text-green-400">
-                    <Activity size={12} className="animate-pulse" />
-                    <span className="font-bold">LIVE_INGEST</span>
+            {showIntro && (
+                <GuideOverlay 
+                    title="Live Activity Feed"
+                    description="The pulse of your operation. Watch data flow in from every connected source, parsed and categorized in real-time."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
+            {/* Live Chart Header */}
+            <div className="h-16 bg-[#08080a] border-b border-white/5 relative w-full">
+                <canvas ref={canvasRef} className="w-full h-full absolute inset-0" />
+                <div className="absolute top-2 right-4 text-[9px] text-green-400 font-bold uppercase tracking-widest flex items-center gap-2 bg-black/50 px-2 rounded">
+                    <Activity size={10} /> System Pulse
                 </div>
-                <div className="flex-1 h-px bg-white/5" />
-                <div className="text-white/30">Processing Stream...</div>
             </div>
 
             {/* Stream Content */}
-            <div className="flex-1 p-6 space-y-4 overflow-hidden relative">
-                {/* Background Grid */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '100% 20px' }} />
-
+            <div className="flex-1 p-4 space-y-3 overflow-hidden relative">
                 {events.map((ev) => (
-                    <div key={ev.id} className="relative pl-8 group animate-in slide-in-from-top-4 duration-500">
-                        {/* Timeline Line */}
-                        <div className="absolute left-3 top-0 bottom-0 w-px bg-white/10 group-last:bg-gradient-to-b group-last:from-white/10 group-last:to-transparent" />
+                    <div key={ev.id} className="relative pl-4 group animate-in slide-in-from-right-4 duration-300">
+                        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white/10 group-first:bg-green-500 group-first:shadow-[0_0_10px_#22c55e] transition-colors" />
                         
-                        {/* Status Dot */}
-                        <div className={`absolute left-[9px] top-4 w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-                            ev.status === 'done' ? 'bg-[#69B7B2] shadow-[0_0_8px_#69B7B2]' : 
-                            ev.status === 'processing' ? 'bg-amber-400 animate-ping' : 
-                            'bg-white/20'
-                        }`} />
-
-                        <div className={`relative p-4 rounded-xl border transition-all duration-500 ${
-                            ev.status === 'processing' ? 'bg-[#151517] border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)] translate-x-2' : 
-                            ev.status === 'done' ? 'bg-[#0f1110] border-[#69B7B2]/20 opacity-60' : 
-                            'bg-transparent border-transparent opacity-40'
-                        }`}>
-                            
-                            {/* Agent Cursor Overlay */}
-                            {ev.status === 'processing' && (
-                                <div className="absolute -right-3 -top-3 flex items-center gap-2 bg-amber-500 text-black px-3 py-1 rounded-full text-[9px] font-bold animate-bounce z-10 shadow-lg border border-white/20">
-                                    <Bot size={12} /> Analyzing...
+                        <div className="bg-[#151517] border border-white/5 p-3 rounded hover:bg-white/5 transition-colors flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-1.5 rounded bg-white/5 ${ev.color}`}>
+                                    <ev.icon size={14} />
                                 </div>
-                            )}
-
-                            <div className="flex justify-between items-center mb-2">
-                                <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${ev.bg} ${ev.color} ${ev.border} border`}>
-                                    {ev.type === 'invoice' && <FileText size={10} />}
-                                    {ev.type === 'email' && <Mail size={10} />}
-                                    {ev.type === 'log' && <Terminal size={10} />}
-                                    {ev.type === 'slack' && <MessageSquare size={10} />}
-                                    {ev.type}
+                                <div>
+                                    <div className="text-white/90 font-bold text-xs">{ev.type.toUpperCase()}</div>
+                                    <div className="text-white/50 text-[10px] truncate max-w-[150px] md:max-w-none">{ev.raw}</div>
                                 </div>
-                                <span className="text-white/20 font-mono text-[9px]">{new Date(ev.id).toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}</span>
                             </div>
-                            
-                            <div className="text-white/80 truncate font-sans text-sm mb-1">{ev.raw}</div>
-                            
-                            {/* Enrichment Data */}
-                            {ev.status === 'done' && (
-                                <div className="mt-3 flex gap-2 animate-in fade-in">
-                                    <span className="bg-[#69B7B2]/10 text-[#69B7B2] px-2 py-0.5 rounded border border-[#69B7B2]/20 flex items-center gap-1 text-[10px] font-bold uppercase">
-                                        <CheckCircle2 size={10} /> Validated
-                                    </span>
-                                    <span className="bg-white/5 text-white/40 px-2 py-0.5 rounded border border-white/10 text-[10px] uppercase">
-                                        Routed to ERP
-                                    </span>
-                                </div>
-                            )}
+                            <div className="text-right">
+                                <div className="text-[9px] text-white/30">{new Date(ev.id).toLocaleTimeString([], {hour12:false, minute:'2-digit', second:'2-digit'})}</div>
+                                <div className="text-[9px] font-bold text-green-400 uppercase tracking-wider">{ev.status}</div>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -282,19 +333,30 @@ const StreamApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 3. CONTEXT (Schema Mapping) - IMPROVED ---
+// --- 3. CONTEXT (Standardization) ---
 const ContextApp = ({ active }: { active: boolean }) => {
+    const [showIntro, setShowIntro] = useState(true);
+    useEffect(() => { if(active) setShowIntro(true); }, [active]);
+
     return (
         <div className="w-full h-full bg-[#0f0f11] flex flex-col relative overflow-hidden font-sans">
+            {showIntro && (
+                <GuideOverlay 
+                    title="Standardization"
+                    description="Making sense of the mess. We translate messy, disconnected documents into clean, standardized records your systems can actually use."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
             {/* Toolbar */}
             <div className="h-10 border-b border-white/5 bg-[#151517] flex items-center px-4 justify-between">
                 <div className="flex items-center gap-4 text-xs font-medium text-white/60">
                     <span className="flex items-center gap-2"><FileText size={12}/> Invoice_9921.pdf</span>
                     <ArrowRight size={12} className="text-white/20" />
-                    <span className="flex items-center gap-2 text-[#69B7B2]"><Database size={12}/> ERP_Schema_v2</span>
+                    <span className="flex items-center gap-2 text-[#69B7B2]"><Database size={12}/> Standardized Record</span>
                 </div>
                 <div className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[9px] font-bold uppercase rounded border border-green-500/20">
-                    Confidence: 98%
+                    Match: 98%
                 </div>
             </div>
 
@@ -302,12 +364,12 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 {/* Left: Unstructured Source */}
                 <div className="w-1/2 border-r border-white/5 p-6 bg-[#0c0c0e]">
                     <div className="mb-4 flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Raw Input</span>
-                        <span className="text-[9px] font-mono text-white/20">OCR_LAYER_01</span>
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Original Document</span>
+                        <span className="text-[9px] font-mono text-white/20">OCR_LAYER</span>
                     </div>
                     
                     {/* Simulated Document */}
-                    <div className="bg-white p-6 rounded-sm shadow-xl text-black font-serif text-[10px] md:text-xs leading-relaxed opacity-90 relative overflow-hidden group">
+                    <div className="bg-white p-6 rounded-sm shadow-xl text-black font-serif text-[10px] md:text-xs leading-relaxed opacity-90 relative overflow-hidden group scale-95 origin-top-left transition-transform hover:scale-100">
                         <div className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end">
                             <h2 className="font-bold text-lg">INVOICE</h2>
                             <span className="text-gray-500">#9921</span>
@@ -331,21 +393,6 @@ const ContextApp = ({ active }: { active: boolean }) => {
                             </div>
                         </div>
 
-                        <table className="w-full text-left mb-4">
-                            <thead>
-                                <tr className="border-b border-gray-300">
-                                    <th className="py-1">Item</th>
-                                    <th className="py-1 text-right">Cost</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td className="py-1">Server Rack (x4)</td>
-                                    <td className="py-1 text-right">$3,100.00</td>
-                                </tr>
-                            </tbody>
-                        </table>
-
                         <div className="text-right border-t border-gray-300 pt-2">
                             <span className="font-bold mr-4">Total:</span>
                             <span className="relative inline-block font-mono font-bold text-sm">
@@ -365,20 +412,20 @@ const ContextApp = ({ active }: { active: boolean }) => {
                             </marker>
                         </defs>
                         {/* Vendor Line */}
-                        <path d="M 200 120 C 300 120, 300 100, 500 100" fill="none" stroke="#a855f7" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2s_linear_infinite]" markerEnd="url(#arrow)" />
+                        <path d="M 180 120 C 300 120, 300 100, 480 100" fill="none" stroke="#a855f7" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2s_linear_infinite]" markerEnd="url(#arrow)" />
                         
                         {/* Date Line */}
-                        <path d="M 350 120 C 400 120, 400 160, 500 160" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2.5s_linear_infinite]" markerEnd="url(#arrow)" />
+                        <path d="M 320 120 C 380 120, 380 160, 480 160" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2.5s_linear_infinite]" markerEnd="url(#arrow)" />
                         
                         {/* Amount Line */}
-                        <path d="M 380 250 C 420 250, 420 220, 500 220" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_3s_linear_infinite]" markerEnd="url(#arrow)" />
+                        <path d="M 350 220 C 400 220, 400 220, 480 220" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_3s_linear_infinite]" markerEnd="url(#arrow)" />
                     </svg>
                 </div>
 
                 {/* Right: Structured Schema */}
                 <div className="w-1/2 p-6 bg-[#08080a] flex flex-col">
                     <div className="mb-4 flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest">Normalized Output</span>
+                        <span className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest">Clean Data</span>
                         <span className="text-[9px] font-mono text-white/20">JSON_OBJ</span>
                     </div>
                     
@@ -406,12 +453,6 @@ const ContextApp = ({ active }: { active: boolean }) => {
                             </div>
                             <span className="text-white bg-black/40 px-2 py-1 rounded">12400.00</span>
                         </div>
-                        
-                        <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
-                            <button className="text-[10px] bg-[#69B7B2] text-black font-bold px-3 py-1.5 rounded flex items-center gap-2">
-                                <Check size={10} /> Confirm Mapping
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -419,136 +460,227 @@ const ContextApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 4. CAPTURE (Logic Builder) - IMPROVED ---
+// --- 4. CAPTURE (Visual Logic) ---
 const CaptureApp = ({ active }: { active: boolean }) => {
+    const [showIntro, setShowIntro] = useState(true);
+    useEffect(() => { if(active) setShowIntro(true); }, [active]);
+
+    // Dynamic node positioning for SVG lines
+    const [nodes, setNodes] = useState([
+        { id: 1, type: 'trigger', label: "New Invoice", icon: Mail, x: 50, y: 15 },
+        { id: 2, type: 'logic', label: "Amount > $10k?", icon: GitMerge, x: 50, y: 50 },
+        { id: 3, type: 'action', label: "Flag Review", icon: Shield, x: 25, y: 85, color: 'text-red-400' },
+        { id: 4, type: 'action', label: "Auto-Pay", icon: CheckCircle2, x: 75, y: 85, color: 'text-green-400' },
+    ]);
+
     return (
         <div className="w-full h-full bg-[#111] relative overflow-hidden font-sans">
+            {showIntro && (
+                <GuideOverlay 
+                    title="Automation Logic"
+                    description="Logic, visualized. Build complex automation rules without writing code. Trigger, Decide, Act."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
             {/* Dot Grid Background */}
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
             {/* Toolbar */}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
-                <div className="bg-[#1a1a1c] border border-white/10 rounded-lg p-1 flex gap-1">
+                <div className="bg-[#1a1a1c] border border-white/10 rounded-lg p-1 flex gap-1 shadow-lg">
                     <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><MousePointer2 size={14} /></button>
                     <button className="p-1.5 bg-white/10 rounded text-white"><GitMerge size={14} /></button>
                     <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><Square size={14} /></button>
                 </div>
             </div>
 
-            <div className="absolute inset-0 flex items-center justify-center">
-                {/* Flowchart Container */}
-                <div className="relative w-full max-w-2xl h-96">
-                    
-                    {/* SVG Connections */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                        {/* Path 1: Trigger -> Logic */}
-                        <path d="M 320 60 L 320 130" stroke="#333" strokeWidth="2" />
-                        <path d="M 320 60 L 320 130" stroke="#69B7B2" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
-                        
-                        {/* Path 2: Logic -> Left */}
-                        <path d="M 320 190 C 320 220, 180 220, 180 250" stroke="#333" strokeWidth="2" fill="none" />
-                        <path d="M 320 190 C 320 220, 180 220, 180 250" stroke="#ef4444" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} className="transition-all duration-1000 ease-out" fill="none" />
+            <div className="absolute inset-0">
+                <svg className="w-full h-full pointer-events-none">
+                    {/* Trigger -> Logic */}
+                    <path 
+                        d="M 50% 25% L 50% 40%" 
+                        stroke="#333" strokeWidth="2" 
+                    />
+                    <path 
+                        d="M 50% 25% L 50% 40%" 
+                        stroke="#69B7B2" strokeWidth="2" strokeDasharray="4 4" 
+                        className="animate-[dash_1s_linear_infinite]" 
+                    />
 
-                        {/* Path 3: Logic -> Right */}
-                        <path d="M 320 190 C 320 220, 460 220, 460 250" stroke="#333" strokeWidth="2" fill="none" />
-                        <path d="M 320 190 C 320 220, 460 220, 460 250" stroke="#22c55e" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} className="transition-all duration-1000 ease-out delay-500" fill="none" />
-                    </svg>
+                    {/* Logic -> Left */}
+                    <path 
+                        d="M 50% 60% C 50% 70%, 25% 70%, 25% 75%" 
+                        stroke="#333" strokeWidth="2" fill="none"
+                    />
+                    <path 
+                        d="M 50% 60% C 50% 70%, 25% 70%, 25% 75%" 
+                        stroke="#ef4444" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} 
+                        className="transition-all duration-1000 ease-out" fill="none"
+                    />
 
-                    {/* Node 1: Trigger */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 bg-[#1a1a1c] border border-white/10 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3 ring-1 ring-white/5 hover:ring-[#69B7B2]/50 transition-all cursor-pointer">
-                        <div className="w-8 h-8 bg-blue-500/10 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/20">
-                            <Mail size={16}/>
+                    {/* Logic -> Right */}
+                    <path 
+                        d="M 50% 60% C 50% 70%, 75% 70%, 75% 75%" 
+                        stroke="#333" strokeWidth="2" fill="none"
+                    />
+                    <path 
+                        d="M 50% 60% C 50% 70%, 75% 70%, 75% 75%" 
+                        stroke="#22c55e" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} 
+                        className="transition-all duration-1000 ease-out delay-500" fill="none"
+                    />
+                </svg>
+
+                {nodes.map(node => (
+                    <div 
+                        key={node.id}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl hover:scale-105 transition-transform cursor-pointer group"
+                        style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                    >
+                        <div className={`p-2 rounded-lg bg-white/5 ${node.color || 'text-white'}`}>
+                            <node.icon size={16} />
                         </div>
-                        <div>
-                            <div className="text-[9px] text-white/40 uppercase font-bold tracking-wider">Trigger</div>
-                            <div className="text-xs text-white font-bold">New Invoice</div>
+                        <div className="text-center">
+                            <div className="text-[9px] text-white/40 uppercase font-bold tracking-wider">{node.type}</div>
+                            <div className="text-xs font-bold text-white">{node.label}</div>
                         </div>
-                        <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        {node.type === 'trigger' && <div className="absolute -right-1 -top-1 w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
                     </div>
-
-                    {/* Node 2: Logic */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 bg-[#1a1a1c] border border-amber-500/30 rounded-xl p-4 shadow-2xl z-10 flex flex-col gap-2 ring-1 ring-amber-500/20">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-2">
-                            <div className="w-6 h-6 bg-amber-500/10 text-amber-400 rounded-md flex items-center justify-center">
-                                <GitMerge size={14}/>
-                            </div>
-                            <span className="text-xs font-bold text-white">Condition Check</span>
-                        </div>
-                        <div className="bg-black/40 p-2 rounded text-[10px] font-mono text-amber-100/80">
-                            if (amount {'>'} 10000)
-                        </div>
-                    </div>
-
-                    {/* Node 3: Left (Review) */}
-                    <div className="absolute bottom-0 left-20 w-40 bg-[#1a1a1c] border border-red-500/20 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
-                        <div className="w-8 h-8 bg-red-500/10 text-red-400 rounded-lg flex items-center justify-center">
-                            <Shield size={16}/>
-                        </div>
-                        <div>
-                            <div className="text-[9px] text-white/40 uppercase font-bold">Action</div>
-                            <div className="text-xs text-white font-bold">Flag Review</div>
-                        </div>
-                    </div>
-
-                    {/* Node 4: Right (Approve) */}
-                    <div className="absolute bottom-0 right-20 w-40 bg-[#1a1a1c] border border-green-500/20 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500/10 text-green-400 rounded-lg flex items-center justify-center">
-                            <CheckCircle2 size={16}/>
-                        </div>
-                        <div>
-                            <div className="text-[9px] text-white/40 uppercase font-bold">Action</div>
-                            <div className="text-xs text-white font-bold">Auto-Approve</div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            
-            {/* Output Log */}
-            <div className="absolute bottom-4 right-4 w-64 bg-black/80 border border-white/10 rounded-lg p-3 backdrop-blur-md">
-                <div className="text-[9px] font-bold text-white/30 uppercase mb-2">Execution Log</div>
-                <div className="space-y-1 font-mono text-[9px]">
-                    <div className="text-green-400">✓ Trigger received (200ms)</div>
-                    <div className="text-amber-400">⚠ Condition matched: High Value</div>
-                    <div className="text-white/60">→ Routing to Manual Review...</div>
-                </div>
+                ))}
             </div>
         </div>
     );
 };
 
-// --- 5. CONTROL (Graph) ---
+// --- 5. CONTROL (Knowledge Graph) ---
 const ControlApp = ({ active }: { active: boolean }) => {
-    return (
-        <div className="w-full h-full bg-[#050505] relative overflow-hidden flex items-center justify-center">
-            {/* Central Node */}
-            <div className="absolute z-20 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.3)] animate-pulse">
-                <Shield size={32} className="text-black" />
-            </div>
+    const [showIntro, setShowIntro] = useState(true);
+    useEffect(() => { if(active) setShowIntro(true); }, [active]);
 
-            {/* Orbiting Satellites */}
-            {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                <div 
-                    key={i}
-                    className="absolute w-64 h-1 bg-gradient-to-r from-white/20 to-transparent origin-left"
-                    style={{ transform: `rotate(${deg + (active ? i*10 : 0)}deg)` }}
-                >
-                    <div className="absolute right-0 -top-4 w-8 h-8 bg-[#1a1a1c] border border-white/20 rounded-full flex items-center justify-center z-10 hover:scale-125 transition-transform cursor-pointer">
-                        <div className="w-2 h-2 bg-[#69B7B2] rounded-full" />
-                    </div>
-                </div>
-            ))}
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [nodes, setNodes] = useState<{id: number, x: number, y: number, r: number, color: string, label: string}[]>([]);
+    
+    // Init Graph
+    useEffect(() => {
+        const initialNodes = [
+            { id: 0, x: 300, y: 300, r: 25, color: '#fff', label: "Central Entity" }, // Center
+            ...Array.from({length: 8}, (_, i) => ({
+                id: i+1,
+                x: 300 + Math.cos(i/8 * Math.PI*2) * 150,
+                y: 300 + Math.sin(i/8 * Math.PI*2) * 150,
+                r: 10,
+                color: i % 2 === 0 ? '#69B7B2' : '#f59e0b',
+                label: i % 2 === 0 ? 'Person' : 'Org'
+            }))
+        ];
+        setNodes(initialNodes);
+    }, []);
+
+    // Graph Simulation
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let frameId: number;
+        let time = 0;
+
+        const render = () => {
+            time += 0.01;
+            const w = canvas.parentElement?.clientWidth || 600;
+            const h = canvas.parentElement?.clientHeight || 600;
+            canvas.width = w; canvas.height = h;
+
+            const cx = w/2; const cy = h/2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Update Nodes (Floating)
+            nodes.forEach((n, i) => {
+                if (i === 0) { n.x = cx; n.y = cy; return; } // Pin center
+                const angle = (i / 8) * Math.PI * 2 + time * 0.1;
+                n.x = cx + Math.cos(angle) * 150 + Math.sin(time + i)*10;
+                n.y = cy + Math.sin(angle) * 150 + Math.cos(time + i)*10;
+            });
+
+            // Draw Connections
+            ctx.lineWidth = 1;
+            nodes.forEach((n, i) => {
+                if (i === 0) return;
+                const dist = Math.sqrt((n.x-cx)**2 + (n.y-cy)**2);
+                ctx.strokeStyle = `rgba(255,255,255,${0.1 + (1-dist/300)*0.2})`;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(n.x, n.y);
+                ctx.stroke();
+                
+                // Data Packet
+                const pProgress = (time * 2 + i * 0.5) % 1;
+                const px = cx + (n.x - cx) * pProgress;
+                const py = cy + (n.y - cy) * pProgress;
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(px-1.5, py-1.5, 3, 3);
+            });
+
+            // Draw Nodes
+            nodes.forEach(n => {
+                ctx.fillStyle = n.color;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Hover effect simulation (pulse)
+                if (Math.random() > 0.98) {
+                    ctx.strokeStyle = n.color;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 5, 0, Math.PI*2); ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+                
+                // Label
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(n.label, n.x, n.y + n.r + 15);
+            });
+
+            frameId = requestAnimationFrame(render);
+        };
+        render();
+        return () => cancelAnimationFrame(frameId);
+    }, [nodes]);
+
+    return (
+        <div className="w-full h-full bg-[#050505] relative overflow-hidden flex flex-col">
+            {showIntro && (
+                <GuideOverlay 
+                    title="Knowledge Graph"
+                    description="See the big picture. Visualize the hidden relationships between your entities, risks, and assets in one interactive map."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
+            <div className="absolute top-4 left-4 z-20 bg-[#1a1a1c] border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 shadow-xl">
+                <Search size={14} className="text-white/40" />
+                <input type="text" placeholder="Search Entity..." className="bg-transparent border-none text-xs text-white focus:outline-none w-32" />
+            </div>
             
-            {/* Sidebar Overlay */}
-            <div className="absolute left-6 top-6 bg-black/80 backdrop-blur border border-white/10 p-4 rounded-xl w-48 shadow-2xl">
-                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Knowledge Graph</div>
+            <canvas ref={canvasRef} className="w-full h-full block" />
+            
+            <div className="absolute bottom-6 right-6 bg-[#1a1a1c]/90 backdrop-blur border border-white/10 p-4 rounded-xl w-48 shadow-2xl">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Graph Stats</div>
                 <div className="space-y-2">
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full w-3/4 bg-[#69B7B2]" />
+                    <div className="flex justify-between text-[10px] text-white/60">
+                        <span>Nodes</span>
+                        <span className="text-white">842</span>
                     </div>
                     <div className="flex justify-between text-[10px] text-white/60">
-                        <span>Entities</span>
-                        <span>842</span>
+                        <span>Edges</span>
+                        <span className="text-white">1,204</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mt-2">
+                        <div className="h-full w-3/4 bg-[#69B7B2]" />
                     </div>
                 </div>
             </div>
@@ -556,10 +688,12 @@ const ControlApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 6. BRIDGE (Chat Interface) ---
+// --- 6. BRIDGE (Chat Assistant) ---
 const BridgeApp = ({ active }: { active: boolean }) => {
     const [messages, setMessages] = useState<any[]>([]);
     const [step, setStep] = useState(0);
+    const [showIntro, setShowIntro] = useState(true);
+    useEffect(() => { if(active) setShowIntro(true); }, [active]);
 
     // Automation sequence
     useEffect(() => {
@@ -608,6 +742,14 @@ const BridgeApp = ({ active }: { active: boolean }) => {
 
     return (
         <div className="flex flex-col h-full bg-[#0a0a0c] font-sans relative overflow-hidden">
+            {showIntro && (
+                <GuideOverlay 
+                    title="AI Assistant"
+                    description="Just ask. A secure assistant that knows your business, protected by your permissions, ready to answer."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
             {/* Background Hint */}
             <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
                 <Bot size={200} />
@@ -728,10 +870,21 @@ const BridgeApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 7. REFLECT (Metrics) ---
+// --- 7. REFLECT (Optimization) ---
 const ReflectApp = ({ active }: { active: boolean }) => {
+    const [showIntro, setShowIntro] = useState(true);
+    useEffect(() => { if(active) setShowIntro(true); }, [active]);
+
     return (
-        <div className="w-full h-full bg-[#08080a] p-8 flex flex-col justify-center items-center">
+        <div className="w-full h-full bg-[#08080a] p-8 flex flex-col justify-center items-center relative">
+            {showIntro && (
+                <GuideOverlay 
+                    title="System Health"
+                    description="Constant improvement. Monitor system health, accuracy, and latency in real-time."
+                    onDismiss={() => setShowIntro(false)} 
+                />
+            )}
+
             <div className="w-full max-w-sm space-y-6">
                 <div className="flex items-center justify-between text-white mb-2">
                     <span className="text-sm font-bold">Model Accuracy</span>
@@ -766,10 +919,10 @@ export const FeatureShowcase: React.FC = () => {
     const stages = [
         { id: 'locate', label: 'Locate', desc: "Connect & Index", icon: HardDrive, comp: LocateApp },
         { id: 'stream', label: 'Stream', desc: "Real-time Feed", icon: Activity, comp: StreamApp },
-        { id: 'context', label: 'Context', desc: "Schema Map", icon: Layers, comp: ContextApp },
+        { id: 'context', label: 'Context', desc: "Standardize", icon: Layers, comp: ContextApp },
         { id: 'capture', label: 'Capture', desc: "Logic Builder", icon: Zap, comp: CaptureApp },
         { id: 'control', label: 'Control', desc: "Knowledge Graph", icon: Network, comp: ControlApp },
-        { id: 'bridge', label: 'Bridge', desc: "Chat Assistant", icon: Bot, comp: BridgeApp },
+        { id: 'bridge', label: 'Bridge', desc: "Assistant", icon: Bot, comp: BridgeApp },
         { id: 'reflect', label: 'Reflect', desc: "Optimization", icon: RefreshCw, comp: ReflectApp },
     ];
 
