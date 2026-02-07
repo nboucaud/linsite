@@ -29,6 +29,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             particles: [],
             nodes: [],
             grid: [],
+            columns: [], // For translation mode
             initializedMode: null
         };
 
@@ -60,6 +61,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.particles = [];
             state.nodes = [];
             state.grid = [];
+            state.columns = [];
             state.initializedMode = mode;
 
             if (mode === 'search') {
@@ -118,15 +120,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 }
             }
             else if (mode === 'translation') {
-                const cols = Math.floor(w / 16);
-                for(let i=0; i<cols; i++) {
-                    state.particles.push({
-                        x: i * 16,
-                        y: Math.random() * h,
-                        speed: 1 + Math.random() * 2,
-                        char: String.fromCharCode(0x30A0 + Math.random() * 96)
-                    });
-                }
+                // Initial setup handled dynamically in render to adapt to resizing
+            }
+            else if (mode === 'core') {
+                // Initial setup handled dynamically in render to ensure center consistency
             }
             else if (mode === 'identity') {
                 for(let i=0; i<60; i++) {
@@ -285,18 +282,138 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'core') {
-                ctx.translate(cx, cy);
-                for(let i=0; i<3; i++) {
-                    ctx.rotate(time * (i%2==0?1:-1) * (1+i*0.5));
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.arc(0,0, 40 + i*30, 0, Math.PI*1.5); ctx.stroke();
-                    ctx.rotate(-time * (i%2==0?1:-1) * (1+i*0.5));
+                // KNOWLEDGE TREES: Radial Dependency Graph
+                // Represents data linking to rules, linking to outcomes.
+
+                // 1. Initialize Graph Structure (If empty)
+                if (state.nodes.length === 0) {
+                    // Root Node (Center)
+                    state.nodes.push({ x: 0, y: 0, layer: 0, active: 0 });
+                    
+                    // Layer 1 (Primary Branches)
+                    const l1Count = 6;
+                    for(let i=0; i<l1Count; i++) {
+                        const angle = (i / l1Count) * Math.PI * 2;
+                        const r = 50;
+                        state.nodes.push({ 
+                            x: Math.cos(angle) * r, 
+                            y: Math.sin(angle) * r, 
+                            layer: 1, 
+                            parent: 0,
+                            active: 0
+                        });
+                    }
+                    // Layer 2 (Secondary Nodes)
+                    const l1Nodes = state.nodes.filter((n:any) => n.layer === 1);
+                    l1Nodes.forEach((p:any, i:number) => {
+                        const parentIdx = i + 1; // Index in main array
+                        const pAngle = Math.atan2(p.y, p.x);
+                        // Fan out 3 children per L1 node
+                        for(let j=0; j<3; j++) {
+                            const angle = pAngle + (j-1) * 0.5;
+                            const r = 110;
+                            state.nodes.push({
+                                x: Math.cos(angle) * r,
+                                y: Math.sin(angle) * r,
+                                layer: 2,
+                                parent: parentIdx,
+                                active: 0
+                            });
+                        }
+                    });
                 }
-                ctx.fillStyle = color;
-                ctx.shadowBlur = 20; ctx.shadowColor = color;
-                ctx.beginPath(); ctx.arc(0,0, 15 + Math.sin(time*5)*5, 0, Math.PI*2); ctx.fill();
-                ctx.shadowBlur = 0;
+
+                // 2. Logic: Pulse Root to emit signals
+                if (Math.random() > 0.96) {
+                    // Flash root
+                    state.nodes[0].active = 1;
+                    // Send signals to all L1 nodes
+                    for(let i=1; i<=6; i++) {
+                        state.particles.push({
+                            from: 0, 
+                            to: i, 
+                            t: 0, 
+                            speed: 0.05
+                        });
+                    }
+                }
+
+                // 3. Render
+                ctx.translate(cx, cy);
+                // Slowly rotate the entire graph for dynamism
+                ctx.rotate(time * 0.1);
+
+                // Draw Edges
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                state.nodes.forEach((n:any) => {
+                    if (n.parent !== undefined) {
+                        const p = state.nodes[n.parent];
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(n.x, n.y);
+                        ctx.stroke();
+                    }
+                });
+
+                // Draw Nodes
+                state.nodes.forEach((n:any) => {
+                    // Decay active state
+                    if (n.active > 0) {
+                        ctx.fillStyle = color;
+                        ctx.shadowBlur = 15 * n.active;
+                        ctx.shadowColor = color;
+                        n.active -= 0.05;
+                    } else {
+                        ctx.fillStyle = n.layer === 0 ? color : 'rgba(255,255,255,0.2)';
+                        ctx.shadowBlur = 0;
+                    }
+                    
+                    const size = n.layer === 0 ? 5 : (n.layer === 1 ? 3 : 2);
+                    ctx.beginPath(); ctx.arc(n.x, n.y, size, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                // Update & Draw Signal Packets
+                for(let i=state.particles.length-1; i>=0; i--) {
+                    const p = state.particles[i];
+                    p.t += p.speed;
+                    
+                    const start = state.nodes[p.from];
+                    const end = state.nodes[p.to];
+                    
+                    const currX = start.x + (end.x - start.x) * p.t;
+                    const currY = start.y + (end.y - start.y) * p.t;
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
+                    ctx.fillRect(currX-1.5, currY-1.5, 3, 3);
+                    ctx.shadowBlur = 0;
+                    
+                    if (p.t >= 1) {
+                        // Hit destination: Trigger flash
+                        end.active = 1;
+                        
+                        // If intermediate node (Layer 1), propagate to children (Layer 2)
+                        if (end.layer < 2) {
+                            state.nodes.forEach((n:any, idx:number) => {
+                                if (n.parent === p.to) {
+                                    state.particles.push({ 
+                                        from: p.to, 
+                                        to: idx, 
+                                        t: 0, 
+                                        speed: 0.05 + Math.random() * 0.02 
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // Remove finished packet
+                        state.particles.splice(i, 1);
+                    }
+                }
+
+                ctx.rotate(-time * 0.1);
                 ctx.translate(-cx, -cy);
             }
             else if (mode === 'swarm') {
@@ -329,26 +446,161 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.stroke();
             }
             else if (mode === 'translation') {
+                // KNOWLEDGE CAPTURE: Unstructured Stream -> Structured Architecture
+                
+                // 1. Initialize Columns (Left Side) & Grid (Right Side) if needed
+                const colWidth = 15;
+                const numCols = Math.floor((w * 0.4) / colWidth);
+                
+                if (state.columns.length !== numCols) {
+                    state.columns = Array.from({ length: numCols }, () => ({
+                        y: Math.random() * h,
+                        speed: 1 + Math.random() * 2,
+                        chars: Array.from({ length: Math.ceil(h/15) }, () => String.fromCharCode(0x30A0 + Math.random() * 96)),
+                        active: false
+                    }));
+                }
+
+                const gridStartX = w * 0.5;
+                const gridCols = 6; 
+                const gridRows = 8;
+                const cellW = (w * 0.4) / gridCols;
+                const cellH = h / gridRows;
+                const totalCells = gridCols * gridRows;
+                
+                if (state.grid.length !== totalCells) {
+                    state.grid = Array.from({ length: totalCells }, (_, i) => ({
+                        x: gridStartX + (i % gridCols) * cellW + cellW/2,
+                        y: Math.floor(i / gridCols) * cellH + cellH/2,
+                        filled: false,
+                        alpha: 0.2
+                    }));
+                }
+
+                // 2. Render Left Stream (Raw Data)
                 ctx.font = '10px monospace';
-                state.particles.forEach((p: any) => {
-                    p.y += p.speed;
-                    if (p.y > h) p.y = 0;
-                    
-                    const dist = Math.abs(p.x - cx);
-                    const alpha = Math.max(0.1, 1 - dist/(w/2));
-                    
-                    if (p.x < cx) {
-                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                        ctx.fillText(p.char, p.x, p.y);
-                    } else {
-                        ctx.fillStyle = color;
-                        ctx.globalAlpha = alpha;
-                        ctx.fillRect(p.x, p.y, 8, 8);
+                ctx.textAlign = 'center';
+                
+                state.columns.forEach((col: any, i: number) => {
+                    const x = i * colWidth + 10;
+                    col.y += col.speed;
+                    if (col.y > h) col.y = -100;
+
+                    // Draw Char Stream
+                    const headRow = Math.floor(col.y / 15);
+                    for(let r = 0; r < 8; r++) {
+                        const charY = col.y - r * 15;
+                        if (charY > 0 && charY < h) {
+                            const opacity = 1 - (r / 8);
+                            ctx.fillStyle = r === 0 ? '#fff' : 'rgba(255,255,255,0.3)';
+                            ctx.globalAlpha = opacity * 0.5;
+                            // Flicker char
+                            const char = (Math.random() > 0.98) ? String.fromCharCode(0x30A0 + Math.random() * 96) : col.chars[r % col.chars.length];
+                            ctx.fillText(char, x, charY);
+                        }
+                    }
+
+                    // Random Extraction Event
+                    if (!col.active && Math.abs(col.y - h/2) < 150 && Math.random() > 0.985) {
+                        col.active = true;
+                        
+                        // Pick empty grid slot
+                        const emptySlots = state.grid.filter((g: any) => !g.filled);
+                        if (emptySlots.length > 0) {
+                            const target = emptySlots[Math.floor(Math.random() * emptySlots.length)];
+                            target.filled = true; // Reserve
+                            
+                            // Spawn Projectile
+                            state.particles.push({
+                                x: x,
+                                y: col.y,
+                                tx: target.x,
+                                ty: target.y,
+                                progress: 0,
+                                speed: 0.04 + Math.random() * 0.02,
+                                targetIdx: state.grid.indexOf(target)
+                            });
+                        }
+                        
+                        setTimeout(() => { col.active = false; }, 600);
                     }
                 });
-                ctx.strokeStyle = color;
-                ctx.globalAlpha = 0.5;
-                ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+
+                // 3. Render Extraction Projectiles
+                ctx.globalAlpha = 1;
+                for (let i = state.particles.length - 1; i >= 0; i--) {
+                    const p = state.particles[i];
+                    p.progress += p.speed;
+                    
+                    const dx = p.tx - p.x;
+                    const dy = p.ty - p.y;
+                    const currX = p.x + dx * p.progress;
+                    const currY = p.y + dy * p.progress;
+                    
+                    // Draw Head
+                    ctx.fillStyle = color;
+                    ctx.shadowBlur = 10; ctx.shadowColor = color;
+                    ctx.fillRect(currX - 2, currY - 2, 4, 4);
+                    ctx.shadowBlur = 0;
+                    
+                    // Draw Trail
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(currX, currY);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+
+                    if (p.progress >= 1) {
+                        // Hit
+                        const cell = state.grid[p.targetIdx];
+                        if (cell) cell.alpha = 1.0;
+                        state.particles.splice(i, 1);
+                    }
+                }
+
+                // 4. Render Structured Grid (Right)
+                state.grid.forEach((cell: any) => {
+                    if (cell.filled) {
+                        cell.alpha = Math.max(0.4, cell.alpha - 0.03); // Decay flash
+                    } else {
+                        cell.alpha = 0.1;
+                    }
+
+                    const size = Math.min(cellW, cellH) * 0.6;
+                    
+                    ctx.strokeStyle = color;
+                    ctx.globalAlpha = cell.alpha;
+                    ctx.lineWidth = 1;
+                    
+                    // Draw Bracket Shape
+                    const s2 = size/2;
+                    ctx.beginPath();
+                    ctx.moveTo(cell.x - s2, cell.y - s2 + 4);
+                    ctx.lineTo(cell.x - s2, cell.y - s2);
+                    ctx.lineTo(cell.x - s2 + 4, cell.y - s2);
+                    
+                    ctx.moveTo(cell.x + s2, cell.y + s2 - 4);
+                    ctx.lineTo(cell.x + s2, cell.y + s2);
+                    ctx.lineTo(cell.x + s2 - 4, cell.y + s2);
+                    ctx.stroke();
+                    
+                    if (cell.filled) {
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = cell.alpha * 0.6;
+                        ctx.fillRect(cell.x - s2 + 3, cell.y - s2 + 3, size - 6, size - 6);
+                        
+                        // Occasionally clear filled slots to keep animation going
+                        if (Math.random() > 0.998) cell.filled = false;
+                    }
+                });
+
+                // 5. Separator
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath(); ctx.moveTo(w * 0.45, 20); ctx.lineTo(w * 0.45, h - 20); ctx.stroke();
             }
             else if (mode === 'identity') {
                 ctx.translate(cx, cy);
