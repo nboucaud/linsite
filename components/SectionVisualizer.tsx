@@ -34,9 +34,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 },
             boxes: [], 
             stack: [],
-            // Identity Mode State (Flashcards)
+            // Identity Mode State
             cards: [],
-            sparks: [],
             spawnTimer: 0,
             initializedMode: null
         };
@@ -74,7 +73,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             
             // Identity specific
             state.cards = [];
-            state.sparks = [];
             state.spawnTimer = 0;
 
             state.initializedMode = mode;
@@ -623,108 +621,131 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'identity') {
-                // --- FLASHCARD / PRIZE ANIMATION ---
-                // State: cards[], sparks[], spawnTimer
+                // --- WORKFORCE AUGMENTATION: KNOWLEDGE CARDS ---
                 
-                // Background Radial Effect (Subtle Sunburst)
-                ctx.translate(cx, cy);
-                ctx.rotate(time * 0.05);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-                for(let i=0; i<12; i++) {
-                    ctx.rotate(Math.PI * 2 / 12);
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.arc(0, 0, Math.max(w,h), -0.1, 0.1);
-                    ctx.fill();
-                }
-                ctx.rotate(-time * 0.05);
-                ctx.translate(-cx, -cy);
-
+                // Spawn logic
                 state.spawnTimer++;
-                if (state.spawnTimer > 150) {
+                if (state.spawnTimer > 120) { // Every ~2 seconds
                     state.spawnTimer = 0;
-                    // Spawn new card at bottom
                     state.cards.push({
-                        x: cx,
-                        y: h + 100,
-                        targetY: cy,
-                        w: 120, h: 160,
-                        state: 'entering', // entering -> holding -> exiting
-                        holdTimer: 0
+                        x: w + 200,
+                        y: h / 2,
+                        targetX: w / 2,
+                        state: 'entering', // entering -> scanning -> exiting
+                        scanProgress: 0,
+                        id: Math.floor(Math.random() * 9000) + 1000,
+                        role: Math.random() > 0.5 ? 'OPERATOR' : 'ANALYST',
+                        topic: Math.random() > 0.5 ? 'SAFETY_PROTO' : 'OPTIMIZATION'
                     });
                 }
 
-                // Process Cards
-                for (let i = state.cards.length - 1; i >= 0; i--) {
+                // Render Cards
+                for (let i = 0; i < state.cards.length; i++) {
                     const c = state.cards[i];
-                    
+                    const CARD_W = 240;
+                    const CARD_H = 140;
+                    const r = 8; // Border radius
+
+                    // Physics / State
                     if (c.state === 'entering') {
-                        c.y += (c.targetY - c.y) * 0.08;
-                        if (Math.abs(c.y - c.targetY) < 2) {
-                            c.state = 'holding';
-                            // Trigger Prize Effect
-                            for(let j=0; j<20; j++) {
-                                state.sparks.push({
-                                    x: cx, y: cy,
-                                    vx: (Math.random() - 0.5) * 10,
-                                    vy: (Math.random() - 0.5) * 10,
-                                    life: 1.0,
-                                    color: Math.random() > 0.5 ? '#ffffff' : color
-                                });
-                            }
+                        c.x += (c.targetX - c.x) * 0.1;
+                        if (Math.abs(c.x - c.targetX) < 2) {
+                            c.state = 'scanning';
                         }
-                    } else if (c.state === 'holding') {
-                        c.holdTimer++;
-                        // Gentle hover
-                        c.y = cy + Math.sin(time * 2) * 5;
-                        if (c.holdTimer > 100) c.state = 'exiting';
+                    } else if (c.state === 'scanning') {
+                        c.scanProgress += 0.015;
+                        if (c.scanProgress >= 1) {
+                            c.state = 'exiting';
+                            c.targetX = -250;
+                        }
                     } else if (c.state === 'exiting') {
-                        c.y -= 10; // Fly up
-                        if (c.y < -200) state.cards.splice(i, 1);
+                        c.x += (c.targetX - c.x) * 0.08;
+                        if (c.x < -200) {
+                            state.cards.splice(i, 1);
+                            i--;
+                            continue;
+                        }
                     }
 
-                    // Draw Card
-                    const isHolding = c.state === 'holding';
-                    ctx.fillStyle = '#1a1a1c';
-                    ctx.strokeStyle = isHolding ? '#ffffff' : 'rgba(255,255,255,0.2)';
-                    ctx.lineWidth = isHolding ? 3 : 1;
+                    // Render
+                    ctx.save();
+                    ctx.translate(c.x, c.y);
                     
-                    if (isHolding) {
-                        ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(255,255,255,0.5)';
-                    }
+                    // Shadow
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 30;
+                    ctx.shadowOffsetY = 10;
 
-                    // Draw Rounded Rect manually if roundRect not supported, but most browsers support it now
-                    // Fallback to rect
-                    const r = 12;
+                    // Card Background
+                    ctx.fillStyle = '#121214';
                     ctx.beginPath();
-                    ctx.roundRect(c.x - c.w/2, c.y - c.h/2, c.w, c.h, r);
+                    ctx.moveTo(-CARD_W/2 + r, -CARD_H/2);
+                    ctx.lineTo(-CARD_W/2 + CARD_W - r, -CARD_H/2);
+                    ctx.quadraticCurveTo(-CARD_W/2 + CARD_W, -CARD_H/2, -CARD_W/2 + CARD_W, -CARD_H/2 + r);
+                    ctx.lineTo(-CARD_W/2 + CARD_W, -CARD_H/2 + CARD_H - r);
+                    ctx.quadraticCurveTo(-CARD_W/2 + CARD_W, -CARD_H/2 + CARD_H, -CARD_W/2 + CARD_W - r, -CARD_H/2 + CARD_H);
+                    ctx.lineTo(-CARD_W/2 + r, -CARD_H/2 + CARD_H);
+                    ctx.quadraticCurveTo(-CARD_W/2, -CARD_H/2 + CARD_H, -CARD_W/2, -CARD_H/2 + CARD_H - r);
+                    ctx.lineTo(-CARD_W/2, -CARD_H/2 + r);
+                    ctx.quadraticCurveTo(-CARD_W/2, -CARD_H/2, -CARD_W/2 + r, -CARD_H/2);
                     ctx.fill();
-                    ctx.stroke();
                     ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
 
-                    // Card Content (Abstract Lines)
-                    ctx.fillStyle = isHolding ? '#ffffff' : 'rgba(255,255,255,0.2)';
-                    const contentX = c.x - c.w/2 + 20;
-                    const contentY = c.y - c.h/2 + 40;
-                    ctx.fillRect(contentX, contentY, 40, 40); // Icon placeholder
-                    ctx.fillStyle = isHolding ? color : 'rgba(255,255,255,0.1)';
-                    ctx.fillRect(contentX, contentY + 50, c.w - 40, 6);
-                    ctx.fillRect(contentX, contentY + 65, c.w - 60, 6);
-                }
+                    // Card Border (highlight based on state)
+                    ctx.strokeStyle = c.state === 'scanning' ? color : 'rgba(255,255,255,0.1)';
+                    ctx.lineWidth = c.state === 'scanning' ? 2 : 1;
+                    ctx.stroke();
 
-                // Process Sparks
-                for (let i = state.sparks.length - 1; i >= 0; i--) {
-                    const s = state.sparks[i];
-                    s.x += s.vx;
-                    s.y += s.vy;
-                    s.vy += 0.2; // Gravity
-                    s.life -= 0.02;
-                    
-                    if (s.life <= 0) { state.sparks.splice(i, 1); continue; }
-                    
-                    ctx.globalAlpha = s.life;
-                    ctx.fillStyle = s.color;
-                    ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI*2); ctx.fill();
+                    // Content - Header
+                    ctx.fillStyle = c.state === 'scanning' || c.state === 'exiting' ? '#fff' : '#888';
+                    ctx.font = 'bold 12px monospace';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`${c.role} // ${c.topic}`, -CARD_W/2 + 20, -CARD_H/2 + 30);
+
+                    // Content - ID
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.font = '10px monospace';
+                    ctx.fillText(`ID: #${c.id}`, -CARD_W/2 + 20, -CARD_H/2 + 45);
+
+                    // Content - Abstract Body Text Lines
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(-CARD_W/2 + 20, -CARD_H/2 + 65, CARD_W - 40, 6);
+                    ctx.fillRect(-CARD_W/2 + 20, -CARD_H/2 + 80, CARD_W - 80, 6);
+
+                    // Scan Bar / Progress
+                    if (c.state === 'scanning' || c.state === 'exiting') {
+                        const pct = c.state === 'exiting' ? 1 : c.scanProgress;
+                        
+                        // Progress Track
+                        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                        ctx.fillRect(-CARD_W/2 + 20, CARD_H/2 - 30, CARD_W - 40, 4);
+                        
+                        // Fill
+                        ctx.fillStyle = color;
+                        ctx.shadowColor = color;
+                        ctx.shadowBlur = 10;
+                        ctx.fillRect(-CARD_W/2 + 20, CARD_H/2 - 30, (CARD_W - 40) * pct, 4);
+                        ctx.shadowBlur = 0;
+
+                        // Status Text
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(c.state === 'exiting' ? 'KNOWLEDGE SYNCED' : 'AUGMENTING...', CARD_W/2 - 20, CARD_H/2 - 15);
+                    }
+
+                    // Scanline Effect (Vertical Laser)
+                    if (c.state === 'scanning') {
+                        const scanX = -CARD_W/2 + (c.scanProgress * CARD_W);
+                        const grad = ctx.createLinearGradient(scanX, -CARD_H/2, scanX + 20, -CARD_H/2);
+                        grad.addColorStop(0, 'rgba(255,255,255,0)');
+                        grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Shine
+                        grad.addColorStop(1, 'rgba(255,255,255,0)');
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(-CARD_W/2, -CARD_H/2, CARD_W, CARD_H);
+                    }
+
+                    ctx.restore();
                 }
             }
 
