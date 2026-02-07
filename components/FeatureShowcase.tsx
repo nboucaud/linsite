@@ -10,6 +10,7 @@ import {
     HardDrive, BarChart, ChevronDown, RefreshCw, ThumbsUp, ThumbsDown,
     Minimize, Square, Target, Award, Camera, CornerDownRight, HelpCircle, ArrowLeft, Send
 } from 'lucide-react';
+import { SectionVisualizer } from './SectionVisualizer';
 
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -764,7 +765,7 @@ export const FeatureShowcase: React.FC = () => {
             <div className="max-w-7xl mx-auto px-6">
                 
                 {/* Header */}
-                <div className="mb-16 md:flex md:items-end md:justify-between">
+                <div className="mb-12 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
                             Agents designed to think like <span className="text-white/40">you do.</span>
@@ -772,8 +773,22 @@ export const FeatureShowcase: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Main Window */}
-                <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative group">
+                {/* Video Header Container */}
+                <div className="w-full relative overflow-hidden rounded-t-[2rem] border-t border-x border-white/10 bg-[#0a0a0c]">
+                     <video 
+                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        className="w-full h-auto max-h-[350px] object-cover opacity-80"
+                     />
+                     {/* Gradient to blend seamlessly into the UI below */}
+                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0c]" />
+                </div>
+
+                {/* Main Window - Connected to Video */}
+                <div className="w-full bg-[#0a0a0c] border border-white/10 border-t-0 rounded-b-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative group mt-0">
                     
                     {/* Sidebar Nav */}
                     <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">

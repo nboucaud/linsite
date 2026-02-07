@@ -24,10 +24,11 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-// Enhanced Image Component with JS Canvas Overlay
+// Enhanced Image Component with JS Canvas Overlay - NO TEXT FALLBACK
 const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
+    const [hasError, setHasError] = useState(false);
     
     // Intersection Observer for Reveal Effect
     const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +49,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
     // Canvas Effect (The ".js" part)
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !isVisible) return;
+        if (!canvas || !isVisible || hasError) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -97,16 +98,17 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
         render();
 
         return () => cancelAnimationFrame(animationFrameId);
-    }, [isVisible]);
+    }, [isVisible, hasError]);
     
     return (
         <div ref={containerRef} className={`my-16 group cursor-default ${widthClass} transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className={`w-full ${aspect} bg-[#0c0c0e] border border-white/10 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl`}>
-                {src ? (
+                {src && !hasError ? (
                     <>
                         <img 
                             src={src} 
-                            alt={label}
+                            alt="" 
+                            onError={() => setHasError(true)}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         {/* Canvas Overlay */}
@@ -116,6 +118,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
                 ) : (
+                    // Fallback Grid - No Text
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
                 )}
             </div>
@@ -714,11 +717,11 @@ export const IndustrialsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.problem} />
                                     </section>
                                     
-                                    {/* VISUAL BREAK 1: WIDE */}
+                                    {/* VISUAL BREAK 1: WIDE (Swapped Image: AutomatedWeavingMachines) */}
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Site Schematic" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_steel_lattice_weathered_metal_low_angle_natural_daylight_mechanical_geometry.jpg"
+                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AutomatedWeavingMachinesOperatingInLargeTextileManufacturingFactory.webp"
                                     />
 
                                     {/* SECTION 2: INTERVENTION */}
@@ -730,12 +733,12 @@ export const IndustrialsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.intervene} />
                                     </section>
 
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID (Swapped Images) */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Asset Sensor" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AutomatedWeavingMachinesOperatingInLargeTextileManufacturingFactory.webp"
+                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_steel_lattice_weathered_metal_low_angle_natural_daylight_mechanical_geometry.jpg"
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
