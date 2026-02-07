@@ -16,7 +16,8 @@ import {
     Globe, Shield, FileJson, Share2,
     PlayCircle, PauseCircle, Scan,
     Cloud, Box, ChevronRight,
-    ArrowUp
+    ArrowUp, Command, Hash,
+    MousePointer2, Square
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -281,56 +282,135 @@ const StreamApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 3. CONTEXT (Schema Mapping) ---
+// --- 3. CONTEXT (Schema Mapping) - IMPROVED ---
 const ContextApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#0f0f11] flex flex-col relative overflow-hidden">
-            {/* Split View */}
-            <div className="flex-1 flex">
+        <div className="w-full h-full bg-[#0f0f11] flex flex-col relative overflow-hidden font-sans">
+            {/* Toolbar */}
+            <div className="h-10 border-b border-white/5 bg-[#151517] flex items-center px-4 justify-between">
+                <div className="flex items-center gap-4 text-xs font-medium text-white/60">
+                    <span className="flex items-center gap-2"><FileText size={12}/> Invoice_9921.pdf</span>
+                    <ArrowRight size={12} className="text-white/20" />
+                    <span className="flex items-center gap-2 text-[#69B7B2]"><Database size={12}/> ERP_Schema_v2</span>
+                </div>
+                <div className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[9px] font-bold uppercase rounded border border-green-500/20">
+                    Confidence: 98%
+                </div>
+            </div>
+
+            <div className="flex-1 flex relative">
                 {/* Left: Unstructured Source */}
-                <div className="w-1/2 border-r border-white/5 p-6 space-y-4">
-                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <FileText size={12} /> Source Document
+                <div className="w-1/2 border-r border-white/5 p-6 bg-[#0c0c0e]">
+                    <div className="mb-4 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Raw Input</span>
+                        <span className="text-[9px] font-mono text-white/20">OCR_LAYER_01</span>
                     </div>
-                    <div className="text-white/60 text-xs leading-relaxed font-mono p-6 bg-white/5 rounded-xl border border-white/5 shadow-inner">
-                        <span className="bg-blue-500/20 text-blue-300 px-1 rounded">INVOICE #9921</span><br/><br/>
-                        Vendor: <span className="bg-purple-500/20 text-purple-300 px-1 rounded">Acme Corp</span><br/>
-                        Date: <span className="bg-green-500/20 text-green-300 px-1 rounded">Oct 24, 2025</span><br/>
-                        Items: Server Racks (x4)<br/>
-                        Total: <span className="bg-amber-500/20 text-amber-300 px-1 rounded">$12,400.00</span>
+                    
+                    {/* Simulated Document */}
+                    <div className="bg-white p-6 rounded-sm shadow-xl text-black font-serif text-[10px] md:text-xs leading-relaxed opacity-90 relative overflow-hidden group">
+                        <div className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end">
+                            <h2 className="font-bold text-lg">INVOICE</h2>
+                            <span className="text-gray-500">#9921</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <p className="font-bold text-gray-400 uppercase text-[8px]">Vendor</p>
+                                <p className="relative inline-block">
+                                    Acme Corp
+                                    {active && <span className="absolute inset-0 bg-purple-500/20 border border-purple-500 rounded animate-pulse" />}
+                                </p>
+                                <p>123 Industrial Way</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-bold text-gray-400 uppercase text-[8px]">Date</p>
+                                <p className="relative inline-block">
+                                    Oct 24, 2025
+                                    {active && <span className="absolute inset-0 bg-blue-500/20 border border-blue-500 rounded animate-pulse delay-75" />}
+                                </p>
+                            </div>
+                        </div>
+
+                        <table className="w-full text-left mb-4">
+                            <thead>
+                                <tr className="border-b border-gray-300">
+                                    <th className="py-1">Item</th>
+                                    <th className="py-1 text-right">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="py-1">Server Rack (x4)</td>
+                                    <td className="py-1 text-right">$3,100.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div className="text-right border-t border-gray-300 pt-2">
+                            <span className="font-bold mr-4">Total:</span>
+                            <span className="relative inline-block font-mono font-bold text-sm">
+                                $12,400.00
+                                {active && <span className="absolute inset-0 bg-amber-500/20 border border-amber-500 rounded animate-pulse delay-150" />}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Center: Connector Lines (Canvas simulated via SVG) */}
-                <div className="absolute inset-0 pointer-events-none">
+                {/* Center: Animated Connectors */}
+                <div className="absolute inset-0 pointer-events-none z-10">
                     <svg className="w-full h-full">
-                        <path d="M 250 140 C 350 140, 350 100, 450 100" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
-                        <path d="M 250 160 C 350 160, 350 160, 450 160" fill="none" stroke="#a855f7" strokeWidth="2" strokeOpacity="0.5" />
-                        <path d="M 250 220 C 350 220, 350 240, 450 240" fill="none" stroke="#f59e0b" strokeWidth="2" strokeOpacity="0.5" />
+                        <defs>
+                            <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                                <path d="M0,0 L6,3 L0,6 L0,0" fill="#69B7B2" opacity="0.5" />
+                            </marker>
+                        </defs>
+                        {/* Vendor Line */}
+                        <path d="M 200 120 C 300 120, 300 100, 500 100" fill="none" stroke="#a855f7" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2s_linear_infinite]" markerEnd="url(#arrow)" />
+                        
+                        {/* Date Line */}
+                        <path d="M 350 120 C 400 120, 400 160, 500 160" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2.5s_linear_infinite]" markerEnd="url(#arrow)" />
+                        
+                        {/* Amount Line */}
+                        <path d="M 380 250 C 420 250, 420 220, 500 220" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_3s_linear_infinite]" markerEnd="url(#arrow)" />
                     </svg>
                 </div>
 
                 {/* Right: Structured Schema */}
-                <div className="w-1/2 p-6 space-y-4 bg-[#0a0a0c]">
-                    <div className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <FileJson size={12} /> Normalized Schema
+                <div className="w-1/2 p-6 bg-[#08080a] flex flex-col">
+                    <div className="mb-4 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest">Normalized Output</span>
+                        <span className="text-[9px] font-mono text-white/20">JSON_OBJ</span>
                     </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-blue-500/30">
-                            <span className="text-blue-400 text-xs font-bold font-mono">id</span>
-                            <span className="text-white text-xs">"INV-9921"</span>
+                    
+                    <div className="space-y-3 font-mono text-xs">
+                        <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-purple-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
+                            <div className="flex flex-col">
+                                <span className="text-purple-400 font-bold mb-1">entity_name</span>
+                                <span className="text-white/40 text-[8px] uppercase">String</span>
+                            </div>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">"Acme Corp"</span>
                         </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-purple-500/30">
-                            <span className="text-purple-400 text-xs font-bold font-mono">entity</span>
-                            <span className="text-white text-xs">"Acme Corp"</span>
+
+                        <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-blue-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
+                            <div className="flex flex-col">
+                                <span className="text-blue-400 font-bold mb-1">invoice_date</span>
+                                <span className="text-white/40 text-[8px] uppercase">ISO 8601</span>
+                            </div>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">"2025-10-24"</span>
                         </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-white/5">
-                            <span className="text-gray-500 text-xs font-bold font-mono">date_iso</span>
-                            <span className="text-white text-xs">"2025-10-24"</span>
+
+                        <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-amber-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
+                            <div className="flex flex-col">
+                                <span className="text-amber-400 font-bold mb-1">total_amount</span>
+                                <span className="text-white/40 text-[8px] uppercase">Float</span>
+                            </div>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">12400.00</span>
                         </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-amber-500/30">
-                            <span className="text-amber-400 text-xs font-bold font-mono">amount</span>
-                            <span className="text-white text-xs">12400.00</span>
+                        
+                        <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+                            <button className="text-[10px] bg-[#69B7B2] text-black font-bold px-3 py-1.5 rounded flex items-center gap-2">
+                                <Check size={10} /> Confirm Mapping
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -339,50 +419,98 @@ const ContextApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 4. CAPTURE (Logic Builder) ---
+// --- 4. CAPTURE (Logic Builder) - IMPROVED ---
 const CaptureApp = ({ active }: { active: boolean }) => {
     return (
-        <div className="w-full h-full bg-[#111113] relative overflow-hidden">
-            {/* Dot Grid */}
+        <div className="w-full h-full bg-[#111] relative overflow-hidden font-sans">
+            {/* Dot Grid Background */}
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
+            {/* Toolbar */}
+            <div className="absolute top-4 left-4 z-10 flex gap-2">
+                <div className="bg-[#1a1a1c] border border-white/10 rounded-lg p-1 flex gap-1">
+                    <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><MousePointer2 size={14} /></button>
+                    <button className="p-1.5 bg-white/10 rounded text-white"><GitMerge size={14} /></button>
+                    <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><Square size={14} /></button>
+                </div>
+            </div>
+
             <div className="absolute inset-0 flex items-center justify-center">
-                {/* Flowchart */}
-                <div className="relative w-full max-w-lg h-64">
-                    {/* Node 1 */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 bg-[#1a1a1c] border border-white/10 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
-                        <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Mail size={16}/></div>
+                {/* Flowchart Container */}
+                <div className="relative w-full max-w-2xl h-96">
+                    
+                    {/* SVG Connections */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        {/* Path 1: Trigger -> Logic */}
+                        <path d="M 320 60 L 320 130" stroke="#333" strokeWidth="2" />
+                        <path d="M 320 60 L 320 130" stroke="#69B7B2" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
+                        
+                        {/* Path 2: Logic -> Left */}
+                        <path d="M 320 190 C 320 220, 180 220, 180 250" stroke="#333" strokeWidth="2" fill="none" />
+                        <path d="M 320 190 C 320 220, 180 220, 180 250" stroke="#ef4444" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} className="transition-all duration-1000 ease-out" fill="none" />
+
+                        {/* Path 3: Logic -> Right */}
+                        <path d="M 320 190 C 320 220, 460 220, 460 250" stroke="#333" strokeWidth="2" fill="none" />
+                        <path d="M 320 190 C 320 220, 460 220, 460 250" stroke="#22c55e" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} className="transition-all duration-1000 ease-out delay-500" fill="none" />
+                    </svg>
+
+                    {/* Node 1: Trigger */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 bg-[#1a1a1c] border border-white/10 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3 ring-1 ring-white/5 hover:ring-[#69B7B2]/50 transition-all cursor-pointer">
+                        <div className="w-8 h-8 bg-blue-500/10 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/20">
+                            <Mail size={16}/>
+                        </div>
                         <div>
-                            <div className="text-[10px] text-white/40 uppercase font-bold">Trigger</div>
-                            <div className="text-xs text-white font-bold">Invoice Received</div>
+                            <div className="text-[9px] text-white/40 uppercase font-bold tracking-wider">Trigger</div>
+                            <div className="text-xs text-white font-bold">New Invoice</div>
+                        </div>
+                        <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    </div>
+
+                    {/* Node 2: Logic */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 bg-[#1a1a1c] border border-amber-500/30 rounded-xl p-4 shadow-2xl z-10 flex flex-col gap-2 ring-1 ring-amber-500/20">
+                        <div className="flex items-center gap-3 border-b border-white/5 pb-2">
+                            <div className="w-6 h-6 bg-amber-500/10 text-amber-400 rounded-md flex items-center justify-center">
+                                <GitMerge size={14}/>
+                            </div>
+                            <span className="text-xs font-bold text-white">Condition Check</span>
+                        </div>
+                        <div className="bg-black/40 p-2 rounded text-[10px] font-mono text-amber-100/80">
+                            if (amount {'>'} 10000)
                         </div>
                     </div>
 
-                    {/* Connecting Line Vertical */}
-                    <div className="absolute top-8 left-1/2 w-0.5 h-16 bg-white/10 -translate-x-1/2">
-                        <div className="absolute top-0 left-0 w-full h-1/2 bg-[#69B7B2] animate-[drop_1.5s_infinite]" />
-                    </div>
-
-                    {/* Node 2 (Logic) */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 bg-[#1a1a1c] border border-amber-500/30 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
-                        <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg"><GitMerge size={16}/></div>
+                    {/* Node 3: Left (Review) */}
+                    <div className="absolute bottom-0 left-20 w-40 bg-[#1a1a1c] border border-red-500/20 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
+                        <div className="w-8 h-8 bg-red-500/10 text-red-400 rounded-lg flex items-center justify-center">
+                            <Shield size={16}/>
+                        </div>
                         <div>
-                            <div className="text-[10px] text-white/40 uppercase font-bold">Logic</div>
-                            <div className="text-xs text-white font-bold">Amount {'>'} $10k?</div>
+                            <div className="text-[9px] text-white/40 uppercase font-bold">Action</div>
+                            <div className="text-xs text-white font-bold">Flag Review</div>
                         </div>
                     </div>
 
-                    {/* Paths */}
-                    <div className="absolute top-[calc(50%+2rem)] left-1/2 w-32 h-16 border-l-2 border-b-2 border-white/10 rounded-bl-3xl -translate-x-full" />
-                    <div className="absolute top-[calc(50%+2rem)] right-1/2 w-32 h-16 border-r-2 border-b-2 border-white/10 rounded-br-3xl -translate-x-0" />
+                    {/* Node 4: Right (Approve) */}
+                    <div className="absolute bottom-0 right-20 w-40 bg-[#1a1a1c] border border-green-500/20 rounded-xl p-3 shadow-xl z-10 flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500/10 text-green-400 rounded-lg flex items-center justify-center">
+                            <CheckCircle2 size={16}/>
+                        </div>
+                        <div>
+                            <div className="text-[9px] text-white/40 uppercase font-bold">Action</div>
+                            <div className="text-xs text-white font-bold">Auto-Approve</div>
+                        </div>
+                    </div>
 
-                    {/* Leaf Nodes */}
-                    <div className="absolute bottom-0 left-8 w-32 bg-[#1a1a1c] border border-white/10 rounded-lg p-2 text-center shadow-lg">
-                        <div className="text-[10px] text-red-400 font-bold">Flag for Review</div>
-                    </div>
-                    <div className="absolute bottom-0 right-8 w-32 bg-[#1a1a1c] border border-white/10 rounded-lg p-2 text-center shadow-lg">
-                        <div className="text-[10px] text-green-400 font-bold">Auto-Approve</div>
-                    </div>
+                </div>
+            </div>
+            
+            {/* Output Log */}
+            <div className="absolute bottom-4 right-4 w-64 bg-black/80 border border-white/10 rounded-lg p-3 backdrop-blur-md">
+                <div className="text-[9px] font-bold text-white/30 uppercase mb-2">Execution Log</div>
+                <div className="space-y-1 font-mono text-[9px]">
+                    <div className="text-green-400">✓ Trigger received (200ms)</div>
+                    <div className="text-amber-400">⚠ Condition matched: High Value</div>
+                    <div className="text-white/60">→ Routing to Manual Review...</div>
                 </div>
             </div>
         </div>
