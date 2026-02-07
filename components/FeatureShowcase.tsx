@@ -14,7 +14,9 @@ import {
     Bell, Settings,
     Server, Trash2, Sparkles, Mail,
     Globe, Shield, FileJson, Share2,
-    PlayCircle, PauseCircle, Scan
+    PlayCircle, PauseCircle, Scan,
+    Cloud, Box, ChevronRight,
+    ArrowUp
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -22,22 +24,47 @@ const cn = (...classes: (string | undefined | null | false)[]) => classes.filter
 
 // --- SHARED COMPONENTS ---
 
-const WindowHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
-    <div className="h-10 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0c] select-none rounded-t-xl z-20 relative">
+const WindowHeader = ({ title, icon: Icon, videoRef, isVideoPlaying, toggleVideo }: any) => (
+    <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#0a0a0c] select-none z-20 relative">
         <div className="flex items-center gap-4">
-            <div className="flex gap-1.5 group">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-[#1AAB29]/50" />
+            <div className="flex gap-2 group">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/50" />
             </div>
-            <div className="h-4 w-px bg-white/10" />
-            <div className="flex items-center gap-2 text-white/60 text-[10px] font-medium font-mono uppercase tracking-wider">
-                <Icon size={12} className="text-[#69B7B2]" />
+            <div className="h-6 w-px bg-white/10 mx-2" />
+            <div className="flex items-center gap-3 text-white/80 text-xs font-bold font-mono uppercase tracking-widest bg-white/5 px-4 py-1.5 rounded-full border border-white/5">
+                <Icon size={14} className="text-[#69B7B2]" />
                 <span>{title}</span>
             </div>
         </div>
-        <div className="flex items-center gap-3 text-white/20">
-            <Settings size={12} />
+
+        {/* GITO AGENT - RIGHT SIDE, CLEAN LOOK */}
+        <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end mr-2">
+                <span className="text-[10px] font-bold text-white/90">Gito AI</span>
+                <span className="text-[9px] text-[#69B7B2] font-mono animate-pulse">ONLINE</span>
+            </div>
+            <div className="relative group cursor-pointer" onClick={toggleVideo}>
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#69B7B2] to-blue-500 rounded-full opacity-20 group-hover:opacity-50 blur transition duration-500" />
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 bg-black">
+                    <video 
+                        ref={videoRef}
+                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        className="w-full h-full object-cover transform scale-110"
+                    />
+                    {!isVideoPlaying && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <PlayCircle size={16} className="text-white" />
+                        </div>
+                    )}
+                </div>
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full z-10" />
+            </div>
         </div>
     </div>
 );
@@ -50,65 +77,64 @@ const LocateApp = ({ active }: { active: boolean }) => {
         if(active) {
             setScannedCount(0);
             const interval = setInterval(() => {
-                setScannedCount(prev => Math.min(prev + 1, 6));
-            }, 300);
+                setScannedCount(prev => Math.min(prev + 1, 8));
+            }, 200);
             return () => clearInterval(interval);
         }
     }, [active]);
 
-    const sources = [
-        { name: "SharePoint_Legal", type: "cloud", size: "1.2 TB", status: "Indexing...", color: "text-blue-400" },
-        { name: "Salesforce_CRM", type: "db", size: "450 GB", status: "Connected", color: "text-sky-400" },
-        { name: "Q3_Invoices_S3", type: "server", size: "85 GB", status: "Scanning", color: "text-amber-400" },
-        { name: "Slack_History", type: "chat", size: "12 GB", status: "Waiting", color: "text-purple-400" },
-        { name: "Legacy_Oracle", type: "db", size: "4.5 TB", status: "Queued", color: "text-red-400" },
-        { name: "Email_Archive", type: "mail", size: "890 GB", status: "Paused", color: "text-gray-400" },
+    const integrations = [
+        { name: "Google Drive", type: "cloud", icon: Cloud, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", items: "14.2k items" },
+        { name: "Dropbox", type: "cloud", icon: Box, color: "text-indigo-400", bg: "bg-indigo-400/10", border: "border-indigo-400/20", items: "8.1k items" },
+        { name: "AWS S3 Bucket", type: "server", icon: Server, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", items: "1.2TB data" },
+        { name: "Salesforce", type: "db", icon: Database, color: "text-sky-400", bg: "bg-sky-400/10", border: "border-sky-400/20", items: "450k records" },
+        { name: "SharePoint", type: "cloud", icon: Globe, color: "text-teal-400", bg: "bg-teal-400/10", border: "border-teal-400/20", items: "Indexing..." },
+        { name: "Notion Workspace", type: "doc", icon: FileText, color: "text-white", bg: "bg-white/10", border: "border-white/20", items: "Connected" },
     ];
 
     return (
         <div className="w-full h-full bg-[#0c0c0e] flex flex-col font-sans">
-            <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
-                <div className="flex items-center gap-2 text-white/40 text-xs">
-                    <span className="hover:text-white cursor-pointer">Sources</span>
-                    <span className="text-white/20">/</span>
-                    <span className="text-white">Active Connections</span>
+            <div className="h-12 border-b border-white/5 flex items-center px-6 justify-between bg-[#151517]">
+                <div className="flex items-center gap-3 text-white/40 text-xs">
+                    <span className="hover:text-white cursor-pointer transition-colors">Data Sources</span>
+                    <ChevronRight size={12} />
+                    <span className="text-white font-medium">Active Integrations</span>
                 </div>
-                <button className="bg-[#69B7B2] text-black text-[10px] font-bold px-3 py-1.5 rounded flex items-center gap-2 hover:bg-[#5aa09c] transition-colors">
-                    <Plus size={12} /> Add Source
+                <button className="bg-[#69B7B2] hover:bg-[#5aa09c] text-black text-[10px] font-bold px-4 py-1.5 rounded-full flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(105,183,178,0.2)]">
+                    <Plus size={12} /> Connect New Source
                 </button>
             </div>
 
-            <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto">
-                {sources.map((s, i) => {
-                    const isScanned = i < scannedCount;
-                    return (
-                        <div key={i} className={`group bg-[#121214] border border-white/5 p-4 rounded-xl relative overflow-hidden transition-all duration-500 ${isScanned ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                            {isScanned && i % 2 === 0 && (
-                                <div className="absolute top-0 left-0 w-full h-0.5 bg-[#69B7B2] animate-[loading_2s_ease-in-out_infinite]" />
-                            )}
-                            <div className="flex justify-between items-start mb-4">
-                                <div className={`p-2.5 rounded-lg bg-white/5 ${s.color}`}>
-                                    {s.type === 'cloud' ? <Globe size={18} /> : 
-                                     s.type === 'db' ? <Database size={18} /> : 
-                                     s.type === 'server' ? <Server size={18} /> : 
-                                     s.type === 'mail' ? <Mail size={18} /> :
-                                     <MessageSquare size={18} />}
+            <div className="p-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {integrations.map((s, i) => {
+                        const isScanned = i < scannedCount;
+                        return (
+                            <div key={i} className={`group bg-[#121214] border border-white/5 hover:border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all duration-500 hover:-translate-y-1 ${isScanned ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className={`p-3 rounded-xl ${s.bg} ${s.color} border ${s.border}`}>
+                                        <s.icon size={20} />
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    </div>
                                 </div>
-                                <div className={`text-[9px] font-bold uppercase px-2 py-1 rounded border ${i === 2 ? 'border-[#69B7B2]/30 text-[#69B7B2] bg-[#69B7B2]/10 animate-pulse' : 'border-white/10 text-white/30'}`}>
-                                    {i === 2 ? 'Scanning' : s.status}
-                                </div>
+                                <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
+                                <p className="text-white/40 text-xs font-mono">{s.items}</p>
+                                
+                                {/* Hover Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             </div>
-                            <h4 className="text-white font-medium text-sm mb-1">{s.name}</h4>
-                            <p className="text-white/30 text-xs font-mono">{s.size}</p>
+                        );
+                    })}
+                    
+                    {/* Add Button */}
+                    <div className="border border-dashed border-white/10 hover:border-white/30 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/20 hover:text-white/60 transition-all cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] group">
+                        <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                            <Plus size={20} />
                         </div>
-                    );
-                })}
-                
-                <div className="border border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer min-h-[120px]">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                        <Plus size={16} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Add Integration</span>
                     </div>
-                    <span className="text-xs font-medium">Connect New</span>
                 </div>
             </div>
         </div>
@@ -142,7 +168,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
                 agent: null
             };
             
-            setEvents(prev => [newEvent, ...prev].slice(0, 6)); // Keep last 6
+            setEvents(prev => [newEvent, ...prev].slice(0, 5)); // Keep last 5
         }, 1500);
 
         return () => clearInterval(interval);
@@ -187,19 +213,19 @@ const StreamApp = ({ active }: { active: boolean }) => {
             <div className="h-10 bg-[#111] border-b border-white/5 flex items-center px-4 gap-4">
                 <div className="flex items-center gap-2 text-green-400">
                     <Activity size={12} className="animate-pulse" />
-                    <span className="font-bold">LIVE_FEED</span>
+                    <span className="font-bold">LIVE_INGEST</span>
                 </div>
                 <div className="flex-1 h-px bg-white/5" />
-                <div className="text-white/30">4 Agents Active</div>
+                <div className="text-white/30">Processing Stream...</div>
             </div>
 
             {/* Stream Content */}
-            <div className="flex-1 p-4 space-y-4 overflow-hidden relative">
+            <div className="flex-1 p-6 space-y-4 overflow-hidden relative">
                 {/* Background Grid */}
                 <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '100% 20px' }} />
 
                 {events.map((ev) => (
-                    <div key={ev.id} className="relative pl-8 group animate-in slide-in-from-top-2 duration-500">
+                    <div key={ev.id} className="relative pl-8 group animate-in slide-in-from-top-4 duration-500">
                         {/* Timeline Line */}
                         <div className="absolute left-3 top-0 bottom-0 w-px bg-white/10 group-last:bg-gradient-to-b group-last:from-white/10 group-last:to-transparent" />
                         
@@ -210,7 +236,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
                             'bg-white/20'
                         }`} />
 
-                        <div className={`relative p-3 rounded-lg border transition-all duration-500 ${
+                        <div className={`relative p-4 rounded-xl border transition-all duration-500 ${
                             ev.status === 'processing' ? 'bg-[#151517] border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)] translate-x-2' : 
                             ev.status === 'done' ? 'bg-[#0f1110] border-[#69B7B2]/20 opacity-60' : 
                             'bg-transparent border-transparent opacity-40'
@@ -224,7 +250,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
                             )}
 
                             <div className="flex justify-between items-center mb-2">
-                                <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${ev.bg} ${ev.color} ${ev.border} border`}>
+                                <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${ev.bg} ${ev.color} ${ev.border} border`}>
                                     {ev.type === 'invoice' && <FileText size={10} />}
                                     {ev.type === 'email' && <Mail size={10} />}
                                     {ev.type === 'log' && <Terminal size={10} />}
@@ -238,9 +264,12 @@ const StreamApp = ({ active }: { active: boolean }) => {
                             
                             {/* Enrichment Data */}
                             {ev.status === 'done' && (
-                                <div className="mt-2 flex gap-2 animate-in fade-in">
-                                    <span className="bg-[#69B7B2]/10 text-[#69B7B2] px-1.5 py-0.5 rounded border border-[#69B7B2]/20 flex items-center gap-1">
-                                        <CheckCircle2 size={8} /> Processed
+                                <div className="mt-3 flex gap-2 animate-in fade-in">
+                                    <span className="bg-[#69B7B2]/10 text-[#69B7B2] px-2 py-0.5 rounded border border-[#69B7B2]/20 flex items-center gap-1 text-[10px] font-bold uppercase">
+                                        <CheckCircle2 size={10} /> Validated
+                                    </span>
+                                    <span className="bg-white/5 text-white/40 px-2 py-0.5 rounded border border-white/10 text-[10px] uppercase">
+                                        Routed to ERP
                                     </span>
                                 </div>
                             )}
@@ -263,8 +292,8 @@ const ContextApp = ({ active }: { active: boolean }) => {
                     <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-2">
                         <FileText size={12} /> Source Document
                     </div>
-                    <div className="text-white/60 text-xs leading-relaxed font-mono p-4 bg-white/5 rounded-lg border border-white/5 shadow-inner">
-                        <span className="bg-blue-500/20 text-blue-300 px-1 rounded">INVOICE #9921</span><br/>
+                    <div className="text-white/60 text-xs leading-relaxed font-mono p-6 bg-white/5 rounded-xl border border-white/5 shadow-inner">
+                        <span className="bg-blue-500/20 text-blue-300 px-1 rounded">INVOICE #9921</span><br/><br/>
                         Vendor: <span className="bg-purple-500/20 text-purple-300 px-1 rounded">Acme Corp</span><br/>
                         Date: <span className="bg-green-500/20 text-green-300 px-1 rounded">Oct 24, 2025</span><br/>
                         Items: Server Racks (x4)<br/>
@@ -275,9 +304,9 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 {/* Center: Connector Lines (Canvas simulated via SVG) */}
                 <div className="absolute inset-0 pointer-events-none">
                     <svg className="w-full h-full">
-                        <path d="M 200 120 C 300 120, 300 100, 400 100" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
-                        <path d="M 200 140 C 300 140, 300 160, 400 160" fill="none" stroke="#a855f7" strokeWidth="2" strokeOpacity="0.5" />
-                        <path d="M 200 200 C 300 200, 300 220, 400 220" fill="none" stroke="#f59e0b" strokeWidth="2" strokeOpacity="0.5" />
+                        <path d="M 250 140 C 350 140, 350 100, 450 100" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_1s_linear_infinite]" />
+                        <path d="M 250 160 C 350 160, 350 160, 450 160" fill="none" stroke="#a855f7" strokeWidth="2" strokeOpacity="0.5" />
+                        <path d="M 250 220 C 350 220, 350 240, 450 240" fill="none" stroke="#f59e0b" strokeWidth="2" strokeOpacity="0.5" />
                     </svg>
                 </div>
 
@@ -286,21 +315,21 @@ const ContextApp = ({ active }: { active: boolean }) => {
                     <div className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest mb-2 flex items-center gap-2">
                         <FileJson size={12} /> Normalized Schema
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-blue-500/30">
-                            <span className="text-blue-400 text-xs font-bold">id</span>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-blue-500/30">
+                            <span className="text-blue-400 text-xs font-bold font-mono">id</span>
                             <span className="text-white text-xs">"INV-9921"</span>
                         </div>
-                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-purple-500/30">
-                            <span className="text-purple-400 text-xs font-bold">entity</span>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-purple-500/30">
+                            <span className="text-purple-400 text-xs font-bold font-mono">entity</span>
                             <span className="text-white text-xs">"Acme Corp"</span>
                         </div>
-                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-white/5">
-                            <span className="text-gray-500 text-xs font-bold">date_iso</span>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-white/5">
+                            <span className="text-gray-500 text-xs font-bold font-mono">date_iso</span>
                             <span className="text-white text-xs">"2025-10-24"</span>
                         </div>
-                        <div className="flex items-center justify-between p-2 rounded bg-[#1a1a1c] border border-amber-500/30">
-                            <span className="text-amber-400 text-xs font-bold">amount</span>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a1c] border border-amber-500/30">
+                            <span className="text-amber-400 text-xs font-bold font-mono">amount</span>
                             <span className="text-white text-xs">12400.00</span>
                         </div>
                     </div>
@@ -383,7 +412,7 @@ const ControlApp = ({ active }: { active: boolean }) => {
             ))}
             
             {/* Sidebar Overlay */}
-            <div className="absolute left-4 top-4 bg-black/80 backdrop-blur border border-white/10 p-4 rounded-xl w-48">
+            <div className="absolute left-6 top-6 bg-black/80 backdrop-blur border border-white/10 p-4 rounded-xl w-48 shadow-2xl">
                 <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Knowledge Graph</div>
                 <div className="space-y-2">
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
@@ -399,35 +428,174 @@ const ControlApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 6. BRIDGE (Agent Fleet) ---
+// --- 6. BRIDGE (Chat Interface) ---
 const BridgeApp = ({ active }: { active: boolean }) => {
-    const agents = [
-        { name: "Compliance_Bot", status: "Auditing", progress: 65, color: "bg-blue-500" },
-        { name: "Risk_Analyzer", status: "Idle", progress: 0, color: "bg-white/20" },
-        { name: "Outreach_Agent", status: "Sending", progress: 32, color: "bg-green-500" },
-        { name: "Data_Miner", status: "Extraction", progress: 88, color: "bg-purple-500" }
-    ];
+    const [messages, setMessages] = useState<any[]>([]);
+    const [step, setStep] = useState(0);
+
+    // Automation sequence
+    useEffect(() => {
+        if (!active) {
+            setMessages([]);
+            setStep(0);
+            return;
+        }
+
+        const script = [
+            { type: 'user', content: 'Audit the Q3 vendor contracts for liability risks.', delay: 1000 },
+            { type: 'system', sources: ['SharePoint / Legal', 'Salesforce / Vendors', 'Email / Q3_Thread'], delay: 2000 },
+            { type: 'assistant', content: "I've analyzed 14 documents. Primary risk found in **Acme Corp** agreement: The indemnity clause (Section 4.2) conflicts with our standard policy regarding third-party damages.", delay: 4000 }
+        ];
+
+        let timeouts: ReturnType<typeof setTimeout>[] = [];
+        let accumulatedDelay = 0;
+
+        script.forEach((msg, idx) => {
+            accumulatedDelay += msg.delay;
+            timeouts.push(setTimeout(() => {
+                setMessages(prev => [...prev, msg]);
+                setStep(idx + 1);
+            }, accumulatedDelay));
+        });
+
+        // Loop
+        const resetTime = accumulatedDelay + 5000;
+        const loop = setInterval(() => {
+            setMessages([]);
+            setStep(0);
+            let loopDelay = 0;
+            script.forEach((msg) => {
+                loopDelay += msg.delay;
+                setTimeout(() => {
+                    setMessages(prev => [...prev, msg]);
+                }, loopDelay);
+            });
+        }, resetTime);
+
+        return () => {
+            timeouts.forEach(clearTimeout);
+            clearInterval(loop);
+        };
+    }, [active]);
 
     return (
-        <div className="w-full h-full bg-[#0c0c0e] p-8 grid grid-cols-2 gap-4 overflow-y-auto">
-            {agents.map((a, i) => (
-                <div key={i} className="bg-[#151517] border border-white/5 p-4 rounded-xl flex flex-col justify-between hover:border-white/20 transition-all">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                            <Bot size={20} className="text-white/60" />
-                        </div>
-                        <div className={`text-[9px] font-bold uppercase px-2 py-1 rounded ${a.status === 'Idle' ? 'bg-white/5 text-white/30' : 'bg-white/10 text-white'}`}>
-                            {a.status}
+        <div className="flex flex-col h-full bg-[#0a0a0c] font-sans relative overflow-hidden">
+            {/* Background Hint */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                <Bot size={200} />
+            </div>
+
+            {/* Header */}
+            <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#0c0c0e]">
+                <div className="flex items-center gap-2 text-white/60 text-xs font-medium">
+                    <Sparkles size={14} className="text-[#69B7B2]" />
+                    Bridge Assistant
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider text-white/30">Context Window:</span>
+                    <span className="text-[10px] font-mono text-green-400">128k</span>
+                </div>
+            </div>
+
+            {/* Chat Stream */}
+            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                {messages.map((msg, i) => (
+                    <div key={i} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
+                        
+                        {/* User Msg */}
+                        {msg.type === 'user' && (
+                            <div className="bg-[#1a1a1c] border border-white/10 text-white/90 px-4 py-3 rounded-2xl rounded-tr-sm max-w-[85%] text-sm shadow-lg">
+                                {msg.content}
+                            </div>
+                        )}
+
+                        {/* System Integration Event */}
+                        {msg.type === 'system' && (
+                            <div className="flex items-center gap-3 my-2 pl-2 w-full">
+                                <div className="w-0.5 h-8 bg-gradient-to-b from-[#69B7B2] to-transparent" />
+                                <div className="flex flex-wrap gap-2">
+                                    {msg.sources.map((s: string, idx: number) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-[#69B7B2]/10 border border-[#69B7B2]/20 text-[#69B7B2] px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide">
+                                            <Database size={10} /> {s}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Assistant Msg */}
+                        {msg.type === 'assistant' && (
+                            <div className="flex gap-4 max-w-[90%]">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#69B7B2] to-blue-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                                    <Bot size={16} />
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="bg-transparent text-white/80 text-sm leading-relaxed">
+                                        {msg.content.split('**').map((part: string, idx: number) => 
+                                            idx % 2 === 1 ? <strong key={idx} className="text-white bg-white/10 px-1 rounded">{part}</strong> : part
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button className="text-[10px] border border-white/10 px-2 py-1 rounded hover:bg-white/5 transition-colors text-white/40 hover:text-white flex items-center gap-1">
+                                            <FileText size={10} /> View Source
+                                        </button>
+                                        <button className="text-[10px] border border-white/10 px-2 py-1 rounded hover:bg-white/5 transition-colors text-white/40 hover:text-white flex items-center gap-1">
+                                            <Share2 size={10} /> Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+                
+                {/* Typing Indicator */}
+                {step === 0 && (
+                    <div className="flex justify-end animate-pulse">
+                        <div className="bg-white/5 px-4 py-2 rounded-2xl rounded-tr-sm">
+                            <div className="flex gap-1">
+                                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <h4 className="text-white font-bold text-xs mb-2">{a.name}</h4>
-                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                            <div className={`h-full ${a.color} transition-all duration-1000`} style={{ width: `${a.progress}%` }} />
-                        </div>
+                )}
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-4 bg-[#0a0a0c] border-t border-white/5 relative z-10">
+                {/* Context Pills attached to input */}
+                <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+                    <button className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors">
+                        <Cloud size={10} /> Salesforce
+                    </button>
+                    <button className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-lg text-orange-400 text-[10px] font-bold uppercase tracking-wider hover:bg-orange-500/20 transition-colors">
+                        <HardDrive size={10} /> AWS S3
+                    </button>
+                    <button className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-white/40 text-[10px] font-bold uppercase tracking-wider hover:text-white transition-colors">
+                        <Plus size={10} /> Add Source
+                    </button>
+                </div>
+
+                <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#69B7B2]/20 to-blue-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative bg-[#151517] border border-white/10 rounded-xl flex items-center p-1 shadow-2xl">
+                        <button className="p-2 text-white/30 hover:text-white transition-colors">
+                            <Plus size={18} />
+                        </button>
+                        <input 
+                            type="text" 
+                            placeholder="Message Bridge..." 
+                            className="flex-1 bg-transparent border-none focus:outline-none text-sm text-white px-2 placeholder:text-white/20"
+                            readOnly
+                        />
+                        <button className="p-2 bg-[#69B7B2] text-black rounded-lg hover:bg-white transition-colors">
+                            <ArrowRight size={16} />
+                        </button>
                     </div>
                 </div>
-            ))}
+            </div>
         </div>
     );
 };
@@ -473,11 +641,12 @@ export const FeatureShowcase: React.FC = () => {
         { id: 'context', label: 'Context', desc: "Schema Map", icon: Layers, comp: ContextApp },
         { id: 'capture', label: 'Capture', desc: "Logic Builder", icon: Zap, comp: CaptureApp },
         { id: 'control', label: 'Control', desc: "Knowledge Graph", icon: Network, comp: ControlApp },
-        { id: 'bridge', label: 'Bridge', desc: "Agent Fleet", icon: Cpu, comp: BridgeApp },
+        { id: 'bridge', label: 'Bridge', desc: "Chat Assistant", icon: Bot, comp: BridgeApp },
         { id: 'reflect', label: 'Reflect', desc: "Optimization", icon: RefreshCw, comp: ReflectApp },
     ];
 
-    const toggleVideo = () => {
+    const toggleVideo = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (videoRef.current) {
             if (videoRef.current.paused) {
                 videoRef.current.play();
@@ -497,16 +666,16 @@ export const FeatureShowcase: React.FC = () => {
                 <div className="mb-16 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
-                            The Agentic <span className="text-[#69B7B2] italic">OS.</span>
+                            AI models that <span className="text-[#69B7B2] italic">think like you do.</span>
                         </h2>
                         <p className="mt-6 text-lg text-white/50 font-light">
-                            A complete operating system for enterprise intelligence. From raw data ingestion to autonomous action.
+                            Seven specialized engines working in concert to locate, understand, and act on your enterprise data.
                         </p>
                     </div>
                 </div>
 
                 {/* --- MAIN INTERFACE --- */}
-                <div className="flex flex-col lg:flex-row h-[700px] lg:h-[600px] bg-[#0c0c0e] rounded-3xl border border-white/10 shadow-2xl overflow-hidden ring-1 ring-white/5 relative z-10">
+                <div className="flex flex-col lg:flex-row h-[700px] lg:h-[650px] bg-[#0c0c0e] rounded-3xl border border-white/10 shadow-2xl overflow-hidden ring-1 ring-white/5 relative z-10">
                     
                     {/* LEFT SIDEBAR NAVIGATION */}
                     <div className="w-full lg:w-64 bg-[#08080a] border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col">
@@ -542,48 +711,19 @@ export const FeatureShowcase: React.FC = () => {
                                 )
                             })}
                         </div>
-
-                        {/* GITO VIDEO AGENT (Bottom Sidebar) */}
-                        <div className="p-4 border-t border-white/5 hidden lg:block">
-                            <div className="relative group cursor-pointer" onClick={toggleVideo}>
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-[#69B7B2] to-blue-500 rounded-full opacity-30 group-hover:opacity-70 blur transition duration-500" />
-                                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-black bg-black">
-                                    <video 
-                                        ref={videoRef}
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                                        autoPlay 
-                                        loop 
-                                        muted 
-                                        playsInline
-                                        className="w-full h-full object-cover transform scale-110"
-                                    />
-                                    {/* Play/Pause Overlay */}
-                                    {!isVideoPlaying && (
-                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                            <PlayCircle size={20} className="text-white" />
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Status Indicator */}
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full z-10" />
-                                
-                                {/* Tooltip */}
-                                <div className="absolute left-16 top-1/2 -translate-y-1/2 w-32 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                    <div className="bg-white text-black text-[9px] font-bold px-3 py-2 rounded-lg shadow-xl relative">
-                                        <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-white rotate-45" />
-                                        Gito is online.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {/* RIGHT CONTENT AREA */}
                     <div className="flex-1 flex flex-col relative bg-[#0c0c0e]">
                         
-                        {/* OS Header */}
-                        <WindowHeader title={`${stages[activeStage].label}_OS`} icon={stages[activeStage].icon} />
+                        {/* OS Header - With Gito Integrated Top Right */}
+                        <WindowHeader 
+                            title={`${stages[activeStage].label}_OS`} 
+                            icon={stages[activeStage].icon}
+                            videoRef={videoRef}
+                            isVideoPlaying={isVideoPlaying}
+                            toggleVideo={toggleVideo}
+                        />
 
                         {/* Stage Component Container */}
                         <div className="flex-1 relative overflow-hidden bg-[#050505] shadow-inner">
