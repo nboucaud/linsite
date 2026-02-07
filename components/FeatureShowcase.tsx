@@ -29,14 +29,14 @@ const SpeedVisualizer = () => {
         let height = canvas.height = canvas.parentElement?.clientHeight || 0;
         
         const entities: any[] = [];
-        const count = 100;
+        const count = 60; // Reduced count for smaller area
 
         for(let i=0; i<count; i++) {
             entities.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
                 speed: 4 + Math.random() * 20,
-                len: Math.random() > 0.6 ? Math.random() * 150 + 20 : 2, // Line or dot
+                len: Math.random() > 0.6 ? Math.random() * 80 + 10 : 2, // Shorter lines for square
                 width: Math.random() > 0.9 ? 2 : 1,
                 opacity: Math.random() * 0.5 + 0.1
             });
@@ -49,7 +49,7 @@ const SpeedVisualizer = () => {
             entities.forEach(p => {
                 p.x -= p.speed;
                 if (p.x + p.len < 0) {
-                    p.x = width + Math.random() * 200;
+                    p.x = width + Math.random() * 50;
                     p.y = Math.random() * height;
                     p.speed = 4 + Math.random() * 20;
                 }
@@ -180,7 +180,7 @@ const SCENARIOS = [
 // --- SHARED UI ---
 
 const WindowHeader = ({ title, stageId }: { title: string, stageId: string }) => (
-    <div className="h-12 border-b border-white/5 flex items-center justify-center md:justify-between px-6 bg-[#0c0c0e] select-none rounded-t-3xl shadow-sm z-20 relative">
+    <div className="h-12 border-b border-white/5 flex items-center justify-center md:justify-between px-6 bg-[#0c0c0e] select-none rounded-tl-3xl shadow-sm z-20 relative">
         <div className="flex items-center gap-4">
             <div className="flex gap-2 group">
                 <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50 group-hover:brightness-110 transition-all cursor-pointer" />
@@ -850,108 +850,112 @@ export const FeatureShowcase: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Video Header Container */}
-                <div className="w-full relative overflow-hidden rounded-t-[2rem] border-t border-x border-white/10 bg-[#0a0a0c]">
-                     <video 
-                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                        className="w-full h-auto max-h-[350px] object-cover opacity-80"
-                     />
-                     
-                     {/* Speed Lines Effect */}
-                     <div className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none mix-blend-screen">
-                        <SpeedVisualizer />
-                     </div>
-
-                     {/* Gradient to blend seamlessly into the UI below */}
-                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0c]" />
-                </div>
-
-                {/* Main Window - Connected to Video */}
-                <div className="w-full bg-[#0a0a0c] border border-white/10 border-t-0 rounded-b-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative group mt-0">
+                {/* Main Content Layout - Flex Column for stacking Video Tab on top of Main Window */}
+                <div className="flex flex-col items-end w-full relative group">
                     
-                    {/* Sidebar Nav */}
-                    <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">
-                        <div className="p-8 hidden md:block">
-                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Workflow Stages</div>
-                            <div className="h-0.5 w-8 bg-[#69B7B2]" />
-                        </div>
+                    {/* The "Periscope" Video Module - Square, Top-Right Bound */}
+                    <div className="relative w-full max-w-[320px] h-[320px] bg-[#0a0a0c] border-x border-t border-white/10 rounded-t-3xl overflow-hidden z-10 -mb-px shadow-2xl">
+                        <video 
+                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                            autoPlay 
+                            loop 
+                            muted 
+                            playsInline
+                            className="w-full h-full object-cover opacity-80 mix-blend-screen"
+                        />
                         
-                        <div className="flex-1 p-4 space-x-2 md:space-x-0 md:space-y-2 flex md:block overflow-x-auto custom-scrollbar">
-                            {stages.map((stage, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => { setActiveStage(idx); setIsPaused(true); }}
-                                    className={cn(
-                                        "flex-1 md:w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 relative overflow-hidden group/btn min-w-[140px]",
-                                        activeStage === idx 
-                                            ? "bg-[#151517] text-white shadow-lg border border-white/10" 
-                                            : "text-white/30 hover:text-white hover:bg-white/5 border border-transparent"
-                                    )}
-                                >
-                                    <div className={`relative z-10 transition-transform duration-300 ${activeStage === idx ? 'scale-110' : ''}`}>
-                                        <stage.icon size={18} className={activeStage === idx ? "text-[#69B7B2]" : "text-current opacity-50 group-hover/btn:opacity-100"} />
-                                    </div>
-                                    <span className="relative z-10">{stage.label}</span>
-                                    
-                                    {/* Active Indicator Line */}
-                                    {activeStage === idx && (
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#69B7B2]" />
-                                    )}
-                                </button>
-                            ))}
+                        {/* Speed Lines Effect */}
+                        <div className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none mix-blend-screen">
+                            <SpeedVisualizer />
                         </div>
+
+                        {/* Gradient to blend seamlessly into the UI below */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/20 to-[#0a0a0c]" />
                     </div>
 
-                    {/* Content Area */}
-                    <div className="flex-1 relative bg-[#0c0c0e] flex flex-col">
+                    {/* Main Window - Connected to Video via flattened top-right corner */}
+                    <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-3xl rounded-tr-none shadow-2xl overflow-hidden flex flex-col md:flex-row h-[750px] ring-1 ring-white/5 relative z-20">
                         
-                        {/* OS Header */}
-                        <WindowHeader title={scenario.title} stageId={stages[activeStage].id} />
-
-                        {/* Stage View */}
-                        <div className="flex-1 relative overflow-hidden bg-black/20">
-                            {stages.map((stage, idx) => {
-                                const Component = stage.comp;
-                                return (
-                                    <div 
+                        {/* Sidebar Nav */}
+                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20">
+                            <div className="p-8 hidden md:block">
+                                <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Workflow Stages</div>
+                                <div className="h-0.5 w-8 bg-[#69B7B2]" />
+                            </div>
+                            
+                            <div className="flex-1 p-4 space-x-2 md:space-x-0 md:space-y-2 flex md:block overflow-x-auto custom-scrollbar">
+                                {stages.map((stage, idx) => (
+                                    <button
                                         key={idx}
+                                        onClick={() => { setActiveStage(idx); setIsPaused(true); }}
                                         className={cn(
-                                            "absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
+                                            "flex-1 md:w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 relative overflow-hidden group/btn min-w-[140px]",
                                             activeStage === idx 
-                                                ? "opacity-100 z-10 translate-y-0 scale-100 filter-none" 
-                                                : "opacity-0 z-0 translate-y-4 scale-95 blur-sm pointer-events-none"
+                                                ? "bg-[#151517] text-white shadow-lg border border-white/10" 
+                                                : "text-white/30 hover:text-white hover:bg-white/5 border border-transparent"
                                         )}
                                     >
-                                        <Component active={activeStage === idx} scenario={scenario} />
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Bottom Navigation Control Bar */}
-                        <div className="h-16 border-t border-white/5 bg-[#0a0a0c] flex items-center justify-between px-8 z-20">
-                            <button onClick={prevStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
-                                <ArrowLeft size={14} className="group-hover/nav:-translate-x-1 transition-transform" />
-                                Previous Step
-                            </button>
-                            
-                            <div className="flex gap-2">
-                                {stages.map((_, i) => (
-                                    <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === activeStage ? 'bg-[#69B7B2] w-4' : 'bg-white/10'}`} />
+                                        <div className={`relative z-10 transition-transform duration-300 ${activeStage === idx ? 'scale-110' : ''}`}>
+                                            <stage.icon size={18} className={activeStage === idx ? "text-[#69B7B2]" : "text-current opacity-50 group-hover/btn:opacity-100"} />
+                                        </div>
+                                        <span className="relative z-10">{stage.label}</span>
+                                        
+                                        {/* Active Indicator Line */}
+                                        {activeStage === idx && (
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#69B7B2]" />
+                                        )}
+                                    </button>
                                 ))}
                             </div>
-
-                            <button onClick={nextStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
-                                Next Step
-                                <ArrowRight size={14} className="group-hover/nav:translate-x-1 transition-transform" />
-                            </button>
                         </div>
-                    </div>
 
+                        {/* Content Area */}
+                        <div className="flex-1 relative bg-[#0c0c0e] flex flex-col">
+                            
+                            {/* OS Header */}
+                            <WindowHeader title={scenario.title} stageId={stages[activeStage].id} />
+
+                            {/* Stage View */}
+                            <div className="flex-1 relative overflow-hidden bg-black/20">
+                                {stages.map((stage, idx) => {
+                                    const Component = stage.comp;
+                                    return (
+                                        <div 
+                                            key={idx}
+                                            className={cn(
+                                                "absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
+                                                activeStage === idx 
+                                                    ? "opacity-100 z-10 translate-y-0 scale-100 filter-none" 
+                                                    : "opacity-0 z-0 translate-y-4 scale-95 blur-sm pointer-events-none"
+                                            )}
+                                        >
+                                            <Component active={activeStage === idx} scenario={scenario} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Bottom Navigation Control Bar */}
+                            <div className="h-16 border-t border-white/5 bg-[#0a0a0c] flex items-center justify-between px-8 z-20">
+                                <button onClick={prevStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
+                                    <ArrowLeft size={14} className="group-hover/nav:-translate-x-1 transition-transform" />
+                                    Previous Step
+                                </button>
+                                
+                                <div className="flex gap-2">
+                                    {stages.map((_, i) => (
+                                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === activeStage ? 'bg-[#69B7B2] w-4' : 'bg-white/10'}`} />
+                                    ))}
+                                </div>
+
+                                <button onClick={nextStage} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors group/nav">
+                                    Next Step
+                                    <ArrowRight size={14} className="group-hover/nav:translate-x-1 transition-transform" />
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
 
             </div>
