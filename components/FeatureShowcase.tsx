@@ -65,7 +65,6 @@ const WindowHeader = ({ title, icon: Icon }: any) => (
 
 const GitoAgent = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [isPlaying, setIsPlaying] = useState(true);
     const [quote, setQuote] = useState("");
     const [showQuote, setShowQuote] = useState(false);
 
@@ -80,53 +79,34 @@ const GitoAgent = () => {
         "Git push --force... and pray."
     ];
 
-    const togglePlay = (e: React.MouseEvent) => {
+    const saySomething = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (videoRef.current) {
-            if (isPlaying) videoRef.current.pause();
-            else videoRef.current.play();
-            setIsPlaying(!isPlaying);
-        }
-    };
-
-    const saySomething = () => {
         setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
         setShowQuote(true);
         setTimeout(() => setShowQuote(false), 3000);
     };
 
     return (
-        <div className="mt-auto p-4 border-t border-white/5 relative group">
+        <div className="mt-auto p-4 border-t border-white/5 relative flex justify-end">
              {/* Quote Bubble */}
-             <div className={`absolute bottom-full mb-4 left-4 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-bl-none shadow-xl transition-all duration-300 transform origin-bottom-left ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+             <div className={`absolute bottom-full mb-2 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-none shadow-xl transition-all duration-300 transform origin-bottom-right z-50 w-48 text-right ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                 "{quote}"
              </div>
 
-            <div className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-white/5 transition-colors" onClick={saySomething}>
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 bg-black flex-shrink-0" onClick={togglePlay}>
-                     <video
-                        ref={videoRef}
-                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover transform scale-110"
-                    />
-                    {!isPlaying && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <PlayCircle size={16} className="text-white" />
-                        </div>
-                    )}
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full z-10" />
-                </div>
-                <div>
-                    <div className="text-[10px] font-bold text-white flex items-center gap-2">
-                        Gito AI
-                        <span className="px-1.5 py-0.5 rounded bg-[#69B7B2]/20 text-[#69B7B2] text-[8px]">BOT</span>
-                    </div>
-                    <div className="text-[9px] text-white/40">Click me for wisdom</div>
-                </div>
+            <div 
+                className="relative w-14 h-14 rounded-full overflow-hidden bg-black cursor-pointer hover:scale-105 transition-transform shadow-lg" 
+                onClick={saySomething}
+            >
+                 <video
+                    ref={videoRef}
+                    src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover transform scale-110"
+                />
+                <div className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-black rounded-full z-10" />
             </div>
         </div>
     );
