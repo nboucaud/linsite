@@ -15,7 +15,7 @@ import { SectionVisualizer } from './SectionVisualizer';
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
-// --- SPEED VISUALIZER (Effect at bottom of video) ---
+// --- SPEED VISUALIZER (Treadmill Effect) ---
 const SpeedVisualizer = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -25,110 +25,101 @@ const SpeedVisualizer = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let width = canvas.width = canvas.parentElement?.clientWidth || 0;
-        let height = canvas.height = canvas.parentElement?.clientHeight || 0;
-        
-        const count = 180;
-        const particles: any[] = [];
-
-        // 3D Perspective Settings
-        const fl = 300; // Focal length
-        
-        const resetParticle = (p: any) => {
-            // Distribute particles in 3D space
-            // Favor the "floor" (positive Y relative to horizon) for the condensed bottom effect
-            const isFloor = Math.random() > 0.3; 
-            const yBase = isFloor ? Math.random() * 800 : (Math.random() - 0.5) * 800;
-            
-            p.x = (Math.random() - 0.5) * width * 4; 
-            p.y = yBase;
-            p.z = 200 + Math.random() * 1500;
-            
-            // Velocity: Moving towards camera (Z decreases) and slightly left (X decreases)
-            p.vz = 8 + Math.random() * 15;
-            p.vx = 4 + Math.random() * 6; // Left drift
-            p.size = 1 + Math.random() * 2;
-            
-            return p;
-        };
-
-        for(let i=0; i<count; i++) {
-            particles.push(resetParticle({}));
-        }
-
         let frameId: number;
+        
         const render = () => {
-            ctx.clearRect(0, 0, width, height);
+            // Use client dimensions directly to handle resizing gracefully
+            const width = canvas.parentElement?.clientWidth || 300;
+            const height = canvas.parentElement?.clientHeight || 200;
             
-            // Vanishing Point: Slightly right and up to simulate "Head On + Left Drift"
-            const vpX = width * 0.7; 
-            const vpY = height * 0.4; 
+            // Match canvas buffer to display size
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+            }
 
-            particles.forEach(p => {
-                // Move
-                p.z -= p.vz;
-                p.x -= p.vx;
+            const t = performance.now() / 1000;
 
-                // Reset if behind camera or out of bounds
-                if (p.z <= 10 || p.x < -width * 2) {
-                    resetParticle(p);
-                    p.z = 1500;
-                }
+            ctx.clearRect(0, 0, width, height);
 
-                // Project
-                const scale = fl / (fl + p.z);
-                const px = vpX + p.x * scale;
-                const py = vpY + p.y * scale;
+            // --- TREADMILL EFFECT ---
+            // Render only in the bottom 30% of the container
+            const floorHeightRatio = 0.3;
+            const floorH = height * floorHeightRatio;
+            const horizonY = height - floorH;
+            const cx = width / 2;
 
-                // Density/Opacity Logic
-                const isBottom = py > height * 0.85; // Bottom 15%
+            // 1. Fog/Fade Gradient at Horizon
+            // Creates a smooth transition from the video content to the grid floor
+            const grad = ctx.createLinearGradient(0, horizonY, 0, height);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.2, 'rgba(105, 183, 178, 0.05)');
+            grad.addColorStop(1, 'rgba(105, 183, 178, 0.3)'); // Teal tint at bottom
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, horizonY, width, floorH);
+
+            // 2. Vertical Perspective Lines (The Rails)
+            // Fan out from a vanishing point near the horizon
+            ctx.strokeStyle = 'rgba(105, 183, 178, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const numVerts = 12;
+            const baseSpread = width * 3.5; // Fan width at bottom
+            
+            for (let i = -numVerts; i <= numVerts; i++) {
+                // Linear interpolation from center (horizon) to wide spread (bottom)
+                const factor = i / numVerts; 
+                const bottomX = cx + factor * baseSpread;
                 
-                // Base opacity: Much lower for ambient particles, higher for bottom floor
-                let alpha = isBottom ? 0.8 : 0.15;
+                ctx.moveTo(cx + (i * 15), horizonY); // Slight width at horizon for "tunnel" look
+                ctx.lineTo(bottomX, height);
+            }
+            ctx.stroke();
+
+            // 3. Horizontal Moving Lines (The Treads)
+            // Lines move from horizon downwards, spacing increases exponentially to simulate 3D speed
+            ctx.strokeStyle = '#69B7B2';
+            
+            const speed = 0.8; // Cycles per second
+            const offset = (t * speed) % 1;
+            
+            const numHoriz = 8;
+            for(let i=0; i<numHoriz; i++) {
+                // Calculate linear progress (0 at horizon, 1 at bottom) with loop offset
+                let p = (i / numHoriz) + offset;
+                if (p > 1) p -= 1; // Wrap around
                 
-                // Fade in/out based on Z depth
-                alpha *= Math.min(1, (1500 - p.z) / 500); 
-                // Fade out if it gets too close to edges
-                if (px < 0 || px > width || py < 0 || py > height) alpha *= 0.5;
+                // Exponential mapping for perspective depth (p^3)
+                // This makes lines cluster at the horizon and speed up as they get closer
+                
+                // Skip lines too close to horizon to prevent flickering artifacts
+                if (p < 0.05) continue;
 
-                if (alpha > 0.01) {
-                    // Draw Streak (Motion Blur)
-                    const pastScale = fl / (fl + (p.z + p.vz * 3));
-                    const pastPx = vpX + (p.x + p.vx * 3) * pastScale;
-                    const pastPy = vpY + p.y * pastScale;
-
-                    const grad = ctx.createLinearGradient(px, py, pastPx, pastPy);
-                    grad.addColorStop(0, `rgba(105, 183, 178, ${alpha})`);
-                    grad.addColorStop(1, `rgba(105, 183, 178, 0)`);
-
-                    ctx.strokeStyle = grad;
-                    ctx.lineWidth = p.size * scale * (isBottom ? 1.5 : 0.8);
-                    ctx.lineCap = 'round';
-                    ctx.beginPath();
-                    ctx.moveTo(px, py);
-                    ctx.lineTo(pastPx, pastPy);
-                    ctx.stroke();
-                }
-            });
+                const yOffset = Math.pow(p, 3) * floorH;
+                const yPos = horizonY + yOffset;
+                
+                // Opacity fades in as lines approach the camera
+                const alpha = Math.pow(p, 3); 
+                
+                ctx.globalAlpha = alpha;
+                ctx.lineWidth = 1 + p * 1.5; // Lines get thicker closer to camera
+                
+                ctx.beginPath();
+                ctx.moveTo(0, yPos);
+                ctx.lineTo(width, yPos);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
 
             frameId = requestAnimationFrame(render);
         };
         render();
 
-        const resize = () => {
-            if (canvas.parentElement) {
-                width = canvas.width = canvas.parentElement.clientWidth;
-                height = canvas.height = canvas.parentElement.clientHeight;
-            }
-        };
-        window.addEventListener('resize', resize);
-        return () => {
-            cancelAnimationFrame(frameId);
-            window.removeEventListener('resize', resize);
-        };
+        return () => cancelAnimationFrame(frameId);
     }, []);
 
-    return <canvas ref={canvasRef} className="w-full h-full" />;
+    return <canvas ref={canvasRef} className="w-full h-full absolute inset-0 pointer-events-none mix-blend-screen" />;
 };
 
 // --- SCENARIO DATA ---
