@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     Activity, FileText, CheckCircle2, 
     Database, Search, Zap, Network, 
@@ -12,7 +12,8 @@ import {
     Cloud, Box, ChevronRight,
     MousePointer2, Square,
     AlertCircle, Info, RefreshCw, Layers,
-    MessageSquare, ShoppingBag, Star, Users, CreditCard, Tag
+    MessageSquare, ShoppingBag, Star, Users, CreditCard, Tag,
+    Trash2, Play, Check
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -61,15 +62,12 @@ const WindowHeader = ({ title, icon: Icon }: any) => (
             </div>
         </div>
         
-        {/* Scenario Badge */}
-        <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/20 font-mono">
-            <span>Active Context:</span>
-            <span className="text-[#69B7B2]">Main St. Roasters // Retail</span>
-        </div>
+        {/* Context Badge Removed as requested */}
     </div>
 );
 
-const GitoAgent = () => {
+// Memoized to prevent re-renders (video stutter) when parent state changes
+const GitoAgent = React.memo(() => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [quote, setQuote] = useState("");
     const [showQuote, setShowQuote] = useState(false);
@@ -161,7 +159,10 @@ const GitoAgent = () => {
     return (
         <div className="mt-auto p-6 border-t border-white/5 relative flex justify-end">
              {/* Quote Bubble */}
-             <div className={`absolute bottom-full mb-4 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-none shadow-xl transition-all duration-300 transform origin-bottom-right z-50 w-48 text-right ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+             <div 
+                onClick={(e) => { e.stopPropagation(); setShowQuote(false); }}
+                className={`absolute bottom-full mb-4 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-none shadow-xl transition-all duration-300 transform origin-bottom-right z-50 w-48 text-right cursor-pointer hover:bg-gray-100 ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+            >
                 "{quote}"
              </div>
 
@@ -176,13 +177,13 @@ const GitoAgent = () => {
                     loop
                     muted
                     playsInline
+                    preload="auto"
                     className="w-full h-full object-cover transform scale-110"
                 />
-                {/* Notification light removed as requested */}
             </div>
         </div>
     );
-};
+});
 
 // --- 1. LOCATE (Data Sources) ---
 const LocateApp = ({ active }: { active: boolean }) => {
@@ -546,93 +547,149 @@ const ContextApp = ({ active }: { active: boolean }) => {
     );
 };
 
-// --- 4. CAPTURE (Visual Logic) ---
+// --- 4. CAPTURE (Interactive Logic Builder) ---
 const CaptureApp = ({ active }: { active: boolean }) => {
     const [showIntro, setShowIntro] = useState(true);
+    // State for the interactive builder
+    const [pipeline, setPipeline] = useState([
+        { id: 1, type: 'trigger', label: "New Review Detected", icon: Star, color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' }
+    ]);
+    const [isRunning, setIsRunning] = useState(false);
+    const [packetPos, setPacketPos] = useState(0); // 0 to 100% of pipeline length
+
     useEffect(() => { if(active) setShowIntro(true); }, [active]);
 
-    // Dynamic node positioning for SVG lines
-    const [nodes, setNodes] = useState([
-        { id: 1, type: 'trigger', label: "Review < 3 Stars", icon: Star, x: 50, y: 15 },
-        { id: 2, type: 'logic', label: "Contains 'Rude'?", icon: GitMerge, x: 50, y: 50 },
-        { id: 3, type: 'action', label: "Alert Manager", icon: Shield, x: 25, y: 85, color: 'text-red-400' },
-        { id: 4, type: 'action', label: "Draft Apology", icon: Mail, x: 75, y: 85, color: 'text-green-400' },
-    ]);
+    // Available blocks to add
+    const tools = [
+        { type: 'logic', label: "Filter: < 3 Stars", icon: GitMerge, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+        { type: 'ai', label: "AI: Summarize Tone", icon: Bot, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
+        { type: 'action', label: "Slack: Alert Manager", icon: MessageSquare, color: 'text-white', bg: 'bg-white/10', border: 'border-white/20' },
+        { type: 'action', label: "Email: Draft Reply", icon: Mail, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20' }
+    ];
+
+    const addBlock = (tool: any) => {
+        if (pipeline.length >= 6) return; // Limit length
+        const newNode = { ...tool, id: Date.now() };
+        setPipeline(prev => [...prev, newNode]);
+    };
+
+    const removeBlock = (id: number) => {
+        setPipeline(prev => prev.filter(n => n.id !== id));
+    };
+
+    const runTest = () => {
+        if (isRunning) return;
+        setIsRunning(true);
+        setPacketPos(0);
+        
+        // Simple animation loop for the "data packet"
+        let p = 0;
+        const interval = setInterval(() => {
+            p += 2;
+            setPacketPos(p);
+            if (p >= 100) {
+                clearInterval(interval);
+                setIsRunning(false);
+                setPacketPos(0);
+            }
+        }, 30);
+    };
 
     return (
-        <div className="w-full h-full bg-[#111] relative overflow-hidden font-sans">
+        <div className="w-full h-full bg-[#111] relative overflow-hidden font-sans flex flex-col md:flex-row">
             {showIntro && (
                 <GuideOverlay 
-                    title="Simple Automation"
-                    description="Set up rules to handle busy work. If a customer leaves a bad review, alert the manager and draft an email instantly."
+                    title="Logic Builder"
+                    description="Drag and drop blocks to build automation. Filter bad reviews, analyze sentiment with AI, and alert your team automatically."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
 
-            {/* Dot Grid Background */}
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-
-            {/* Toolbar */}
-            <div className="absolute top-4 left-4 z-10 flex gap-2">
-                <div className="bg-[#1a1a1c] border border-white/10 rounded-lg p-1 flex gap-1 shadow-lg">
-                    <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><MousePointer2 size={14} /></button>
-                    <button className="p-1.5 bg-white/10 rounded text-white"><GitMerge size={14} /></button>
-                    <button className="p-1.5 hover:bg-white/10 rounded text-white/50 hover:text-white"><Square size={14} /></button>
+            {/* SIDEBAR TOOLS */}
+            <div className="w-full md:w-64 bg-[#0c0c0e] border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col gap-4 z-20">
+                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Toolbox</div>
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+                    {tools.map((tool, i) => (
+                        <button 
+                            key={i}
+                            onClick={() => addBlock(tool)}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-[#151517] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all text-left group"
+                        >
+                            <div className={`p-1.5 rounded-lg ${tool.bg} ${tool.color}`}>
+                                <tool.icon size={14} />
+                            </div>
+                            <span className="text-xs font-medium text-white/70 group-hover:text-white">{tool.label}</span>
+                            <Plus size={12} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-white/50" />
+                        </button>
+                    ))}
+                </div>
+                
+                <div className="mt-auto pt-4 border-t border-white/5">
+                    <button 
+                        onClick={runTest}
+                        disabled={isRunning}
+                        className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest transition-all ${isRunning ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-white text-black hover:bg-white/90'}`}
+                    >
+                        {isRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />}
+                        {isRunning ? "Running..." : "Test Flow"}
+                    </button>
                 </div>
             </div>
 
-            <div className="absolute inset-0">
-                <svg className="w-full h-full pointer-events-none">
-                    {/* Trigger -> Logic */}
-                    <path 
-                        d="M 50% 25% L 50% 40%" 
-                        stroke="#333" strokeWidth="2" 
-                    />
-                    <path 
-                        d="M 50% 25% L 50% 40%" 
-                        stroke="#69B7B2" strokeWidth="2" strokeDasharray="4 4" 
-                        className="animate-[dash_1s_linear_infinite]" 
-                    />
-
-                    {/* Logic -> Left */}
-                    <path 
-                        d="M 50% 60% C 50% 70%, 25% 70%, 25% 75%" 
-                        stroke="#333" strokeWidth="2" fill="none"
-                    />
-                    <path 
-                        d="M 50% 60% C 50% 70%, 25% 70%, 25% 75%" 
-                        stroke="#ef4444" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} 
-                        className="transition-all duration-1000 ease-out" fill="none"
-                    />
-
-                    {/* Logic -> Right */}
-                    <path 
-                        d="M 50% 60% C 50% 70%, 75% 70%, 75% 75%" 
-                        stroke="#333" strokeWidth="2" fill="none"
-                    />
-                    <path 
-                        d="M 50% 60% C 50% 70%, 75% 70%, 75% 75%" 
-                        stroke="#22c55e" strokeWidth="2" strokeDasharray="100" strokeDashoffset={active ? "0" : "100"} 
-                        className="transition-all duration-1000 ease-out delay-500" fill="none"
-                    />
-                </svg>
-
-                {nodes.map(node => (
+            {/* MAIN CANVAS */}
+            <div className="flex-1 relative bg-[radial-gradient(#222_1px,transparent_1px)] [background-size:20px_20px] flex items-center justify-center p-8 overflow-y-auto custom-scrollbar">
+                
+                {/* Connecting Line Background */}
+                <div className="absolute left-1/2 top-8 bottom-8 w-0.5 bg-white/10 -translate-x-1/2" />
+                
+                {/* Active Data Packet */}
+                {isRunning && (
                     <div 
-                        key={node.id}
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl hover:scale-105 transition-transform cursor-pointer group"
-                        style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                    >
-                        <div className={`p-2 rounded-lg bg-white/5 ${node.color || 'text-white'}`}>
-                            <node.icon size={16} />
+                        className="absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-green-400 rounded-full shadow-[0_0_15px_#4ade80] z-20 transition-all ease-linear"
+                        style={{ top: `${10 + (packetPos * 0.8)}%` }} // Approximate positioning
+                    />
+                )}
+
+                <div className="flex flex-col gap-8 w-full max-w-sm relative z-10">
+                    {pipeline.map((node, index) => (
+                        <div 
+                            key={node.id}
+                            className="bg-[#151517] border border-white/10 p-4 rounded-xl shadow-xl flex items-center justify-between group animate-in slide-in-from-bottom-2 duration-300 relative"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-lg ${node.bg} ${node.color} border ${node.border}`}>
+                                    <node.icon size={18} />
+                                </div>
+                                <div>
+                                    <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-0.5">Step {index + 1}</div>
+                                    <div className="text-sm font-bold text-white">{node.label}</div>
+                                </div>
+                            </div>
+                            
+                            {index !== 0 && (
+                                <button 
+                                    onClick={() => removeBlock(node.id)}
+                                    className="p-2 text-white/20 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
+
+                            {/* Status Indicator during run */}
+                            {isRunning && packetPos > (index * (100 / pipeline.length)) && (
+                                <div className="absolute -right-3 top-1/2 -translate-y-1/2 bg-green-500 text-black p-1 rounded-full animate-in zoom-in duration-300">
+                                    <Check size={10} strokeWidth={4} />
+                                </div>
+                            )}
                         </div>
-                        <div className="text-center">
-                            <div className="text-[9px] text-white/40 uppercase font-bold tracking-wider">{node.type}</div>
-                            <div className="text-xs font-bold text-white">{node.label}</div>
-                        </div>
-                        {node.type === 'trigger' && <div className="absolute -right-1 -top-1 w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+                    ))}
+
+                    {/* Drop Zone Hint */}
+                    <div className="border-2 border-dashed border-white/5 rounded-xl p-6 flex flex-col items-center justify-center text-white/20 gap-2">
+                        <Plus size={24} />
+                        <span className="text-xs font-mono uppercase tracking-widest">Add Next Step</span>
                     </div>
-                ))}
+                </div>
             </div>
         </div>
     );

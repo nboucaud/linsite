@@ -37,6 +37,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             // Identity Mode State
             cards: [],
             spawnTimer: 0,
+            // Logic/Strategy Mode State
+            packets: [],
             initializedMode: null
         };
 
@@ -69,6 +71,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.task = null;
             state.boxes = [];
             state.stack = [];
+            state.packets = [];
             state.agent = { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 };
             
             // Identity specific
@@ -108,19 +111,23 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 }
             }
             else if (mode === 'logic') {
-                state.nodes = [
-                    {x: w*0.2, y: h*0.2}, {x: w*0.8, y: h*0.2},
-                    {x: w*0.5, y: h*0.5},
-                    {x: w*0.2, y: h*0.8}, {x: w*0.8, y: h*0.8}
-                ];
-                for(let i=0; i<8; i++) {
-                    state.particles.push({
-                        from: Math.floor(Math.random()*5),
-                        to: Math.floor(Math.random()*5),
-                        prog: Math.random(),
-                        speed: 0.01 + Math.random() * 0.02
-                    });
-                }
+                // STRATEGY BUILDER: Concrete Flowchart Layout
+                // Layer 1: Inputs
+                state.nodes.push({ id: 0, x: w * 0.15, y: h * 0.3, label: "DEMAND SPIKE", type: 'trigger', active: 0 });
+                state.nodes.push({ id: 1, x: w * 0.15, y: h * 0.7, label: "INVENTORY LOW", type: 'trigger', active: 0 });
+                
+                // Layer 2: Logic/Process
+                state.nodes.push({ id: 2, x: w * 0.45, y: h * 0.5, label: "ALLOCATION LOGIC", type: 'process', active: 0 });
+                
+                // Layer 3: Decision/Action
+                state.nodes.push({ id: 3, x: w * 0.75, y: h * 0.25, label: "PRIORITY: RETAIL", type: 'action', active: 0 });
+                state.nodes.push({ id: 4, x: w * 0.75, y: h * 0.75, label: "LIMIT WHOLESALE", type: 'action', active: 0 });
+
+                // Edges
+                state.links.push({ from: 0, to: 2 });
+                state.links.push({ from: 1, to: 2 });
+                state.links.push({ from: 2, to: 3 });
+                state.links.push({ from: 2, to: 4 });
             }
             else if (mode === 'core') {
                 // NETWORK INITIALIZATION
@@ -249,26 +256,127 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.fillRect(0, scanY, w, 2);
             }
             else if (mode === 'logic') {
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                state.nodes.forEach((n: any) => {
-                    ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI*2); ctx.fill();
-                });
-                state.particles.forEach((p: any) => {
-                    p.prog += p.speed;
-                    if (p.prog >= 1) {
-                        p.prog = 0;
-                        p.from = Math.floor(Math.random() * state.nodes.length);
-                        p.to = Math.floor(Math.random() * state.nodes.length);
-                    }
-                    const n1 = state.nodes[p.from];
-                    const n2 = state.nodes[p.to];
-                    const x = n1.x + (n2.x - n1.x) * p.prog;
-                    const y = n1.y + (n2.y - n1.y) * p.prog;
+                // --- STRATEGY BUILDER ---
+                
+                // Spawn Packets
+                if (Math.random() > 0.98) {
+                    const startNodes = state.nodes.filter((n: any) => n.type === 'trigger');
+                    const start = startNodes[Math.floor(Math.random() * startNodes.length)];
+                    state.nodes.forEach((n: any) => { if(n.id === start.id) n.active = 1.0; });
                     
+                    // Find links from this start
+                    const links = state.links.filter((l: any) => l.from === start.id);
+                    links.forEach((l: any) => {
+                        state.packets.push({
+                            fromId: l.from, toId: l.to, progress: 0, speed: 0.02 + Math.random() * 0.01
+                        });
+                    });
+                }
+
+                // Draw Links
+                ctx.lineWidth = 2;
+                state.links.forEach((l: any) => {
+                    const n1 = state.nodes.find((n: any) => n.id === l.from);
+                    const n2 = state.nodes.find((n: any) => n.id === l.to);
+                    
+                    const grad = ctx.createLinearGradient(n1.x, n1.y, n2.x, n2.y);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                    grad.addColorStop(1, 'rgba(255,255,255,0.05)');
+                    ctx.strokeStyle = grad;
+                    
+                    // Elbow connector
+                    ctx.beginPath();
+                    ctx.moveTo(n1.x, n1.y);
+                    const midX = (n1.x + n2.x) / 2;
+                    ctx.bezierCurveTo(midX, n1.y, midX, n2.y, n2.x, n2.y);
+                    ctx.stroke();
+                });
+
+                // Draw Packets
+                for (let i = state.packets.length - 1; i >= 0; i--) {
+                    const p = state.packets[i];
+                    p.progress += p.speed;
+                    
+                    const n1 = state.nodes.find((n: any) => n.id === p.fromId);
+                    const n2 = state.nodes.find((n: any) => n.id === p.toId);
+                    
+                    // Bezier calc matching link
+                    const midX = (n1.x + n2.x) / 2;
+                    const t = p.progress;
+                    const invT = 1 - t;
+                    
+                    // Cubic Bezier formula: (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
+                    // Control points: P0=(n1.x, n1.y), P1=(midX, n1.y), P2=(midX, n2.y), P3=(n2.x, n2.y)
+                    
+                    const x = invT*invT*invT*n1.x + 3*invT*invT*t*midX + 3*invT*t*t*midX + t*t*t*n2.x;
+                    const y = invT*invT*invT*n1.y + 3*invT*invT*t*n1.y + 3*invT*t*t*n2.y + t*t*t*n2.y;
+
                     ctx.fillStyle = color;
-                    ctx.shadowBlur = 5; ctx.shadowColor = color;
+                    ctx.shadowBlur = 10; ctx.shadowColor = color;
                     ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
+
+                    if (p.progress >= 1) {
+                        // Trigger destination node
+                        n2.active = 1.0;
+                        
+                        // Propagate
+                        const nextLinks = state.links.filter((l: any) => l.from === n2.id);
+                        nextLinks.forEach((l: any) => {
+                            state.packets.push({ fromId: l.from, toId: l.to, progress: 0, speed: 0.02 });
+                        });
+                        
+                        state.packets.splice(i, 1);
+                    }
+                }
+
+                // Draw Nodes
+                state.nodes.forEach((n: any) => {
+                    const isActive = n.active > 0.01;
+                    if (n.active > 0) n.active *= 0.95;
+
+                    ctx.save();
+                    ctx.translate(n.x, n.y);
+                    
+                    // Node Shape
+                    if (n.type === 'trigger') {
+                        // Diamond
+                        ctx.fillStyle = isActive ? color : '#1a1a1c';
+                        ctx.strokeStyle = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
+                        ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(20, 0); ctx.lineTo(0, 20); ctx.lineTo(-20, 0); ctx.closePath();
+                    } else if (n.type === 'process') {
+                        // Rectangle
+                        ctx.fillStyle = isActive ? color : '#1a1a1c';
+                        ctx.strokeStyle = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
+                        ctx.beginPath(); ctx.roundRect(-40, -20, 80, 40, 4);
+                    } else {
+                        // Pill (Action)
+                        ctx.fillStyle = isActive ? color : '#1a1a1c';
+                        ctx.strokeStyle = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
+                        ctx.beginPath(); ctx.roundRect(-30, -15, 60, 30, 15);
+                    }
+                    
+                    ctx.globalAlpha = isActive ? 0.8 : 0.5;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Label
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '9px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // ctx.fillText(n.label, 0, 30); // Below node
+                    
+                    // Draw Label Box
+                    const textW = ctx.measureText(n.label).width;
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(-textW/2 - 4, 22, textW + 8, 14);
+                    ctx.fillStyle = isActive ? color : '#888';
+                    ctx.fillText(n.label, 0, 29);
+
+                    ctx.restore();
                 });
             }
             else if (mode === 'core') {
