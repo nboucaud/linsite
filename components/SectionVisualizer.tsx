@@ -373,7 +373,11 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 }
                 ctx.globalAlpha = 1;
 
-                // 7. Header UI (Progress Bar)
+                // 7. Header UI
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, w, 60);
+                
+                // Progress Segmented
                 const totalCards = state.feedCards.length;
                 const segW = (w - 40 - (totalCards-1)*5) / totalCards;
                 for(let i=0; i<totalCards; i++) {
@@ -382,36 +386,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 }
 
                 ctx.restore(); // End Translate
-
-                // --- NEW: Suspended Pill Cutout (Dynamic Island) ---
-                ctx.save();
-                const pillW = 100;
-                const pillH = 30;
-                const pillY = h * 0.05; 
-                const pillX = w/2 - pillW/2;
-                
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                ctx.shadowBlur = 15;
-                ctx.shadowOffsetY = 5;
-
-                ctx.fillStyle = '#000';
-                ctx.beginPath();
-                ctx.roundRect(pillX, pillY, pillW, pillH, 50);
-                ctx.fill();
-                ctx.shadowBlur = 0; 
-
-                // FaceID / Camera sensor details
-                ctx.fillStyle = '#1a1a1a';
-                ctx.beginPath();
-                ctx.arc(pillX + pillW - 25, pillY + pillH/2, 8, 0, Math.PI*2);
-                ctx.fill();
-                
-                ctx.fillStyle = '#080808';
-                ctx.beginPath();
-                ctx.arc(pillX + pillW - 25, pillY + pillH/2, 3, 0, Math.PI*2);
-                ctx.fill();
-                
-                ctx.restore();
 
                 // 8. Simulated Cursor Overlay
                 if (state.feedState !== 'swiping') {
