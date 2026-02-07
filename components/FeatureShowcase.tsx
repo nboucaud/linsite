@@ -12,7 +12,7 @@ import {
     Cloud, Box, ChevronRight,
     MousePointer2, Square,
     AlertCircle, Info, RefreshCw, Layers,
-    MessageSquare
+    MessageSquare, ShoppingBag, Star, Users, CreditCard, Tag
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -60,6 +60,12 @@ const WindowHeader = ({ title, icon: Icon }: any) => (
                 <span>{title}</span>
             </div>
         </div>
+        
+        {/* Scenario Badge */}
+        <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/20 font-mono">
+            <span>Active Context:</span>
+            <span className="text-[#69B7B2]">Main St. Roasters // Retail</span>
+        </div>
     </div>
 );
 
@@ -69,14 +75,14 @@ const GitoAgent = () => {
     const [showQuote, setShowQuote] = useState(false);
 
     const quotes = [
-        "Deploying on Friday? Bold move.",
-        "It works on my machine.",
-        "Have you checked the logs?",
-        "SELECT * FROM production... just kidding.",
-        "That's not a bug, it's an undocumented feature.",
-        "60% of the time, it works every time.",
-        "Caching is the root of all evil.",
-        "Git push --force... and pray."
+        "Cash flow looks healthy today.",
+        "I noticed a dip in Tuesday sales.",
+        "Connecting to Square and Shopify...",
+        "Inventory alert: Oat milk is low.",
+        "New 5-star review on Yelp!",
+        "Reconciling last week's invoices.",
+        "Drafting the weekend promo email.",
+        "Staff schedule is fully covered."
     ];
 
     const saySomething = (e: React.MouseEvent) => {
@@ -87,14 +93,14 @@ const GitoAgent = () => {
     };
 
     return (
-        <div className="mt-auto p-4 border-t border-white/5 relative flex justify-end">
+        <div className="mt-auto p-6 border-t border-white/5 relative flex justify-end">
              {/* Quote Bubble */}
-             <div className={`absolute bottom-full mb-2 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-none shadow-xl transition-all duration-300 transform origin-bottom-right z-50 w-48 text-right ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+             <div className={`absolute bottom-full mb-4 right-4 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-none shadow-xl transition-all duration-300 transform origin-bottom-right z-50 w-48 text-right ${showQuote ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                 "{quote}"
              </div>
 
             <div 
-                className="relative w-14 h-14 rounded-full overflow-hidden bg-black cursor-pointer hover:scale-105 transition-transform shadow-lg" 
+                className="relative w-16 h-16 rounded-full overflow-hidden bg-black cursor-pointer hover:scale-105 transition-transform shadow-2xl border-2 border-white/5" 
                 onClick={saySomething}
             >
                  <video
@@ -106,7 +112,7 @@ const GitoAgent = () => {
                     playsInline
                     className="w-full h-full object-cover transform scale-110"
                 />
-                <div className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-black rounded-full z-10" />
+                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-black rounded-full z-10" />
             </div>
         </div>
     );
@@ -141,12 +147,12 @@ const LocateApp = ({ active }: { active: boolean }) => {
     }, []);
 
     const integrations = [
-        { name: "Google Drive", type: "cloud", icon: Cloud, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", items: "14.2k" },
-        { name: "Dropbox", type: "cloud", icon: Box, color: "text-indigo-400", bg: "bg-indigo-400/10", border: "border-indigo-400/20", items: "8.1k" },
-        { name: "S3 Bucket", type: "server", icon: Server, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", items: "1.2TB" },
-        { name: "Salesforce", type: "db", icon: Database, color: "text-sky-400", bg: "bg-sky-400/10", border: "border-sky-400/20", items: "450k" },
-        { name: "SharePoint", type: "cloud", icon: Globe, color: "text-teal-400", bg: "bg-teal-400/10", border: "border-teal-400/20", items: "Syncing" },
-        { name: "Notion", type: "doc", icon: FileText, color: "text-white", bg: "bg-white/10", border: "border-white/20", items: "Docs" },
+        { name: "Square POS", type: "sales", icon: CreditCard, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", items: "Transx" },
+        { name: "QuickBooks", type: "finance", icon: FileText, color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20", items: "Ledger" },
+        { name: "Shopify", type: "sales", icon: ShoppingBag, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", items: "Orders" },
+        { name: "Instagram", type: "marketing", icon: Star, color: "text-pink-400", bg: "bg-pink-400/10", border: "border-pink-400/20", items: "Social" },
+        { name: "Google Drive", type: "ops", icon: HardDrive, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", items: "Docs" },
+        { name: "Slack", type: "ops", icon: MessageSquare, color: "text-white", bg: "bg-white/10", border: "border-white/20", items: "Team" },
     ];
 
     const filtered = selectedType === 'all' ? integrations : integrations.filter(i => i.type === selectedType);
@@ -155,8 +161,8 @@ const LocateApp = ({ active }: { active: boolean }) => {
         <div className="w-full h-full bg-[#0c0c0e] flex flex-col font-sans relative">
             {showIntro && (
                 <GuideOverlay 
-                    title="Unified Search"
-                    description="Stop digging through silos. Locate connects to every drive, server, and database you own, making it all searchable in one place."
+                    title="Unified Dashboard"
+                    description="Connect your POS, accounting, and social apps in one place. See the full picture of your business without opening ten different tabs."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -164,7 +170,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
             {/* Toolbar */}
             <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-[#151517]">
                 <div className="flex gap-2">
-                    {['all', 'cloud', 'db', 'server'].map(t => (
+                    {['all', 'sales', 'ops', 'finance'].map(t => (
                         <button 
                             key={t}
                             onClick={() => setSelectedType(t)}
@@ -178,7 +184,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
                     <div className="h-2 w-24 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-green-500 w-2/3 animate-pulse" />
                     </div>
-                    <span className="text-[10px] text-white/30 font-mono">SEARCHING...</span>
+                    <span className="text-[10px] text-white/30 font-mono">SYNCING...</span>
                 </div>
             </div>
 
@@ -214,7 +220,7 @@ const LocateApp = ({ active }: { active: boolean }) => {
                     {/* Add Button */}
                     <button className="border border-dashed border-white/10 hover:border-white/30 rounded-xl flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/60 transition-all min-h-[120px] bg-white/[0.01] hover:bg-white/[0.03]">
                         <Plus size={24} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Connect Source</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Connect App</span>
                     </button>
                 </div>
             </div>
@@ -236,10 +242,10 @@ const StreamApp = ({ active }: { active: boolean }) => {
         setShowIntro(true);
 
         const templates = [
-            { type: 'invoice', raw: "INV-2921 / Acme Corp / $4,200", status: "Parsing", icon: FileText, color: "text-amber-400" },
-            { type: 'email', raw: "Re: Project Alpha / High Priority", status: "Analyzing", icon: Mail, color: "text-blue-400" },
-            { type: 'alert', raw: "DB_TIMEOUT / Cluster-B / 500ms", status: "Flagged", icon: AlertCircle, color: "text-red-400" },
-            { type: 'chat', raw: "@team deployment scheduled", status: "Logged", icon: MessageSquare, color: "text-purple-400" }
+            { type: 'sale', raw: "POS: Oat Latte ($6.50)", status: "Paid", icon: CreditCard, color: "text-green-400" },
+            { type: 'review', raw: "Yelp: 5 Stars - 'Great foam!'", status: "New", icon: Star, color: "text-yellow-400" },
+            { type: 'stock', raw: "Alert: Coffee Beans < 10lbs", status: "Low", icon: Box, color: "text-red-400" },
+            { type: 'social', raw: "Instagram: @jenny mentioned you", status: "Tagged", icon: Users, color: "text-pink-400" }
         ];
 
         const interval = setInterval(() => {
@@ -250,7 +256,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
                 progress: 0
             };
             setEvents(prev => [newEvent, ...prev].slice(0, 7));
-        }, 1200);
+        }, 1500);
 
         return () => clearInterval(interval);
     }, [active]);
@@ -276,7 +282,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
             
             // Shift data
             dataPoints.shift();
-            const val = Math.max(0, Math.sin(t) * 10 + Math.random() * 20);
+            const val = Math.max(0, Math.sin(t) * 10 + Math.random() * 15);
             dataPoints.push(val);
 
             ctx.clearRect(0, 0, w, h);
@@ -304,8 +310,8 @@ const StreamApp = ({ active }: { active: boolean }) => {
         <div className="w-full h-full bg-[#0a0a0c] flex flex-col font-mono text-xs overflow-hidden relative">
             {showIntro && (
                 <GuideOverlay 
-                    title="Live Activity Feed"
-                    description="The pulse of your operation. Watch data flow in from every connected source, processed and categorized in real-time."
+                    title="Live Business Pulse"
+                    description="Watch your business happen in real-time. Sales, reviews, and inventory alerts streaming into one feed."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -314,7 +320,7 @@ const StreamApp = ({ active }: { active: boolean }) => {
             <div className="h-16 bg-[#08080a] border-b border-white/5 relative w-full">
                 <canvas ref={canvasRef} className="w-full h-full absolute inset-0" />
                 <div className="absolute top-2 right-4 text-[9px] text-green-400 font-bold uppercase tracking-widest flex items-center gap-2 bg-black/50 px-2 rounded">
-                    <Activity size={10} /> System Pulse
+                    <Activity size={10} /> Live Activity
                 </div>
             </div>
 
@@ -355,8 +361,8 @@ const ContextApp = ({ active }: { active: boolean }) => {
         <div className="w-full h-full bg-[#0f0f11] flex flex-col relative overflow-hidden font-sans">
             {showIntro && (
                 <GuideOverlay 
-                    title="Standardization"
-                    description="Making sense of the mess. We translate messy, disconnected documents into clean, standardized records your systems can actually use."
+                    title="Paper to Digital"
+                    description="Stop typing data manually. Upload an invoice from a supplier, and we'll extract the products, prices, and quantities automatically."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -364,12 +370,12 @@ const ContextApp = ({ active }: { active: boolean }) => {
             {/* Toolbar */}
             <div className="h-10 border-b border-white/5 bg-[#151517] flex items-center px-4 justify-between">
                 <div className="flex items-center gap-4 text-xs font-medium text-white/60">
-                    <span className="flex items-center gap-2"><FileText size={12}/> Invoice_9921.pdf</span>
+                    <span className="flex items-center gap-2"><FileText size={12}/> Invoice_Oct_BeanCo.pdf</span>
                     <ArrowRight size={12} className="text-white/20" />
-                    <span className="flex items-center gap-2 text-[#69B7B2]"><Database size={12}/> Standardized Record</span>
+                    <span className="flex items-center gap-2 text-[#69B7B2]"><Database size={12}/> Inventory Record</span>
                 </div>
                 <div className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[9px] font-bold uppercase rounded border border-green-500/20">
-                    Match: 98%
+                    Confidence: 99%
                 </div>
             </div>
 
@@ -378,24 +384,24 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 <div className="w-1/2 border-r border-white/5 p-6 bg-[#0c0c0e]">
                     <div className="mb-4 flex justify-between items-center">
                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Original Document</span>
-                        <span className="text-[9px] font-mono text-white/20">Raw Scan</span>
+                        <span className="text-[9px] font-mono text-white/20">OCR SCAN</span>
                     </div>
                     
                     {/* Simulated Document */}
                     <div className="bg-white p-6 rounded-sm shadow-xl text-black font-serif text-[10px] md:text-xs leading-relaxed opacity-90 relative overflow-hidden group scale-95 origin-top-left transition-transform hover:scale-100">
                         <div className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end">
                             <h2 className="font-bold text-lg">INVOICE</h2>
-                            <span className="text-gray-500">#9921</span>
+                            <span className="text-gray-500">#402</span>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div>
                                 <p className="font-bold text-gray-400 uppercase text-[8px]">Vendor</p>
                                 <p className="relative inline-block">
-                                    Acme Corp
+                                    Bean Supply Co.
                                     {active && <span className="absolute inset-0 bg-purple-500/20 border border-purple-500 rounded animate-pulse" />}
                                 </p>
-                                <p>123 Industrial Way</p>
+                                <p>Seattle, WA</p>
                             </div>
                             <div className="text-right">
                                 <p className="font-bold text-gray-400 uppercase text-[8px]">Date</p>
@@ -406,13 +412,14 @@ const ContextApp = ({ active }: { active: boolean }) => {
                             </div>
                         </div>
 
-                        <div className="text-right border-t border-gray-300 pt-2">
-                            <span className="font-bold mr-4">Total:</span>
+                        <div className="text-left border-t border-gray-300 pt-2">
+                            <p className="font-bold text-gray-400 uppercase text-[8px]">Items</p>
                             <span className="relative inline-block font-mono font-bold text-sm">
-                                $12,400.00
+                                50lb / Espresso Roast / Whole Bean
                                 {active && <span className="absolute inset-0 bg-amber-500/20 border border-amber-500 rounded animate-pulse delay-150" />}
                             </span>
                         </div>
+                        <div className="text-right mt-2 font-bold text-lg">$620.00</div>
                     </div>
                 </div>
 
@@ -431,7 +438,7 @@ const ContextApp = ({ active }: { active: boolean }) => {
                         <path d="M 320 120 C 380 120, 380 160, 480 160" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_2.5s_linear_infinite]" markerEnd="url(#arrow)" />
                         
                         {/* Amount Line */}
-                        <path d="M 350 220 C 400 220, 400 220, 480 220" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_3s_linear_infinite]" markerEnd="url(#arrow)" />
+                        <path d="M 200 230 C 300 230, 300 220, 480 220" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" className="animate-[dash_3s_linear_infinite]" markerEnd="url(#arrow)" />
                     </svg>
                 </div>
 
@@ -439,16 +446,16 @@ const ContextApp = ({ active }: { active: boolean }) => {
                 <div className="w-1/2 p-6 bg-[#08080a] flex flex-col">
                     <div className="mb-4 flex justify-between items-center">
                         <span className="text-[10px] font-bold text-[#69B7B2] uppercase tracking-widest">Clean Data</span>
-                        <span className="text-[9px] font-mono text-white/20">Structured</span>
+                        <span className="text-[9px] font-mono text-white/20">JSON</span>
                     </div>
                     
                     <div className="space-y-3 font-mono text-xs">
                         <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-purple-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
                             <div className="flex flex-col">
-                                <span className="text-purple-400 font-bold mb-1">entity_name</span>
+                                <span className="text-purple-400 font-bold mb-1">vendor_name</span>
                                 <span className="text-white/40 text-[8px] uppercase">String</span>
                             </div>
-                            <span className="text-white bg-black/40 px-2 py-1 rounded">"Acme Corp"</span>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">"Bean Co"</span>
                         </div>
 
                         <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-blue-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
@@ -456,15 +463,15 @@ const ContextApp = ({ active }: { active: boolean }) => {
                                 <span className="text-blue-400 font-bold mb-1">invoice_date</span>
                                 <span className="text-white/40 text-[8px] uppercase">Date</span>
                             </div>
-                            <span className="text-white bg-black/40 px-2 py-1 rounded">"2025-10-24"</span>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">2025-10-24</span>
                         </div>
 
                         <div className="p-3 rounded bg-[#1a1a1c] border-l-2 border-amber-500 flex items-center justify-between group hover:bg-white/5 transition-colors">
                             <div className="flex flex-col">
-                                <span className="text-amber-400 font-bold mb-1">total_amount</span>
-                                <span className="text-white/40 text-[8px] uppercase">Number</span>
+                                <span className="text-amber-400 font-bold mb-1">total_cost</span>
+                                <span className="text-white/40 text-[8px] uppercase">Float</span>
                             </div>
-                            <span className="text-white bg-black/40 px-2 py-1 rounded">12400.00</span>
+                            <span className="text-white bg-black/40 px-2 py-1 rounded">620.00</span>
                         </div>
                     </div>
                 </div>
@@ -480,18 +487,18 @@ const CaptureApp = ({ active }: { active: boolean }) => {
 
     // Dynamic node positioning for SVG lines
     const [nodes, setNodes] = useState([
-        { id: 1, type: 'trigger', label: "New Invoice", icon: Mail, x: 50, y: 15 },
-        { id: 2, type: 'logic', label: "Amount > $10k?", icon: GitMerge, x: 50, y: 50 },
-        { id: 3, type: 'action', label: "Flag Review", icon: Shield, x: 25, y: 85, color: 'text-red-400' },
-        { id: 4, type: 'action', label: "Auto-Pay", icon: CheckCircle2, x: 75, y: 85, color: 'text-green-400' },
+        { id: 1, type: 'trigger', label: "Review < 3 Stars", icon: Star, x: 50, y: 15 },
+        { id: 2, type: 'logic', label: "Contains 'Rude'?", icon: GitMerge, x: 50, y: 50 },
+        { id: 3, type: 'action', label: "Alert Manager", icon: Shield, x: 25, y: 85, color: 'text-red-400' },
+        { id: 4, type: 'action', label: "Draft Apology", icon: Mail, x: 75, y: 85, color: 'text-green-400' },
     ]);
 
     return (
         <div className="w-full h-full bg-[#111] relative overflow-hidden font-sans">
             {showIntro && (
                 <GuideOverlay 
-                    title="Automation Logic"
-                    description="Logic, visualized. Build complex automation rules without writing code. Trigger, Decide, Act."
+                    title="Simple Automation"
+                    description="Set up rules to handle busy work. If a customer leaves a bad review, alert the manager and draft an email instantly."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -576,15 +583,15 @@ const ControlApp = ({ active }: { active: boolean }) => {
     // Init Graph
     useEffect(() => {
         const initialNodes = [
-            { id: 0, x: 300, y: 300, r: 25, color: '#fff', label: "Central Entity" }, // Center
-            ...Array.from({length: 8}, (_, i) => ({
-                id: i+1,
-                x: 300 + Math.cos(i/8 * Math.PI*2) * 150,
-                y: 300 + Math.sin(i/8 * Math.PI*2) * 150,
-                r: 10,
-                color: i % 2 === 0 ? '#69B7B2' : '#f59e0b',
-                label: i % 2 === 0 ? 'Person' : 'Org'
-            }))
+            { id: 0, x: 300, y: 300, r: 30, color: '#fff', label: "Main St. Store" },
+            { id: 1, x: 0, y: 0, r: 15, color: '#69B7B2', label: "Product: Latte" },
+            { id: 2, x: 0, y: 0, r: 15, color: '#f59e0b', label: "Staff: Sarah" },
+            { id: 3, x: 0, y: 0, r: 15, color: '#69B7B2', label: "Cust: Mike" },
+            { id: 4, x: 0, y: 0, r: 15, color: '#8b5cf6', label: "Order #1024" },
+            { id: 5, x: 0, y: 0, r: 15, color: '#ef4444', label: "Review: 1 Star" },
+            { id: 6, x: 0, y: 0, r: 15, color: '#69B7B2', label: "Supplier: BeanCo" },
+            { id: 7, x: 0, y: 0, r: 15, color: '#fff', label: "Manager: Dave" },
+            { id: 8, x: 0, y: 0, r: 15, color: '#f59e0b', label: "Shift: Morning" }
         ];
         setNodes(initialNodes);
     }, []);
@@ -613,8 +620,8 @@ const ControlApp = ({ active }: { active: boolean }) => {
             nodes.forEach((n, i) => {
                 if (i === 0) { n.x = cx; n.y = cy; return; } // Pin center
                 const angle = (i / 8) * Math.PI * 2 + time * 0.1;
-                n.x = cx + Math.cos(angle) * 150 + Math.sin(time + i)*10;
-                n.y = cy + Math.sin(angle) * 150 + Math.cos(time + i)*10;
+                n.x = cx + Math.cos(angle) * 180 + Math.sin(time + i)*10;
+                n.y = cy + Math.sin(angle) * 180 + Math.cos(time + i)*10;
             });
 
             // Draw Connections
@@ -668,29 +675,29 @@ const ControlApp = ({ active }: { active: boolean }) => {
         <div className="w-full h-full bg-[#050505] relative overflow-hidden flex flex-col">
             {showIntro && (
                 <GuideOverlay 
-                    title="Knowledge Graph"
-                    description="See the big picture. Visualize the hidden relationships between your entities, risks, and assets in one interactive map."
+                    title="Business Map"
+                    description="See how everything connects. Which employee served the customer who left the bad review? It's all linked."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
 
             <div className="absolute top-4 left-4 z-20 bg-[#1a1a1c] border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 shadow-xl">
                 <Search size={14} className="text-white/40" />
-                <input type="text" placeholder="Search Entity..." className="bg-transparent border-none text-xs text-white focus:outline-none w-32" />
+                <input type="text" placeholder="Search..." className="bg-transparent border-none text-xs text-white focus:outline-none w-32" value="Order #1024" readOnly />
             </div>
             
             <canvas ref={canvasRef} className="w-full h-full block" />
             
             <div className="absolute bottom-6 right-6 bg-[#1a1a1c]/90 backdrop-blur border border-white/10 p-4 rounded-xl w-48 shadow-2xl">
-                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Graph Stats</div>
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Stats</div>
                 <div className="space-y-2">
                     <div className="flex justify-between text-[10px] text-white/60">
-                        <span>Nodes</span>
-                        <span className="text-white">842</span>
+                        <span>Connections</span>
+                        <span className="text-white">124</span>
                     </div>
                     <div className="flex justify-between text-[10px] text-white/60">
-                        <span>Edges</span>
-                        <span className="text-white">1,204</span>
+                        <span>Sentiment</span>
+                        <span className="text-red-400">Mixed</span>
                     </div>
                     <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mt-2">
                         <div className="h-full w-3/4 bg-[#69B7B2]" />
@@ -717,9 +724,9 @@ const BridgeApp = ({ active }: { active: boolean }) => {
         }
 
         const script = [
-            { type: 'user', content: 'Audit the Q3 vendor contracts for liability risks.', delay: 1000 },
-            { type: 'system', sources: ['SharePoint / Legal', 'Salesforce / Vendors', 'Email / Q3_Thread'], delay: 2000 },
-            { type: 'assistant', content: "I've analyzed 14 documents. Primary risk found in **Acme Corp** agreement: The indemnity clause (Section 4.2) conflicts with our standard policy regarding third-party damages.", delay: 4000 }
+            { type: 'user', content: 'Draft a promo email for the rainy weekend.', delay: 1000 },
+            { type: 'system', sources: ['Weather API', 'Inventory / Pastries', 'Customer List'], delay: 2000 },
+            { type: 'assistant', content: "Subject: Rainy Day Special! 🌧️\n\nIt's pouring out! Come warm up at Main St. Roasters. Show this email for **50% off any pastry** with the purchase of a large latte. Stay dry!", delay: 4000 }
         ];
 
         let timeouts: ReturnType<typeof setTimeout>[] = [];
@@ -757,8 +764,8 @@ const BridgeApp = ({ active }: { active: boolean }) => {
         <div className="flex flex-col h-full bg-[#0a0a0c] font-sans relative overflow-hidden">
             {showIntro && (
                 <GuideOverlay 
-                    title="AI Assistant"
-                    description="Just ask. A secure assistant that knows your business, protected by your permissions, ready to answer."
+                    title="Your Assistant"
+                    description="Ask questions about your business in plain English. 'How were sales yesterday?' or 'Draft an email'."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
@@ -813,17 +820,17 @@ const BridgeApp = ({ active }: { active: boolean }) => {
                                     <Bot size={16} />
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="bg-transparent text-white/80 text-sm leading-relaxed">
+                                    <div className="bg-transparent text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
                                         {msg.content.split('**').map((part: string, idx: number) => 
                                             idx % 2 === 1 ? <strong key={idx} className="text-white bg-white/10 px-1 rounded">{part}</strong> : part
                                         )}
                                     </div>
                                     <div className="flex gap-2">
                                         <button className="text-[10px] border border-white/10 px-2 py-1 rounded hover:bg-white/5 transition-colors text-white/40 hover:text-white flex items-center gap-1">
-                                            <FileText size={10} /> View Source
+                                            <FileText size={10} /> Edit Draft
                                         </button>
                                         <button className="text-[10px] border border-white/10 px-2 py-1 rounded hover:bg-white/5 transition-colors text-white/40 hover:text-white flex items-center gap-1">
-                                            <Share2 size={10} /> Share
+                                            <Share2 size={10} /> Send
                                         </button>
                                     </div>
                                 </div>
@@ -851,10 +858,10 @@ const BridgeApp = ({ active }: { active: boolean }) => {
                 {/* Context Pills attached to input */}
                 <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
                     <button className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors">
-                        <Cloud size={10} /> Salesforce
+                        <Cloud size={10} /> Square POS
                     </button>
                     <button className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-lg text-orange-400 text-[10px] font-bold uppercase tracking-wider hover:bg-orange-500/20 transition-colors">
-                        <HardDrive size={10} /> AWS S3
+                        <HardDrive size={10} /> Mailchimp
                     </button>
                     <button className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-white/40 text-[10px] font-bold uppercase tracking-wider hover:text-white transition-colors">
                         <Plus size={10} /> Add Source
@@ -892,16 +899,16 @@ const ReflectApp = ({ active }: { active: boolean }) => {
         <div className="w-full h-full bg-[#08080a] p-8 flex flex-col justify-center items-center relative">
             {showIntro && (
                 <GuideOverlay 
-                    title="System Health"
-                    description="Constant improvement. Monitor system health, accuracy, and latency in real-time."
+                    title="Business Health"
+                    description="See the big picture. Are you profitable today? Is your staff cost too high? Simple, clear metrics."
                     onDismiss={() => setShowIntro(false)} 
                 />
             )}
 
             <div className="w-full max-w-sm space-y-6">
                 <div className="flex items-center justify-between text-white mb-2">
-                    <span className="text-sm font-bold">Model Accuracy</span>
-                    <span className="text-[#69B7B2] font-mono">98.4%</span>
+                    <span className="text-sm font-bold">Sales vs Target</span>
+                    <span className="text-[#69B7B2] font-mono">+12%</span>
                 </div>
                 <div className="h-32 flex items-end gap-1">
                     {[40, 65, 50, 80, 75, 90, 85, 95, 92, 98].map((h, i) => (
@@ -910,12 +917,12 @@ const ReflectApp = ({ active }: { active: boolean }) => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
-                        <div className="text-2xl font-bold text-white mb-1">12ms</div>
-                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Latency</div>
+                        <div className="text-2xl font-bold text-white mb-1">22%</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Labor Cost</div>
                     </div>
                     <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
-                        <div className="text-2xl font-bold text-white mb-1">0</div>
-                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Hallucinations</div>
+                        <div className="text-2xl font-bold text-white mb-1">4.9</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-widest">Avg Rating</div>
                     </div>
                 </div>
             </div>
