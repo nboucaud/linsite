@@ -73,23 +73,89 @@ const GitoAgent = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [quote, setQuote] = useState("");
     const [showQuote, setShowQuote] = useState(false);
+    const timeoutRef = useRef<any>(null);
+    
+    // "Deck of cards" logic to prevent repeats
+    const availableQuotes = useRef<number[]>([]);
 
-    const quotes = [
-        "Cash flow looks healthy today.",
-        "I noticed a dip in Tuesday sales.",
-        "Connecting to Square and Shopify...",
-        "Inventory alert: Oat milk is low.",
-        "New 5-star review on Yelp!",
-        "Reconciling last week's invoices.",
-        "Drafting the weekend promo email.",
-        "Staff schedule is fully covered."
+    const ENGINEER_QUOTES = [
+        "It works on my machine.",
+        "Parsing CSVs is my love language. Kidding, it's pain.",
+        "Who dropped the prod database table?",
+        "I dream in SQL select statements.",
+        "That API response time is suspicious.",
+        "Deploying on a Friday? Brave choice.",
+        "Regex: Write once, read never.",
+        "60% of the time, it works every time.",
+        "I'm just here for the GPU compute.",
+        "Sanitizing inputs... washing my hands.",
+        "Latency is just the network thinking hard.",
+        "Did you try restarting the container?",
+        "A null pointer walked into a bar...",
+        "Collecting garbage... and deprecated code.",
+        "My code is compiling, I'm on break.",
+        "It's not a bug, it's a surprise feature.",
+        "Git push --force and pray.",
+        "I see dead pixels.",
+        "Warning: Coffee levels critical.",
+        "Normalization is for people who hate anomalies.",
+        "Your schema is showing.",
+        "Is this data clean? (It's never clean).",
+        "Ingesting data like a black hole.",
+        "404: Motivation not found.",
+        "I'm training a model to do my taxes.",
+        "JSON or XML? Choose wisely.",
+        "Infinite loops are forever.",
+        "Refactoring the spaghetti logic.",
+        "Hacking the mainframe... beep boop.",
+        "Checking for race conditions...",
+        "The logs don't lie, but they do confuse.",
+        "Running unit tests... skipping the hard ones.",
+        "Why is there a timestamp from 1970?",
+        "Caching is the root of all evil.",
+        "Waiting for the query execution plan.",
+        "Converting UTC to Local Time... headache loading.",
+        "I don't always test, but when I do, it's in production.",
+        "Merge conflict? I choose violence.",
+        "Pinging localhost...",
+        "Indexing... please hold.",
+        "The cloud is just someone else's computer.",
+        "Analyzing sentiment: Sarcastic.",
+        "Data leakage detected in sector 7.",
+        "Optimizing for maximum confusion.",
+        "Stack Overflow is down. We go home now.",
+        "Compiling... 1 warning, 0 errors. Good enough.",
+        "Who needs comments? The code documents itself.",
+        "Feeling cute, might delete the repo later.",
+        "Analyzing... result: ambiguous.",
+        "Buffering intelligence..."
     ];
 
     const saySomething = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+        
+        // Clear existing timeout if clicking rapidly
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        // Initialize or refill the deck
+        if (availableQuotes.current.length === 0) {
+            availableQuotes.current = Array.from({length: ENGINEER_QUOTES.length}, (_, i) => i);
+        }
+
+        // Pick a random card from the deck
+        const randomIndex = Math.floor(Math.random() * availableQuotes.current.length);
+        const quoteIndex = availableQuotes.current[randomIndex];
+        
+        // Remove that card so it doesn't repeat until deck refills
+        availableQuotes.current.splice(randomIndex, 1);
+
+        setQuote(ENGINEER_QUOTES[quoteIndex]);
         setShowQuote(true);
-        setTimeout(() => setShowQuote(false), 3000);
+        
+        // Stay open for 6 seconds so people can read
+        timeoutRef.current = setTimeout(() => setShowQuote(false), 6000);
     };
 
     return (
@@ -112,7 +178,7 @@ const GitoAgent = () => {
                     playsInline
                     className="w-full h-full object-cover transform scale-110"
                 />
-                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-black rounded-full z-10" />
+                {/* Notification light removed as requested */}
             </div>
         </div>
     );
