@@ -92,32 +92,9 @@ const SOLUTIONS = [
 
 export const UseCaseShowcase: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [beamSourceY, setBeamSourceY] = useState(0);
     const listRef = useRef<HTMLDivElement>(null);
     
-    // Auto-cycle logic
-    useEffect(() => {
-        if (isPaused) return;
-        
-        const duration = 8000;
-        const interval = 50;   
-        
-        const timer = setInterval(() => {
-            setProgress(prev => {
-                const next = prev + (interval / duration) * 100;
-                if (next >= 100) {
-                    setActiveIndex(idx => (idx + 1) % SOLUTIONS.length);
-                    return 0;
-                }
-                return next;
-            });
-        }, interval);
-
-        return () => clearInterval(timer);
-    }, [isPaused, activeIndex]);
-
     // Dynamic Beam Source Positioning
     useEffect(() => {
         const updateBeam = () => {
@@ -143,6 +120,9 @@ export const UseCaseShowcase: React.FC = () => {
 
     const activeItem = SOLUTIONS[activeIndex];
     const beamTargetY = 290; // Center of 581px Visualizer Card
+
+    const handleNext = () => setActiveIndex(prev => (prev + 1) % SOLUTIONS.length);
+    const handlePrev = () => setActiveIndex(prev => (prev - 1 + SOLUTIONS.length) % SOLUTIONS.length);
 
     return (
         <div className="py-32 bg-[#030303] border-b border-white/5 relative overflow-hidden">
@@ -174,9 +154,7 @@ export const UseCaseShowcase: React.FC = () => {
                             return (
                                 <button
                                     key={idx}
-                                    onClick={() => { setActiveIndex(idx); setProgress(0); setIsPaused(true); }}
-                                    onMouseEnter={() => setIsPaused(true)}
-                                    onMouseLeave={() => setIsPaused(false)}
+                                    onClick={() => setActiveIndex(idx)}
                                     className={`
                                         group relative w-full text-left transition-all duration-300 rounded-xl border overflow-hidden
                                         ${isActive 
@@ -185,13 +163,6 @@ export const UseCaseShowcase: React.FC = () => {
                                         }
                                     `}
                                 >
-                                    {/* Progress Bar (Active Only) */}
-                                    {isActive && (
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-current transition-all duration-100 ease-linear" 
-                                             style={{ height: `${progress}%`, color: item.color }} 
-                                        />
-                                    )}
-
                                     <div className={`relative px-4 py-3 flex h-full ${isActive ? 'items-start' : 'items-center'}`}>
                                         <div className="w-8 flex-shrink-0 text-right mr-4">
                                             <span className={`font-mono text-xs ${isActive ? 'text-white' : 'text-white/20'}`}>
@@ -314,6 +285,27 @@ export const UseCaseShowcase: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* MANUAL NAVIGATION FOOTER */}
+                            <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center">
+                                <button 
+                                    onClick={handlePrev}
+                                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors group px-3 py-2 rounded-lg hover:bg-white/5"
+                                >
+                                    <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                    <span>Previous</span>
+                                </button>
+                                <span className="text-[10px] font-mono text-white/20">
+                                    {activeIndex + 1} / {SOLUTIONS.length}
+                                </span>
+                                <button 
+                                    onClick={handleNext}
+                                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors group px-3 py-2 rounded-lg hover:bg-white/5"
+                                >
+                                    <span>Next</span>
+                                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -27,13 +27,17 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             height: 0,
             particles: [],
             nodes: [],
-            links: [], // For core mode network
+            links: [], 
             grid: [],
-            columns: [], // For translation mode
-            task: null, // For swarm mode (legacy ref, reused for agent state)
-            agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 }, // New Agent State
-            boxes: [], // Conveyor items
-            stack: [], // Processed items
+            columns: [], 
+            task: null, 
+            agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 },
+            boxes: [], 
+            stack: [],
+            // Identity Mode State (Flashcards)
+            cards: [],
+            sparks: [],
+            spawnTimer: 0,
             initializedMode: null
         };
 
@@ -67,6 +71,12 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.boxes = [];
             state.stack = [];
             state.agent = { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 };
+            
+            // Identity specific
+            state.cards = [];
+            state.sparks = [];
+            state.spawnTimer = 0;
+
             state.initializedMode = mode;
 
             if (mode === 'search') {
@@ -159,15 +169,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     if (closest !== null && i < closest) state.links.push({ from: i, to: closest });
                 }
             }
-            else if (mode === 'identity') {
-                for(let i=0; i<60; i++) {
-                    state.particles.push({
-                        angle: Math.random() * Math.PI * 2,
-                        r: 30 + Math.random() * 80,
-                        speed: (Math.random() - 0.5) * 0.03
-                    });
-                }
-            }
         };
 
         const render = () => {
@@ -179,6 +180,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
 
             ctx.clearRect(0, 0, w, h);
             
+            // ... (Keeping existing render logic for other modes) ...
             if (mode === 'search') {
                 const processLine = w * 0.4;
                 const laneCount = 5;
@@ -272,7 +274,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'core') {
-                // KNOWLEDGE NETWORK (Mesh)
                 if (Math.random() > 0.96) {
                     state.nodes[0].active = 1; 
                     const startLink = state.links.filter((l: any) => l.from === 0)[Math.floor(Math.random() * 6)];
@@ -343,7 +344,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.translate(-cx, -cy);
             }
             else if (mode === 'swarm') {
-                // BRIDGE AI: Intelligent Sorting System
                 const beltY = h * 0.65; // Base input level (Centered Lower)
                 const inputEnd = w * 0.45;
                 const outputStart = w * 0.55;
@@ -355,13 +355,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 const animSpeed = 0.03;
 
                 const COLORS = ['#22d3ee', '#a78bfa', '#fbbf24']; // Cyan, Purple, Amber
-                
-                // Outputs: Top, Middle, Bottom (Inline)
                 const TARGET_YS = [beltY - 80, beltY - 40, beltY];
 
-                // 1. Spawn Boxes (Lower probability, check distance)
                 const lastBox = state.boxes.length > 0 ? state.boxes[state.boxes.length - 1] : null;
-                const safeToSpawn = !lastBox || (lastBox.x > 80); // Ensure spacing
+                const safeToSpawn = !lastBox || (lastBox.x > 80); 
 
                 if (safeToSpawn && Math.random() > 0.99) {
                     const typeIdx = Math.floor(Math.random() * 3);
@@ -376,58 +373,42 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     });
                 }
 
-                // 2. Draw Belts
                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                
-                // Input Belt
                 ctx.fillRect(0, beltY, inputEnd, 4);
-                
-                // Output Belts
                 TARGET_YS.forEach(y => {
                     ctx.fillRect(outputStart, y + boxSize, w - outputStart, 4);
                 });
 
-                // Belt Animation (Dashes)
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 const dashOffset = (time * 60) % 40; 
-                
-                // Input Dashes
                 for(let i=0; i<inputEnd; i+=40) {
                     const x = i + dashOffset;
                     if(x < inputEnd) ctx.fillRect(x, beltY, 4, 4);
                 }
-                // Output Dashes
                 TARGET_YS.forEach(y => {
                     for(let i=outputStart; i<w; i+=40) {
-                        const x = i + dashOffset; // Move right
+                        const x = i + dashOffset; 
                         if(x > outputStart) ctx.fillRect(x, y + boxSize, 4, 4);
                     }
                 });
 
-                // 3. Agent Logic
                 const agent = state.agent;
-                // Draw Base
                 ctx.fillStyle = '#333';
-                ctx.fillRect(agentX - 15, agentBaseY - 20, 30, 20); // Base slightly higher
+                ctx.fillRect(agentX - 15, agentBaseY - 20, 30, 20); 
                 
-                // Arm Pivot
                 const pivotX = agentX;
                 const pivotY = agentBaseY - 20;
 
-                // State Machine
                 let armX = pivotX;
                 let armY = beltY - 60; // Idle height
                 let grabberGap = 10;
 
-                // Find Target
                 if (agent.state === 'idle') {
-                    // Find box reaching end of input belt
                     const target = state.boxes.find((b: any) => 
                         b.state === 'conveyor_in' && 
                         b.x > inputEnd - 60 && 
                         b.x < inputEnd
                     );
-                    
                     if (target) {
                         agent.state = 'reaching';
                         agent.targetBox = target;
@@ -439,30 +420,17 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
                     const b = agent.targetBox;
-                    
-                    // Box continues moving until picked or hits end
                     if(b.x < inputEnd - 20) b.x += speed;
-
-                    // IK Reach
                     armX = pivotX + (b.x + b.w/2 - pivotX) * t;
                     armY = (pivotY - 80) + (b.y - (pivotY - 80)) * t;
-                    
-                    if (t >= 1) {
-                        agent.state = 'grasping';
-                        agent.t = 0;
-                    }
+                    if (t >= 1) { agent.state = 'grasping'; agent.t = 0; }
                 } 
                 else if (agent.state === 'grasping') {
                     agent.t += animSpeed * 2;
                     grabberGap = 10 * (1 - Math.min(1, agent.t));
                     armX = agent.targetBox.x + agent.targetBox.w/2;
                     armY = agent.targetBox.y;
-                    
-                    if (agent.t >= 1) {
-                        agent.state = 'moving';
-                        agent.targetBox.state = 'lifted';
-                        agent.t = 0;
-                    }
+                    if (agent.t >= 1) { agent.state = 'moving'; agent.targetBox.state = 'lifted'; agent.t = 0; }
                 }
                 else if (agent.state === 'moving') {
                     agent.t += animSpeed;
@@ -470,23 +438,18 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     const b = agent.targetBox;
                     const targetY = TARGET_YS[b.targetLane];
                     
-                    // Curve path to output
-                    const startX = inputEnd - 20; // Approx pickup X
-                    const targetX = outputStart + 20; // Drop X
+                    const startX = inputEnd - 20;
+                    const targetX = outputStart + 20;
                     
                     armX = startX + (targetX - startX) * t;
-                    // Arc Height logic
-                    const midY = Math.min(beltY, targetY) - 60; // Higher arc
-                    armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY; // Bezier vertically
+                    const midY = Math.min(beltY, targetY) - 60;
+                    armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY;
                     
                     grabberGap = 0;
                     b.x = armX - b.w/2;
                     b.y = armY;
 
-                    if (t >= 1) {
-                        agent.state = 'releasing';
-                        agent.t = 0;
-                    }
+                    if (t >= 1) { agent.state = 'releasing'; agent.t = 0; }
                 }
                 else if (agent.state === 'releasing') {
                     agent.t += animSpeed * 2;
@@ -497,7 +460,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     
                     if (agent.t >= 1) {
                         b.state = 'conveyor_out';
-                        b.y = TARGET_YS[b.targetLane]; // Snap to belt
+                        b.y = TARGET_YS[b.targetLane];
                         agent.state = 'returning';
                         agent.targetBox = null;
                         agent.t = 0;
@@ -506,28 +469,21 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 else if (agent.state === 'returning') {
                     agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
-                    
                     const startX = outputStart + 20;
-                    const startY = armY; // Last pos
+                    const startY = armY;
                     const targetX = pivotX;
-                    const targetY = beltY - 60; // Idle
-                    
+                    const targetY = beltY - 60;
                     armX = startX + (targetX - startX) * t;
                     armY = startY + (targetY - startY) * t;
-                    
                     if (t >= 1) agent.state = 'idle';
                 }
                 else {
-                    // Idle sway
                     armX = pivotX + Math.sin(time * 2) * 5;
                     armY = beltY - 60 + Math.cos(time * 3) * 5;
                 }
 
-                // Draw Arm
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
-                
-                // Main linkage
                 ctx.beginPath();
                 ctx.moveTo(pivotX, pivotY);
                 const elbowX = (pivotX + armX) / 2 - 20; 
@@ -535,12 +491,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.quadraticCurveTo(elbowX, elbowY, armX, armY);
                 ctx.stroke();
                 
-                // Joints
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(armX, armY, 3, 0, Math.PI*2); ctx.fill();
                 
-                // Grabber
                 ctx.save();
                 ctx.translate(armX, armY);
                 ctx.fillStyle = color;
@@ -548,10 +502,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.fillRect(4 + grabberGap/2, -5, 4, 15);
                 ctx.restore();
 
-                // 4. Draw Boxes
                 for (let i = state.boxes.length - 1; i >= 0; i--) {
                     const b = state.boxes[i];
-                    
                     if (b.state === 'conveyor_in') {
                         if (agent.targetBox !== b || agent.state === 'reaching') {
                              if (b.x < inputEnd - 20) b.x += speed; 
@@ -559,45 +511,21 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     } else if (b.state === 'conveyor_out') {
                         b.x += speed;
                     }
+                    if (b.x > w + 20) { state.boxes.splice(i, 1); continue; }
 
-                    if (b.x > w + 20) {
-                        state.boxes.splice(i, 1);
-                        continue;
-                    }
-
-                    // Render
                     ctx.fillStyle = b.color;
                     ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 1;
-                    
                     ctx.fillRect(b.x, b.y, b.w, b.h);
                     ctx.strokeRect(b.x, b.y, b.w, b.h);
-                    
-                    // ID Marker
                     ctx.fillStyle = 'rgba(0,0,0,0.3)';
                     ctx.fillRect(b.x + 2, b.y + 2, 4, 4);
                 }
             }
             else if (mode === 'translation') {
-                // KNOWLEDGE CAPTURE (Code Ingestion)
                 const colWidth = 140; 
                 const numCols = 2; 
-                
-                const SNIPPETS = [
-                    "POST /api/v1/ingest HTTP/1.1",
-                    "{ id: '8f3a', type: 'blob' }",
-                    "WARN: Latency > 200ms",
-                    "Converting stream...",
-                    "0x4F3E21 0x0021FF",
-                    "SELECT * FROM raw_logs",
-                    "Processing batch #4921",
-                    "struct Node { val: i32 }",
-                    "ERROR: Timeout (retry 1)",
-                    "> System.init()",
-                    "import { transform } from 'etl'",
-                    "User_Agent: Mozilla/5.0",
-                    "Connection: Keep-Alive"
-                ];
+                const SNIPPETS = ["POST /api/v1/ingest", "{ id: '8f3a' }", "WARN: Latency", "Converting...", "0x4F3E21", "SELECT * FROM logs", "Processing...", "struct Node", "ERROR: Timeout", "> System.init()"];
 
                 if (state.columns.length === 0) {
                     state.columns = Array.from({ length: numCols }, (_, i) => ({
@@ -611,7 +539,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     }));
                 }
 
-                // Grid Init
                 const gridStartX = w * 0.55;
                 const gridCols = 6; const gridRows = 8;
                 const cellW = (w * 0.4) / gridCols; const cellH = h / gridRows;
@@ -629,7 +556,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.textAlign = 'left';
                 
                 state.columns.forEach((col: any) => {
-                    col.y -= col.speed; // Scroll UP
+                    col.y -= col.speed;
                     if (col.y < -300) col.y = h; 
 
                     col.items.forEach((item: any, i: number) => {
@@ -638,7 +565,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         
                         if (drawnY > -20 && drawnY < h + 20) {
                             const isScanned = Math.abs(drawnY - h/2) < 20;
-                            
                             ctx.fillStyle = isScanned ? '#fff' : 'rgba(255,255,255,0.3)';
                             if (isScanned) {
                                 if (Math.random() > 0.98) {
@@ -686,36 +612,120 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.grid.forEach((cell: any) => {
                     if (cell.filled) cell.alpha = Math.max(0.4, cell.alpha - 0.02);
                     else cell.alpha = 0.1;
-                    
                     const s = Math.min(cellW, cellH) * 0.6;
-                    ctx.strokeStyle = color;
-                    ctx.globalAlpha = cell.alpha;
-                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = color; ctx.globalAlpha = cell.alpha; ctx.lineWidth = 1;
                     ctx.strokeRect(cell.x - s/2, cell.y - s/2, s, s);
-                    
                     if (cell.filled) {
-                        ctx.fillStyle = color;
-                        ctx.globalAlpha = cell.alpha * 0.6;
+                        ctx.fillStyle = color; ctx.globalAlpha = cell.alpha * 0.6;
                         ctx.fillRect(cell.x - s/2 + 2, cell.y - s/2 + 2, s - 4, s - 4);
                         if (Math.random() > 0.995) cell.filled = false;
                     }
                 });
             }
             else if (mode === 'identity') {
+                // --- FLASHCARD / PRIZE ANIMATION ---
+                // State: cards[], sparks[], spawnTimer
+                
+                // Background Radial Effect (Subtle Sunburst)
                 ctx.translate(cx, cy);
-                ctx.rotate(time * 0.2);
-                state.particles.forEach((p: any) => {
-                    p.angle += p.speed;
-                    const x = Math.cos(p.angle) * p.r;
-                    const y = Math.sin(p.angle) * p.r;
-                    ctx.fillStyle = color;
-                    ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
-                    if (Math.random() > 0.98) {
-                        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(x,y); ctx.stroke();
-                    }
-                });
+                ctx.rotate(time * 0.05);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+                for(let i=0; i<12; i++) {
+                    ctx.rotate(Math.PI * 2 / 12);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, Math.max(w,h), -0.1, 0.1);
+                    ctx.fill();
+                }
+                ctx.rotate(-time * 0.05);
                 ctx.translate(-cx, -cy);
+
+                state.spawnTimer++;
+                if (state.spawnTimer > 150) {
+                    state.spawnTimer = 0;
+                    // Spawn new card at bottom
+                    state.cards.push({
+                        x: cx,
+                        y: h + 100,
+                        targetY: cy,
+                        w: 120, h: 160,
+                        state: 'entering', // entering -> holding -> exiting
+                        holdTimer: 0
+                    });
+                }
+
+                // Process Cards
+                for (let i = state.cards.length - 1; i >= 0; i--) {
+                    const c = state.cards[i];
+                    
+                    if (c.state === 'entering') {
+                        c.y += (c.targetY - c.y) * 0.08;
+                        if (Math.abs(c.y - c.targetY) < 2) {
+                            c.state = 'holding';
+                            // Trigger Prize Effect
+                            for(let j=0; j<20; j++) {
+                                state.sparks.push({
+                                    x: cx, y: cy,
+                                    vx: (Math.random() - 0.5) * 10,
+                                    vy: (Math.random() - 0.5) * 10,
+                                    life: 1.0,
+                                    color: Math.random() > 0.5 ? '#ffffff' : color
+                                });
+                            }
+                        }
+                    } else if (c.state === 'holding') {
+                        c.holdTimer++;
+                        // Gentle hover
+                        c.y = cy + Math.sin(time * 2) * 5;
+                        if (c.holdTimer > 100) c.state = 'exiting';
+                    } else if (c.state === 'exiting') {
+                        c.y -= 10; // Fly up
+                        if (c.y < -200) state.cards.splice(i, 1);
+                    }
+
+                    // Draw Card
+                    const isHolding = c.state === 'holding';
+                    ctx.fillStyle = '#1a1a1c';
+                    ctx.strokeStyle = isHolding ? '#ffffff' : 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = isHolding ? 3 : 1;
+                    
+                    if (isHolding) {
+                        ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(255,255,255,0.5)';
+                    }
+
+                    // Draw Rounded Rect manually if roundRect not supported, but most browsers support it now
+                    // Fallback to rect
+                    const r = 12;
+                    ctx.beginPath();
+                    ctx.roundRect(c.x - c.w/2, c.y - c.h/2, c.w, c.h, r);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Card Content (Abstract Lines)
+                    ctx.fillStyle = isHolding ? '#ffffff' : 'rgba(255,255,255,0.2)';
+                    const contentX = c.x - c.w/2 + 20;
+                    const contentY = c.y - c.h/2 + 40;
+                    ctx.fillRect(contentX, contentY, 40, 40); // Icon placeholder
+                    ctx.fillStyle = isHolding ? color : 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(contentX, contentY + 50, c.w - 40, 6);
+                    ctx.fillRect(contentX, contentY + 65, c.w - 60, 6);
+                }
+
+                // Process Sparks
+                for (let i = state.sparks.length - 1; i >= 0; i--) {
+                    const s = state.sparks[i];
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    s.vy += 0.2; // Gravity
+                    s.life -= 0.02;
+                    
+                    if (s.life <= 0) { state.sparks.splice(i, 1); continue; }
+                    
+                    ctx.globalAlpha = s.life;
+                    ctx.fillStyle = s.color;
+                    ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI*2); ctx.fill();
+                }
             }
 
             ctx.globalAlpha = 1;
