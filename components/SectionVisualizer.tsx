@@ -171,7 +171,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         };
 
         const render = () => {
-            time += 0.01;
+            time += 0.007; // SLOWED DOWN BY 30% (was 0.01)
             const w = state.width;
             const h = state.height;
             const cx = w/2;
@@ -343,49 +343,86 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 ctx.translate(-cx, -cy);
             }
             else if (mode === 'swarm') {
-                // BRIDGE AI: Conveyor Belt & Agent
-                const beltY = h * 0.75;
-                const agentX = w * 0.6;
-                const boxSize = 24;
-                const speed = 2;
+                // BRIDGE AI: Intelligent Sorting System
+                const beltY = h * 0.55; // Main input level
+                const inputEnd = w * 0.45;
+                const outputStart = w * 0.55;
+                const agentX = w * 0.5;
+                const agentBaseY = beltY + 40;
+                
+                const boxSize = 18;
+                const speed = 1.2; // 30% slower
+                const animSpeed = 0.03; // 30% slower
 
-                // 1. Spawn Boxes (Left side)
+                const COLORS = ['#22d3ee', '#a78bfa', '#fbbf24']; // Cyan, Purple, Amber
+                const TARGET_YS = [beltY - 60, beltY, beltY + 60];
+
+                // 1. Spawn Boxes
                 if (Math.random() > 0.985) {
+                    const typeIdx = Math.floor(Math.random() * 3);
                     state.boxes.push({
-                        x: -50,
+                        x: -20,
                         y: beltY - boxSize,
                         w: boxSize,
                         h: boxSize,
-                        state: 'conveyor', // conveyor, lifted, processed
-                        type: Math.random() > 0.8 ? 'priority' : 'normal'
+                        color: COLORS[typeIdx],
+                        targetLane: typeIdx,
+                        state: 'conveyor_in' // conveyor_in, lifted, conveyor_out
                     });
                 }
 
-                // 2. Draw Conveyor Belt
+                // 2. Draw Belts
                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                ctx.fillRect(0, beltY, w, 4);
                 
-                // Moving dashes on belt
+                // Input Belt
+                ctx.fillRect(0, beltY, inputEnd, 4);
+                
+                // Output Belts
+                TARGET_YS.forEach(y => {
+                    ctx.fillRect(outputStart, y + boxSize, w - outputStart, 4);
+                });
+
+                // Belt Animation (Dashes)
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                const dashOffset = (time * 100) % 40;
-                for(let i=0; i<w; i+=40) {
-                    ctx.fillRect(i + dashOffset - 40, beltY, 4, 4);
+                const dashOffset = (time * 80) % 40; 
+                
+                // Input Dashes
+                for(let i=0; i<inputEnd; i+=40) {
+                    const x = i + dashOffset;
+                    if(x < inputEnd) ctx.fillRect(x, beltY, 4, 4);
                 }
+                // Output Dashes
+                TARGET_YS.forEach(y => {
+                    for(let i=outputStart; i<w; i+=40) {
+                        const x = i + dashOffset; // Move right
+                        if(x > outputStart) ctx.fillRect(x, y + boxSize, 4, 4);
+                    }
+                });
 
                 // 3. Agent Logic
                 const agent = state.agent;
-                // Agent Base
+                // Draw Base
                 ctx.fillStyle = '#333';
-                ctx.fillRect(agentX - 10, beltY + 10, 20, 20); // Base pedestal
+                ctx.fillRect(agentX - 15, agentBaseY, 30, 20);
                 
                 // Arm Pivot
                 const pivotX = agentX;
-                const pivotY = beltY + 10;
-                
-                // Identify target box
+                const pivotY = agentBaseY;
+
+                // State Machine
+                let armX = pivotX;
+                let armY = beltY - 40; // Idle height
+                let grabberGap = 10;
+
+                // Find Target
                 if (agent.state === 'idle') {
-                    // Look for box near pickup zone (agentX - 50)
-                    const target = state.boxes.find((b: any) => b.state === 'conveyor' && b.x > agentX - 80 && b.x < agentX - 20);
+                    // Find box reaching end of input belt
+                    const target = state.boxes.find((b: any) => 
+                        b.state === 'conveyor_in' && 
+                        b.x > inputEnd - 60 && 
+                        b.x < inputEnd
+                    );
+                    
                     if (target) {
                         agent.state = 'reaching';
                         agent.targetBox = target;
@@ -393,131 +430,147 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     }
                 }
 
-                // Agent Animation State Machine
-                let armX = pivotX;
-                let armY = pivotY - 40; // Default rest height
-                let grabberOpen = 10; 
-
                 if (agent.state === 'reaching') {
-                    agent.t += 0.05;
+                    agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
                     const b = agent.targetBox;
                     
-                    // IK-ish movement to box
+                    // Box continues moving until picked or hits end
+                    if(b.x < inputEnd - 20) b.x += speed;
+
+                    // IK Reach
                     armX = pivotX + (b.x + b.w/2 - pivotX) * t;
-                    armY = (pivotY - 60) + (b.y - (pivotY - 60)) * t; // Arc down? No, straight reach for industrial look
+                    armY = (pivotY - 80) + (b.y - (pivotY - 80)) * t;
                     
                     if (t >= 1) {
-                        agent.state = 'lifting';
+                        agent.state = 'grasping';
                         agent.t = 0;
-                        b.state = 'lifted';
                     }
-                } else if (agent.state === 'lifting') {
-                    agent.t += 0.04;
+                } 
+                else if (agent.state === 'grasping') {
+                    agent.t += animSpeed * 2;
+                    grabberGap = 10 * (1 - Math.min(1, agent.t));
+                    armX = agent.targetBox.x + agent.targetBox.w/2;
+                    armY = agent.targetBox.y;
+                    
+                    if (agent.t >= 1) {
+                        agent.state = 'moving';
+                        agent.targetBox.state = 'lifted';
+                        agent.t = 0;
+                    }
+                }
+                else if (agent.state === 'moving') {
+                    agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
                     const b = agent.targetBox;
+                    const targetY = TARGET_YS[b.targetLane];
                     
-                    // Move box to stack position (Right of agent)
-                    const stackX = agentX + 80;
-                    const stackY = beltY - boxSize * (state.stack.length + 1); // Stack upwards
+                    // Curve path to output
+                    const startX = inputEnd - 20; // Approx pickup X
+                    const targetX = outputStart + 20; // Drop X
                     
-                    armX = pivotX + (stackX - pivotX) * t; // Swing right
-                    armY = (pivotY - 60) - 40 * Math.sin(t * Math.PI); // Arc up
+                    armX = startX + (targetX - startX) * t;
+                    // Arc Height logic
+                    const midY = Math.min(beltY, targetY) - 40;
+                    armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY; // Bezier vertically
                     
-                    // Update box pos to follow arm
+                    grabberGap = 0;
                     b.x = armX - b.w/2;
-                    b.y = armY + 10; 
-                    grabberOpen = 0; // Closed
+                    b.y = armY;
 
                     if (t >= 1) {
-                        // Drop
-                        b.state = 'processed';
-                        b.y = stackY;
-                        state.stack.push(b);
-                        // Remove from active boxes list? No, keep it there but static
-                        state.agent.targetBox = null;
-                        state.agent.state = 'returning';
-                        state.agent.t = 0;
+                        agent.state = 'releasing';
+                        agent.t = 0;
                     }
-                } else if (agent.state === 'returning') {
-                    agent.t += 0.05;
+                }
+                else if (agent.state === 'releasing') {
+                    agent.t += animSpeed * 2;
+                    const b = agent.targetBox;
+                    armX = b.x + b.w/2;
+                    armY = b.y;
+                    grabberGap = 10 * Math.min(1, agent.t);
+                    
+                    if (agent.t >= 1) {
+                        b.state = 'conveyor_out';
+                        b.y = TARGET_YS[b.targetLane]; // Snap to belt
+                        agent.state = 'returning';
+                        agent.targetBox = null;
+                        agent.t = 0;
+                    }
+                }
+                else if (agent.state === 'returning') {
+                    agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
-                    // Return to idle hover
-                    const idleX = agentX;
-                    const idleY = beltY - 60;
                     
-                    armX = (agentX + 80) + (idleX - (agentX + 80)) * t;
-                    armY = (beltY - 60) - 20 * Math.sin(t * Math.PI);
+                    const startX = outputStart + 20;
+                    const startY = armY; // Last pos
+                    const targetX = pivotX;
+                    const targetY = beltY - 40; // Idle
                     
-                    if (t >= 1) {
-                        agent.state = 'idle';
-                    }
-                } else {
-                    // Idle Hover
-                    armX = agentX;
-                    armY = beltY - 60 + Math.sin(time * 5) * 5;
+                    armX = startX + (targetX - startX) * t;
+                    armY = startY + (targetY - startY) * t;
+                    
+                    if (t >= 1) agent.state = 'idle';
+                }
+                else {
+                    // Idle sway
+                    armX = pivotX + Math.sin(time * 2) * 5;
+                    armY = beltY - 40 + Math.cos(time * 3) * 5;
                 }
 
-                // Draw Agent Arm
+                // Draw Arm
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 
-                // Shoulder to Elbow
+                // Main linkage
                 ctx.beginPath();
                 ctx.moveTo(pivotX, pivotY);
-                ctx.lineTo(pivotX, armY - 20); // Vertical stem
-                ctx.lineTo(armX, armY); // Forearm
+                const elbowX = (pivotX + armX) / 2 - 20; 
+                const elbowY = Math.min(pivotY, armY) - 30;
+                ctx.quadraticCurveTo(elbowX, elbowY, armX, armY);
                 ctx.stroke();
                 
-                // Joint
+                // Joints
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(pivotX, armY - 20, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(armX, armY, 3, 0, Math.PI*2); ctx.fill();
                 
                 // Grabber
-                ctx.strokeRect(armX - 6 - grabberOpen/2, armY, 4, 10);
-                ctx.strokeRect(armX + 2 + grabberOpen/2, armY, 4, 10);
+                ctx.save();
+                ctx.translate(armX, armY);
+                ctx.fillStyle = color;
+                ctx.fillRect(-8 - grabberGap/2, -5, 4, 15);
+                ctx.fillRect(4 + grabberGap/2, -5, 4, 15);
+                ctx.restore();
 
-
-                // 4. Update & Draw Boxes
+                // 4. Draw Boxes
                 for (let i = state.boxes.length - 1; i >= 0; i--) {
                     const b = state.boxes[i];
                     
-                    if (b.state === 'conveyor') {
+                    if (b.state === 'conveyor_in') {
+                        if (agent.targetBox !== b || agent.state === 'reaching') {
+                             if (b.x < inputEnd - 20) b.x += speed; 
+                        }
+                    } else if (b.state === 'conveyor_out') {
                         b.x += speed;
-                        if (b.x > w) {
-                            state.boxes.splice(i, 1); // Remove if missed
-                            continue;
-                        }
-                    } else if (b.state === 'processed') {
-                        // Stack decay logic (if stack gets too high, remove bottom)
-                        if (state.stack.length > 5) {
-                             state.stack.shift(); // Remove oldest
-                             // Shift y of others down? 
-                             state.stack.forEach((sb: any, idx: number) => {
-                                 sb.y = beltY - boxSize * (idx + 1);
-                             });
-                             // Remove this box from main array if it was the shifted one
-                             if (!state.stack.includes(b)) {
-                                 state.boxes.splice(i, 1);
-                                 continue;
-                             }
-                        }
                     }
 
-                    // Draw Box
-                    ctx.fillStyle = b.state === 'processed' ? color : (b.type === 'priority' ? '#ef4444' : 'rgba(255,255,255,0.2)');
-                    ctx.strokeStyle = b.state === 'processed' ? '#fff' : color;
+                    if (b.x > w + 20) {
+                        state.boxes.splice(i, 1);
+                        continue;
+                    }
+
+                    // Render
+                    ctx.fillStyle = b.color;
+                    ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 1;
                     
                     ctx.fillRect(b.x, b.y, b.w, b.h);
                     ctx.strokeRect(b.x, b.y, b.w, b.h);
                     
-                    // Label
-                    if (b.state === 'processed') {
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(b.x + 8, b.y + 8, 8, 8); // "Data" icon
-                    }
+                    // ID Marker
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.fillRect(b.x + 2, b.y + 2, 4, 4);
                 }
             }
             else if (mode === 'translation') {

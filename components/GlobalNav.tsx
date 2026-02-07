@@ -98,6 +98,7 @@ export const GlobalNav: React.FC = () => {
             </div>
           ))}
 
+          {/* CONTACT BUTTON */}
           <button 
             onClick={() => handleNav('contact')} 
             className="px-6 py-2 rounded-full bg-white/5 hover:bg-white hover:text-black text-white transition-all duration-300 hover:scale-105 active:scale-95 font-medium"
@@ -157,17 +158,17 @@ export const GlobalNav: React.FC = () => {
             ))}
             
             <button 
-                onClick={() => handleNav('about/careers')} 
-                className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500"
-            >
-                Infogito Labs
-            </button>
-
-            <button 
                 onClick={() => handleNav('contact')} 
                 className="w-full py-4 bg-[#69B7B2] text-black font-bold uppercase tracking-widest text-sm rounded-lg"
             >
                 Get In Touch
+            </button>
+
+            <button 
+                onClick={() => handleNav('about/careers')} 
+                className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500"
+            >
+                Infogito Labs
             </button>
         </div>
       </div>

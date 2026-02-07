@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ShieldCheck, Server, Activity, GitMerge, Database, Lock, ChevronRight, Code, Terminal, Building2, Truck, Briefcase, Factory, ArrowUpRight, ChevronLeft, Loader2, Key, CheckCircle2, Handshake, Users, Target, Cpu, Layers, ArrowRight, Radio, Sparkles, Layout, Bot, BarChart3, Scan, Network } from 'lucide-react';
 import { SectionVisualizer } from './SectionVisualizer';
 
@@ -257,35 +257,9 @@ export const UseCaseShowcase: React.FC = () => {
                     {/* SECTION 2: VISUALIZER UI CARD (581px Height x 282px Width) */}
                     <div className="relative w-[282px] h-[581px] shrink-0 mt-8 lg:mt-0 flex flex-col">
                         <div className="w-full h-full bg-[#0c0c0e] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative flex flex-col group hover:border-white/20 transition-colors">
-                            
-                            {/* Card Header */}
-                            <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#111]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
-                                        <activeItem.icon size={16} style={{ color: activeItem.color }} />
-                                    </div>
-                                    <div>
-                                        <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Runtime</div>
-                                        <div className="text-xs font-serif text-white">{activeItem.title.split(' ')[0]}</div>
-                                    </div>
-                                </div>
-                                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeItem.color }} />
-                            </div>
-
-                            {/* Canvas Stage */}
+                            {/* Canvas Stage - Pure Visual */}
                             <div className="flex-1 relative bg-black">
                                 <SectionVisualizer key={activeItem.id} mode={activeItem.mode as any} color={activeItem.color} />
-                                
-                                {/* Overlay UI Elements - Removed Active Bar */}
-                                <div className="absolute inset-0 pointer-events-none">
-                                    {/* Content removed */}
-                                </div>
-                            </div>
-
-                            {/* Footer Status */}
-                            <div className="h-12 bg-[#08080a] border-t border-white/5 flex items-center justify-between px-6">
-                                <span className="text-[9px] font-mono text-white/30 uppercase">Latency: 12ms</span>
-                                <span className="text-[9px] font-mono text-white/30 uppercase">Status: OK</span>
                             </div>
                         </div>
                     </div>
@@ -339,17 +313,6 @@ export const UseCaseShowcase: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
-                                <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
-                                    ID: {activeItem.id.toUpperCase()}_SYS
-                                </div>
-                                <div className="flex gap-2">
-                                    <button className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
-                                        <Layout size={16} />
-                                    </button>
                                 </div>
                             </div>
                         </div>
