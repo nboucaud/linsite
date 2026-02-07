@@ -171,7 +171,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         };
 
         const render = () => {
-            time += 0.007; // SLOWED DOWN BY 30% (was 0.01)
+            time += 0.007; // SLOWED DOWN BY 30%
             const w = state.width;
             const h = state.height;
             const cx = w/2;
@@ -344,21 +344,26 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             }
             else if (mode === 'swarm') {
                 // BRIDGE AI: Intelligent Sorting System
-                const beltY = h * 0.55; // Main input level
+                const beltY = h * 0.65; // Base input level (Centered Lower)
                 const inputEnd = w * 0.45;
                 const outputStart = w * 0.55;
                 const agentX = w * 0.5;
                 const agentBaseY = beltY + 40;
                 
                 const boxSize = 18;
-                const speed = 1.2; // 30% slower
-                const animSpeed = 0.03; // 30% slower
+                const speed = 1.0; // Slower conveyor
+                const animSpeed = 0.03;
 
                 const COLORS = ['#22d3ee', '#a78bfa', '#fbbf24']; // Cyan, Purple, Amber
-                const TARGET_YS = [beltY - 60, beltY, beltY + 60];
+                
+                // Outputs: Top, Middle, Bottom (Inline)
+                const TARGET_YS = [beltY - 80, beltY - 40, beltY];
 
-                // 1. Spawn Boxes
-                if (Math.random() > 0.985) {
+                // 1. Spawn Boxes (Lower probability, check distance)
+                const lastBox = state.boxes.length > 0 ? state.boxes[state.boxes.length - 1] : null;
+                const safeToSpawn = !lastBox || (lastBox.x > 80); // Ensure spacing
+
+                if (safeToSpawn && Math.random() > 0.99) {
                     const typeIdx = Math.floor(Math.random() * 3);
                     state.boxes.push({
                         x: -20,
@@ -384,7 +389,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
 
                 // Belt Animation (Dashes)
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                const dashOffset = (time * 80) % 40; 
+                const dashOffset = (time * 60) % 40; 
                 
                 // Input Dashes
                 for(let i=0; i<inputEnd; i+=40) {
@@ -403,15 +408,15 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 const agent = state.agent;
                 // Draw Base
                 ctx.fillStyle = '#333';
-                ctx.fillRect(agentX - 15, agentBaseY, 30, 20);
+                ctx.fillRect(agentX - 15, agentBaseY - 20, 30, 20); // Base slightly higher
                 
                 // Arm Pivot
                 const pivotX = agentX;
-                const pivotY = agentBaseY;
+                const pivotY = agentBaseY - 20;
 
                 // State Machine
                 let armX = pivotX;
-                let armY = beltY - 40; // Idle height
+                let armY = beltY - 60; // Idle height
                 let grabberGap = 10;
 
                 // Find Target
@@ -471,7 +476,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     
                     armX = startX + (targetX - startX) * t;
                     // Arc Height logic
-                    const midY = Math.min(beltY, targetY) - 40;
+                    const midY = Math.min(beltY, targetY) - 60; // Higher arc
                     armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY; // Bezier vertically
                     
                     grabberGap = 0;
@@ -505,7 +510,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     const startX = outputStart + 20;
                     const startY = armY; // Last pos
                     const targetX = pivotX;
-                    const targetY = beltY - 40; // Idle
+                    const targetY = beltY - 60; // Idle
                     
                     armX = startX + (targetX - startX) * t;
                     armY = startY + (targetY - startY) * t;
@@ -515,7 +520,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 else {
                     // Idle sway
                     armX = pivotX + Math.sin(time * 2) * 5;
-                    armY = beltY - 40 + Math.cos(time * 3) * 5;
+                    armY = beltY - 60 + Math.cos(time * 3) * 5;
                 }
 
                 // Draw Arm
