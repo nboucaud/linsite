@@ -762,7 +762,16 @@ export const FeatureShowcase: React.FC = () => {
     const prevStage = () => { setActiveStage(prev => (prev - 1 + 7) % 7); setIsPaused(true); };
 
     const handleAgentClick = () => {
-        const msgs = ["Processing Request...", "Monitoring Compliance...", "Analyzing Data Stream...", "System Nominal.", "Hello, Operator."];
+        const msgs = [
+            "Scanning for schema drift...",
+            "Just optimized 4TB of logs. Feeling light.",
+            "That query latency is looking delicious.",
+            "Ingesting unstructured PDFs is my cardio.",
+            "Detecting 99.9% uptime vibes.",
+            "I dream in SQL.",
+            "Checking the data pipeline... flow is clean.",
+            "Normalizing JSON objects just for fun."
+        ];
         setAgentMessage(msgs[Math.floor(Math.random() * msgs.length)]);
         setTimeout(() => setAgentMessage(null), 3000);
     }
@@ -781,13 +790,13 @@ export const FeatureShowcase: React.FC = () => {
                 </div>
 
                 {/* Main Content Layout */}
-                <div className="flex flex-col items-end w-full relative group gap-0">
+                <div className="flex flex-col items-center w-full relative group gap-0">
                     
-                    {/* Main Window */}
-                    <div className="w-full flex-1 bg-[#0a0a0c] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[800px] ring-1 ring-white/5 relative z-10">
+                    {/* Main Window - 16:9 Aspect Ratio Container */}
+                    <div className="w-full max-w-[1600px] aspect-video bg-[#0a0a0c] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row ring-1 ring-white/5 relative z-10">
                         
                         {/* Sidebar Nav */}
-                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 relative">
+                        <div className="w-full md:w-64 bg-[#08080a] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 relative h-full">
                             <div className="p-8 hidden md:block">
                                 <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Workflow Stages</div>
                                 <div className="h-0.5 w-8 bg-[#69B7B2]" />
@@ -819,17 +828,17 @@ export const FeatureShowcase: React.FC = () => {
                             </div>
 
                             {/* Floating "Chat Bubble" Video Agent */}
-                            <div className="absolute bottom-4 right-4 z-50 group">
+                            <div className="absolute bottom-6 right-6 z-50 group">
                                 {/* Chat Bubble Tooltip */}
-                                <div className={`absolute bottom-full right-0 mb-3 w-32 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
+                                <div className={`absolute bottom-full right-0 mb-4 w-40 bg-white text-black text-[10px] font-bold p-3 rounded-xl rounded-br-sm shadow-xl transition-all duration-300 transform origin-bottom-right ${agentMessage ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}`}>
                                     {agentMessage}
-                                    <div className="absolute -bottom-1 right-0 w-2 h-2 bg-white rotate-45 translate-x-[-4px]" />
+                                    <div className="absolute -bottom-1 right-0 w-3 h-3 bg-white rotate-45 translate-x-[-6px]" />
                                 </div>
 
                                 {/* Video Bubble */}
                                 <div 
                                     onClick={handleAgentClick}
-                                    className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl cursor-pointer hover:scale-105 transition-transform bg-[#0a0a0c] relative group/vid"
+                                    className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl cursor-pointer hover:scale-105 transition-transform bg-[#0a0a0c] relative group/vid"
                                 >
                                     <video 
                                         src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Untitled%20design%20%2847%29.webm"
@@ -848,7 +857,7 @@ export const FeatureShowcase: React.FC = () => {
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 relative bg-[#0c0c0e] flex flex-col">
+                        <div className="flex-1 relative bg-[#0c0c0e] flex flex-col h-full overflow-hidden">
                             
                             {/* OS Header */}
                             <WindowHeader title={scenario.title} stageId={stages[activeStage].id} />
