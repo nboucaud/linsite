@@ -15,6 +15,83 @@ import { SectionVisualizer } from './SectionVisualizer';
 // --- UTILS ---
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
+// --- SPEED VISUALIZER (Effect at bottom of video) ---
+const SpeedVisualizer = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let width = canvas.width = canvas.parentElement?.clientWidth || 0;
+        let height = canvas.height = canvas.parentElement?.clientHeight || 0;
+        
+        const entities: any[] = [];
+        const count = 100;
+
+        for(let i=0; i<count; i++) {
+            entities.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                speed: 4 + Math.random() * 20,
+                len: Math.random() > 0.6 ? Math.random() * 150 + 20 : 2, // Line or dot
+                width: Math.random() > 0.9 ? 2 : 1,
+                opacity: Math.random() * 0.5 + 0.1
+            });
+        }
+
+        let frameId: number;
+        const render = () => {
+            ctx.clearRect(0, 0, width, height);
+            
+            entities.forEach(p => {
+                p.x -= p.speed;
+                if (p.x + p.len < 0) {
+                    p.x = width + Math.random() * 200;
+                    p.y = Math.random() * height;
+                    p.speed = 4 + Math.random() * 20;
+                }
+
+                ctx.fillStyle = '#69B7B2';
+                ctx.globalAlpha = p.opacity;
+                
+                if (p.len > 5) {
+                    // Line with fading tail
+                    const grad = ctx.createLinearGradient(p.x, 0, p.x + p.len, 0);
+                    grad.addColorStop(0, 'rgba(105, 183, 178, 0)');
+                    grad.addColorStop(1, `rgba(105, 183, 178, ${p.opacity})`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(p.x, p.y, p.len, p.width);
+                } else {
+                    // Particle
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.width, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            ctx.globalAlpha = 1;
+            frameId = requestAnimationFrame(render);
+        };
+        render();
+
+        const resize = () => {
+            if (canvas.parentElement) {
+                width = canvas.width = canvas.parentElement.clientWidth;
+                height = canvas.height = canvas.parentElement.clientHeight;
+            }
+        };
+        window.addEventListener('resize', resize);
+        return () => {
+            cancelAnimationFrame(frameId);
+            window.removeEventListener('resize', resize);
+        };
+    }, []);
+
+    return <canvas ref={canvasRef} className="w-full h-full" />;
+};
+
 // --- SCENARIO DATA ---
 const SCENARIOS = [
     {
@@ -783,6 +860,12 @@ export const FeatureShowcase: React.FC = () => {
                         playsInline
                         className="w-full h-auto max-h-[350px] object-cover opacity-80"
                      />
+                     
+                     {/* Speed Lines Effect */}
+                     <div className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none mix-blend-screen">
+                        <SpeedVisualizer />
+                     </div>
+
                      {/* Gradient to blend seamlessly into the UI below */}
                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0c]" />
                 </div>
