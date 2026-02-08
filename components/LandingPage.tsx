@@ -285,7 +285,7 @@ export const LandingPage: React.FC = () => {
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
                     <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         We help organizations locate, understand, and <br/>
-                        <span className="text-[#69B7B2] italic">mobilize their knowledge.</span>
+                        <span className="text-[#69B7B2] italic">mobilize their knowledge with AI.</span>
                     </h1>
                     
                     <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
