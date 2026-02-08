@@ -1202,7 +1202,7 @@ export const FeatureShowcase: React.FC = () => {
                 <div className="mb-16 md:flex md:items-end md:justify-between">
                     <div className="max-w-2xl">
                         <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
-                            AI models that <span className="text-[#69B7B2] italic">think like you do.</span>
+                            AI models that think like <span className="text-[#69B7B2] italic">you do.</span>
                         </h2>
                         <p className="mt-6 text-lg text-white/50 font-light">
                             Seven specialized engines working in concert to locate, understand, and act on your enterprise data.
