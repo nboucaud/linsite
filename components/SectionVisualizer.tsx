@@ -55,12 +55,13 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 },
             boxes: [], 
             stack: [],
-            // Identity Mode (Strategic Nexus) State
-            satellites: [],
-            nexusPackets: [],
-            systemLogs: [],
-            logTimer: 0,
-            orbitSpeed: 0.002,
+            // Identity Mode (Flashcard) State
+            cards: [],
+            activeCardIndex: 0,
+            swipeProgress: 0, // 0 to 1
+            swipeDirection: 1, // 1 = right, -1 = left
+            cardState: 'reading', // reading, swiping
+            cardTimer: 0,
             // Logic/Strategy Mode State
             packets: [],
             initializedMode: null
@@ -81,27 +82,18 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.initializedMode = mode;
 
             if (mode === 'identity') {
-                // Initialize "Strategic Nexus"
-                // Satellites orbiting a central core
-                const domains = [
-                    { label: "LEGAL_CORPUS", r: 140, speed: 1.0 },
-                    { label: "HISTORICAL_DATA", r: 190, speed: 0.8 },
-                    { label: "FINANCIAL_MODELS", r: 230, speed: 0.6 },
-                    { label: "TECH_STACK", r: 160, speed: -0.9 }, // Retrograde
-                    { label: "HR_POLICIES", r: 210, speed: -0.7 }
+                // Initialize Flashcards
+                state.cards = [
+                    { category: "POLICY_UPDATE", title: "Data Retention", text: "Purge cycles set to 90 days.", color: "#3b82f6" },
+                    { category: "WORKFLOW", title: "Approval Chain", text: "New vendor requires VP sign-off.", color: "#10b981" },
+                    { category: "COMPLIANCE", title: "PII Detection", text: "Filter updated for EU-West-1.", color: "#f59e0b" },
+                    { category: "TRAINING", title: "Phishing Alert", text: "Report suspicious email headers.", color: "#ef4444" },
+                    { category: "STRATEGY", title: "Q3 Targets", text: "Focus on retention metrics.", color: "#8b5cf6" }
                 ];
-
-                state.satellites = domains.map((d, i) => ({
-                    ...d,
-                    angle: (i / domains.length) * Math.PI * 2,
-                    x: 0, y: 0 // Calculated in render
-                }));
-
-                state.nexusPackets = [];
-                state.systemLogs = [
-                    { text: "SYSTEM_READY", opacity: 1, type: 'info' }
-                ];
-                state.logTimer = 0;
+                state.activeCardIndex = 0;
+                state.cardState = 'reading';
+                state.cardTimer = 0;
+                state.swipeProgress = 0;
             }
             else if (mode === 'search') {
                 const particleCount = 80;
@@ -196,156 +188,142 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             ctx.clearRect(0, 0, w, h);
             
             if (mode === 'identity') {
-                // --- STRATEGIC NEXUS (High-Fidelity) ---
+                // --- FLASHCARD ENGINE ---
                 
-                const centerX = w * 0.4; // Shifted left to make room for logs
-                const centerY = h * 0.5;
-
-                // 1. UPDATE SATELLITES
-                state.satellites.forEach((sat: any) => {
-                    sat.angle += state.orbitSpeed * sat.speed;
-                    // Elliptical Orbit
-                    sat.x = centerX + Math.cos(sat.angle) * sat.r;
-                    sat.y = centerY + Math.sin(sat.angle) * (sat.r * 0.8); // 0.8 aspect ratio for depth
-                });
-
-                // 2. LOGIC ENGINE (Randomly trigger data flows)
-                if (Math.random() > 0.96) {
-                    const source = state.satellites[Math.floor(Math.random() * state.satellites.length)];
-                    state.nexusPackets.push({
-                        sx: source.x, sy: source.y,
-                        tx: centerX, ty: centerY,
-                        progress: 0,
-                        speed: 0.02 + Math.random() * 0.02,
-                        type: 'inbound', // Satellite -> Core
-                        label: source.label
-                    });
-                }
-
-                // 3. DRAW ORBITAL RINGS (Background)
-                ctx.lineWidth = 1;
-                state.satellites.forEach((sat: any) => {
-                    ctx.beginPath();
-                    ctx.ellipse(centerX, centerY, sat.r, sat.r * 0.8, 0, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-                    ctx.stroke();
-                });
-
-                // 4. DRAW CONNECTIONS & PACKETS
-                // We use curved lines (Bezier) for organic feel
-                state.nexusPackets.forEach((p: any, i: number) => {
-                    p.progress += p.speed;
-                    
-                    // Bezier Control Point (creates an arc)
-                    const midX = (p.sx + p.tx) / 2;
-                    const midY = (p.sy + p.ty) / 2 - 20; // Arc upwards
-
-                    // Calculate current position on Bezier
-                    const t = p.progress;
-                    const invT = 1 - t;
-                    const curX = invT*invT*p.sx + 2*invT*t*midX + t*t*p.tx;
-                    const curY = invT*invT*p.sy + 2*invT*t*midY + t*t*p.ty;
-
-                    // Draw Trail
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 * (1-t)})`;
-                    ctx.beginPath();
-                    ctx.moveTo(p.sx, p.sy);
-                    ctx.quadraticCurveTo(midX, midY, curX, curY);
-                    ctx.stroke();
-
-                    // Draw Head
-                    ctx.fillStyle = color;
-                    ctx.shadowColor = color; ctx.shadowBlur = 10;
-                    ctx.beginPath(); ctx.arc(curX, curY, 2, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowBlur = 0;
-
-                    if (p.progress >= 1) {
-                        // Packet Hit Core -> Generate Log
-                        if (p.type === 'inbound') {
-                            const events = [
-                                "CONTEXT_MATCH", "POLICY_CHECK", "RISK_ANALYSIS", "HISTORY_LOOKUP", "COMPLIANCE_SCAN"
-                            ];
-                            const event = events[Math.floor(Math.random() * events.length)];
-                            const logText = `> ${event}: ${p.label.split('_')[0]}_ID_${Math.floor(Math.random()*1000)}`;
-                            
-                            state.systemLogs.unshift({ text: logText, opacity: 1, type: 'process' });
-                            if (state.systemLogs.length > 8) state.systemLogs.pop();
-                        }
-                        state.nexusPackets.splice(i, 1);
+                // Logic
+                if (state.cardState === 'reading') {
+                    state.cardTimer++;
+                    if (state.cardTimer > 180) { // 3 seconds read time
+                        state.cardState = 'swiping';
+                        state.swipeDirection = Math.random() > 0.5 ? 1 : -1;
                     }
-                });
-
-                // 5. DRAW SATELLITES
-                state.satellites.forEach((sat: any) => {
-                    ctx.fillStyle = '#0c0c0e';
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                    ctx.lineWidth = 1;
-                    
-                    ctx.beginPath(); ctx.arc(sat.x, sat.y, 4, 0, Math.PI*2); 
-                    ctx.fill(); ctx.stroke();
-
-                    // Tiny label
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                    ctx.font = '8px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(sat.label, sat.x, sat.y + 12);
-                });
-
-                // 6. CENTRAL CORE (The User / Enterprise)
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                
-                // Outer Ring (Rotating)
-                ctx.rotate(time * 0.2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1;
-                ctx.setLineDash([5, 10]);
-                ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.stroke();
-                ctx.setLineDash([]);
-
-                // Inner Ring (Counter-Rotating)
-                ctx.rotate(-time * 0.4);
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI * 2); ctx.stroke();
-
-                // Solid Core
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
-                
-                ctx.restore();
-
-                // 7. SYSTEM LOG (Right Sidebar)
-                const logX = w * 0.7;
-                const logY = h * 0.25;
-                
-                ctx.fillStyle = 'rgba(255,255,255,0.05)';
-                drawRoundedRect(logX, logY - 10, w * 0.25, h * 0.6, 8);
-                // ctx.fill(); // Optional background
-
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'left';
-                
-                // Header
-                ctx.fillStyle = color;
-                ctx.fillText("/// STRATEGIC_INTEL_FEED", logX + 10, logY + 10);
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fillRect(logX + 10, logY + 20, w * 0.25 - 40, 1);
-
-                // Entries
-                state.systemLogs.forEach((log: any, i: number) => {
-                    const y = logY + 40 + i * 20;
-                    ctx.fillStyle = `rgba(255, 255, 255, ${log.opacity * 0.7})`;
-                    ctx.fillText(log.text, logX + 10, y);
-                    
-                    // Decay opacity slightly for older logs visual effect?
-                    // actually keep them visible, just fade out the bottom one if we wanted
-                });
-
-                // Blinking Cursor at bottom of logs
-                if (Math.floor(time * 2) % 2 === 0) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(logX + 10, logY + 40 + state.systemLogs.length * 20, 6, 12);
+                } else if (state.cardState === 'swiping') {
+                    state.swipeProgress += 0.04;
+                    if (state.swipeProgress >= 1.5) { // Gone off screen
+                        state.cardState = 'reading';
+                        state.cardTimer = 0;
+                        state.swipeProgress = 0;
+                        state.activeCardIndex = (state.activeCardIndex + 1) % state.cards.length;
+                    }
                 }
+
+                // Drawing Configuration
+                const cardW = 180;
+                const cardH = 240;
+                
+                // Draw Background Stack (3 cards)
+                for(let i=3; i>0; i--) {
+                    const idx = (state.activeCardIndex + i) % state.cards.length;
+                    const card = state.cards[idx];
+                    
+                    const offset = i * 4;
+                    const scale = 1 - (i * 0.05);
+                    const alpha = 1 - (i * 0.2);
+                    
+                    ctx.save();
+                    ctx.translate(cx, cy + offset);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = alpha * 0.5;
+                    
+                    // Card Body
+                    ctx.fillStyle = '#1a1a1c';
+                    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    drawRoundedRect(-cardW/2, -cardH/2, cardW, cardH, 12);
+                    ctx.fill();
+                    
+                    // Top Bar
+                    ctx.fillStyle = card.color;
+                    ctx.beginPath();
+                    // Clip top rounded part manually or just draw a rect if simple
+                    // Simple top bar
+                    drawRoundedRect(-cardW/2, -cardH/2, cardW, 6, 4);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+
+                // Draw Active Card
+                const activeCard = state.cards[state.activeCardIndex];
+                
+                let activeX = cx;
+                let activeY = cy;
+                let activeRot = 0;
+                let activeAlpha = 1;
+
+                if (state.cardState === 'swiping') {
+                    const t = state.swipeProgress;
+                    activeX = cx + (t * w * 0.8 * state.swipeDirection);
+                    activeY = cy + Math.abs(Math.sin(t * Math.PI)) * 50;
+                    activeRot = t * 0.2 * state.swipeDirection;
+                    activeAlpha = 1 - Math.min(1, t * 0.8);
+                }
+
+                ctx.save();
+                ctx.translate(activeX, activeY);
+                ctx.rotate(activeRot);
+                ctx.globalAlpha = activeAlpha;
+
+                // Card Body
+                ctx.fillStyle = '#1a1a1c';
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                drawRoundedRect(-cardW/2, -cardH/2, cardW, cardH, 12);
+                ctx.fill();
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Color Bar
+                ctx.fillStyle = activeCard.color;
+                // Top rounded rect
+                ctx.beginPath();
+                ctx.moveTo(-cardW/2 + 12, -cardH/2);
+                ctx.lineTo(cardW/2 - 12, -cardH/2);
+                ctx.quadraticCurveTo(cardW/2, -cardH/2, cardW/2, -cardH/2 + 12);
+                ctx.lineTo(cardW/2, -cardH/2 + 20);
+                ctx.lineTo(-cardW/2, -cardH/2 + 20);
+                ctx.lineTo(-cardW/2, -cardH/2 + 12);
+                ctx.quadraticCurveTo(-cardW/2, -cardH/2, -cardW/2 + 12, -cardH/2);
+                ctx.fill();
+
+                // Text Content
+                ctx.textAlign = 'center';
+                ctx.fillStyle = activeCard.color;
+                ctx.font = 'bold 9px monospace';
+                ctx.fillText(activeCard.category, 0, -cardH/2 + 35);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px sans-serif';
+                // Simple wrap for title if needed, but keeping short
+                ctx.fillText(activeCard.title, 0, -20);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.font = '11px sans-serif';
+                const words = activeCard.text.split(' ');
+                let line = "";
+                let ly = 10;
+                for(let i=0; i<words.length; i++) {
+                    const testLine = line + words[i] + " ";
+                    if (ctx.measureText(testLine).width > cardW - 30) {
+                        ctx.fillText(line, 0, ly);
+                        line = words[i] + " ";
+                        ly += 16;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line, 0, ly);
+
+                // Progress Bar at bottom
+                if (state.cardState === 'reading') {
+                    const p = state.cardTimer / 180;
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(-cardW/2 + 20, cardH/2 - 20, cardW - 40, 4);
+                    ctx.fillStyle = activeCard.color;
+                    ctx.fillRect(-cardW/2 + 20, cardH/2 - 20, (cardW - 40) * p, 4);
+                }
+
+                ctx.restore();
             }
             else if (mode === 'search') {
                 const processLine = w * 0.4;

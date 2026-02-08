@@ -130,7 +130,7 @@ const STATS = [
     {
         value: "29%",
         label: "The Scaling Gap",
-        desc: "Only 29% of companies <$100M revenue scale AI successfully vs 50% of large enterprises.",
+        desc: "Only 29% of mid-market companies scale AI successfully vs 50% of large enterprises.",
         source: "McKinsey",
         icon: Scale,
         color: "#f472b6", // Pink
@@ -148,7 +148,7 @@ const STATS = [
     {
         value: "75%",
         label: "Data Risk",
-        desc: "Small business owners indicate limited access to data would directly harm operations.",
+        desc: "Business leaders indicate limited access to data would directly harm operations.",
         source: "U.S. Chamber",
         icon: Database,
         color: "#ef4444", // Red
@@ -207,7 +207,7 @@ const PILLARS = [
         color: '#3b82f6', // Blue
         visualMode: 'signal',
         content: {
-            problem: "Revenue signals in SMB environments tend to arrive unevenly. Customer behavior shifts, channels perform inconsistently, and attribution is rarely straightforward. Leaders are often forced to interpret performance using partial data, anecdotal feedback, or short-term trends that may not reflect underlying demand.\n\nWe recognize that the **difficulty lies in separating meaningful patterns from temporary noise.** Growth decisions must be made before certainty is available, yet overreacting to early signals can be as costly as ignoring them. Teams may track metrics diligently, but still struggle to connect marketing activity, customer behavior, and long-term revenue outcomes into a coherent picture. This creates a tension between speed and confidence. The problem is not insight itself, but knowing which signals to trust as conditions evolve and the business scales.",
+            problem: "Revenue signals in high-growth environments tend to arrive unevenly. Customer behavior shifts, channels perform inconsistently, and attribution is rarely straightforward. Leaders are often forced to interpret performance using partial data, anecdotal feedback, or short-term trends that may not reflect underlying demand.\n\nWe recognize that the **difficulty lies in separating meaningful patterns from temporary noise.** Growth decisions must be made before certainty is available, yet overreacting to early signals can be as costly as ignoring them. Teams may track metrics diligently, but still struggle to connect marketing activity, customer behavior, and long-term revenue outcomes into a coherent picture. This creates a tension between speed and confidence. The problem is not insight itself, but knowing which signals to trust as conditions evolve and the business scales.",
             intervene: "With every client, we start by acknowledging that curving uncertainty and complexity is part of the growth process. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, connecting marketing activity, customer behavior, and performance outcomes into a **coherent narrative that evolves over time.** This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions. The aim is steadier judgment. Support helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions.",
             approach: "Support starts by acknowledging that uncertainty is part of growth. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, like connecting marketing activity, customer behavior, and performance outcomes into a coherent narrative that evolves over time. This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions.\n\nThe aim is always to foster **steadier judgment and decision-making for our clients**, based on the intelligence that they believe in. We believe that this helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions."
         }
@@ -426,14 +426,14 @@ export const SmallBusinessPage: React.FC = () => {
                         <div className="relative z-20 max-w-[1800px] mx-auto px-6 md:px-12 w-full text-center md:text-left pointer-events-none">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-500 text-[10px] font-bold uppercase tracking-widest mb-8 animate-in slide-in-from-bottom-4 duration-700 backdrop-blur-md pointer-events-auto">
                                 <Zap size={14} />
-                                <span>SMB Operations</span>
+                                <span>Business Operations</span>
                             </div>
                             <h1 className="text-5xl md:text-8xl font-serif text-white mb-8 max-w-4xl leading-[0.95] tracking-tight">
                                 Lean, High-Velocity <br/>
                                 <span className="text-purple-500 italic">Organizations.</span>
                             </h1>
                             <p className="text-xl text-white/60 max-w-2xl leading-relaxed mb-12 font-light">
-                                SMB Operations are defined by rapid decision cycles, constrained resources, and the need to scale without enterprise overhead.
+                                Business Operations are defined by rapid decision cycles, constrained resources, and the need to scale without enterprise overhead.
                             </p>
                             <div className="flex flex-col md:flex-row gap-4 pointer-events-auto">
                                 <button onClick={() => document.getElementById('strategic-domains')?.scrollIntoView({behavior: 'smooth'})} className="px-8 py-4 bg-purple-500 hover:bg-purple-400 text-black font-bold uppercase tracking-widest text-xs rounded transition-all shadow-[0_0_30px_rgba(139,92,246,0.3)]">
@@ -451,7 +451,7 @@ export const SmallBusinessPage: React.FC = () => {
                             <div className="max-w-[1800px] mx-auto px-6 md:px-12 text-center relative z-10">
                                 <h2 className="text-3xl md:text-4xl font-serif text-white mb-12">The Scaling Paradox</h2>
                                 <p className="text-lg md:text-xl text-white/60 leading-relaxed text-justify font-light max-w-4xl mx-auto">
-                                    SMB Operations refers to small and mid-sized businesses where operational decisions, revenue strategy, analytics, and technology adoption are tightly coupled and continuously evolving. Unlike large enterprises, SMBs operate without the buffer of specialized departments. Planning, execution, and adjustment occur simultaneously. As SMBs grow, operational complexity increases faster than formal structure. Success depends on integrated systems that support planning, execution, and scaling while preserving speed, accountability, and adaptability.
+                                    Business Operations refers to organizations where operational decisions, revenue strategy, analytics, and technology adoption are tightly coupled and continuously evolving. Unlike large enterprises, modern businesses operate without the buffer of specialized departments. Planning, execution, and adjustment occur simultaneously. As organizations grow, operational complexity increases faster than formal structure. Success depends on integrated systems that support planning, execution, and scaling while preserving speed, accountability, and adaptability.
                                 </p>
                             </div>
                         </section>

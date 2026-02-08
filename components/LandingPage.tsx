@@ -49,7 +49,7 @@ const INDUSTRIES = [
     },
     {
         id: 'smb',
-        title: "SMB Operations",
+        title: "Business Operations",
         subtitle: "High-Velocity Strategy",
         desc: "Rapid decision cycles and resource allocation for organizations scaling without enterprise overhead.",
         path: "our-clients/industries/smb-operations",

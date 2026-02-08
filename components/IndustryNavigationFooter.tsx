@@ -14,7 +14,7 @@ interface Industry {
 
 const INDUSTRIES: Industry[] = [
     { id: 'logistics', title: "Logistics", desc: "Global movement & coordination.", path: "our-clients/industries/logistics", icon: Truck, color: "#06b6d4" },
-    { id: 'smb', title: "SMB Operations", desc: "High-velocity lean tooling.", path: "our-clients/industries/smb-operations", icon: Briefcase, color: "#8b5cf6" },
+    { id: 'smb', title: "Business Operations", desc: "High-velocity lean tooling.", path: "our-clients/industries/smb-operations", icon: Briefcase, color: "#8b5cf6" },
     { id: 'industrials', title: "Industrials", desc: "Heavy asset reliability.", path: "our-clients/industries/industrials", icon: Factory, color: "#f59e0b" },
     { id: 'healthcare', title: "Healthcare", desc: "Compliance & capacity.", path: "our-clients/industries/healthcare", icon: Activity, color: "#14b8a6" },
     { id: 'resources', title: "Resources", desc: "Physical constraints.", path: "our-clients/industries/natural-resources", icon: Globe, color: "#10b981" }
