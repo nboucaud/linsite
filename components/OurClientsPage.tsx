@@ -542,18 +542,16 @@ const TerminalPacmanGame: React.FC = () => {
         <div ref={containerRef} className="relative w-full max-w-2xl mx-auto h-[300px] bg-[#0c0c0e] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none" onMouseMove={handleMouseMove}>
             
             {gameState === 'start' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 transition-opacity duration-500">
-                    <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-6 group-hover:scale-110 transition-transform cursor-pointer" onClick={initGame}>
-                        <Terminal size={32} className="text-[#69B7B2]" />
-                    </div>
-                    <h3 className="text-2xl font-serif text-white mb-2">Ingestion Protocol</h3>
-                    <p className="text-white/50 text-sm mb-8">Guide the agent to ingest documents. Avoid firewalls.</p>
-                    <button 
-                        onClick={initGame}
-                        className="px-8 py-3 bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs rounded-full flex items-center gap-2 transition-colors shadow-lg shadow-teal-500/20"
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md z-50 transition-opacity duration-500">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); initGame(); }}
+                        className="group relative w-24 h-24 bg-[#1a1a1c] rounded-full flex items-center justify-center mb-8 transition-all border-t border-white/10 border-b border-black/50 shadow-[0_6px_0_#000,0_10px_20px_rgba(0,0,0,0.5)] active:shadow-[0_0_0_#000] active:translate-y-[6px] hover:bg-[#252528]"
                     >
-                        <Play size={14} fill="currentColor" /> Initialize
+                        <Terminal size={40} className="text-white/40 group-hover:text-[#69B7B2] transition-colors" />
+                        <div className="absolute inset-0 rounded-full ring-1 ring-white/5 pointer-events-none" />
                     </button>
+                    <h3 className="text-2xl font-serif text-white mb-2 tracking-tight">Ingestion Protocol</h3>
+                    <p className="text-white/50 text-sm mb-8 font-mono">Click button above to initialize agent.</p>
                 </div>
             )}
 
