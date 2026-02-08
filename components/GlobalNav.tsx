@@ -19,7 +19,7 @@ const SITEMAP: Record<string, NavSection> = {
     path: "our-clients",
     items: [
         { label: "Logistics", path: "our-clients/industries/logistics" },
-        { label: "Business Operations", path: "our-clients/industries/smb-operations" },
+        { label: "Business Operations", path: "our-clients/industries/business-operations" },
         { label: "Industrial Systems", path: "our-clients/industries/industrials" },
         { label: "Healthcare", path: "our-clients/industries/healthcare" },
         { label: "Natural Resources", path: "our-clients/industries/natural-resources" }
