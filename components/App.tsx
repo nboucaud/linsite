@@ -20,7 +20,6 @@ const IndustrialsPage = React.lazy(() => import('./components/IndustrialsPage').
 const NaturalResourcesPage = React.lazy(() => import('./components/NaturalResourcesPage').then(module => ({ default: module.NaturalResourcesPage })));
 const OurClientsPage = React.lazy(() => import('./components/OurClientsPage').then(module => ({ default: module.OurClientsPage })));
 const CareersPage = React.lazy(() => import('./components/CareersPage').then(module => ({ default: module.CareersPage })));
-const DownloadHeroesPage = React.lazy(() => import('./components/DownloadHeroesPage').then(module => ({ default: module.DownloadHeroesPage })));
 const TrustCenterPage = React.lazy(() => import('./components/TrustCenterPage').then(module => ({ default: module.TrustCenterPage })));
 const GenericPage = React.lazy(() => import('./components/GenericPage').then(module => ({ default: module.GenericPage })));
 
@@ -54,7 +53,6 @@ const MainContent = () => {
   if (currentPath === 'contact') return <ContactPage />;
   if (currentPath === 'our-clients') return <OurClientsPage />; 
   if (currentPath === 'about/careers') return <CareersPage />;
-  if (currentPath === 'download-heroes') return <DownloadHeroesPage />;
   if (currentPath === 'trust-center') return <TrustCenterPage />;
   
   // 2. EXACT MATCHES FOR EXISTING COMPLEX PAGES
@@ -81,7 +79,7 @@ const MainContent = () => {
   }
   
   if (currentPath === 'platform/features/agentic-workflows') {
-      return <GenericPage title="Agentic Workflows" subtitle="Build complex autonomous agents visually." category="Platform Feature" />;
+      return <GenericPage title="Agent Workflows" subtitle="Build complex autonomous agents visually." category="Platform Feature" />;
   }
 
   // 3. SECTION ROOTS

@@ -1218,7 +1218,7 @@ export const FeatureShowcase: React.FC = () => {
                         
                         {/* Sidebar Header */}
                         <div className="p-6 hidden lg:block">
-                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Modules</div>
+                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Agent Workflows</div>
                             <div className="h-0.5 w-8 bg-[#69B7B2]" />
                         </div>
 

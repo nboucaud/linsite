@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useNavigation } from '../context/NavigationContext';
-import { Shield, ArrowUpRight } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 const CompBackVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,7 +113,7 @@ export const SiteFooter: React.FC = () => {
                         <h4 className="text-white font-bold text-sm mb-6">Platform</h4>
                         <ul className="space-y-4 text-sm text-white/50">
                             <li><button onClick={() => navigateTo('platform')} className="hover:text-white transition-colors">Overview</button></li>
-                            <li><button onClick={() => navigateTo('platform/features/agentic-workflows')} className="hover:text-white transition-colors">Agentic Workflows</button></li>
+                            <li><button onClick={() => navigateTo('platform/features/agentic-workflows')} className="hover:text-white transition-colors">Agent Workflows</button></li>
                             <li><button onClick={() => navigateTo('platform/features/security-and-privacy')} className="hover:text-white transition-colors">Security & Governance</button></li>
                             <li><button onClick={() => navigateTo('trust-center')} className="hover:text-white transition-colors flex items-center gap-2"><Shield size={12} /> Trust Center</button></li>
                         </ul>
@@ -138,7 +138,6 @@ export const SiteFooter: React.FC = () => {
                             <li><button onClick={() => navigateTo('about/careers')} className="hover:text-white transition-colors">Infogito Labs</button></li>
                             <li><button onClick={() => navigateTo('our-clients')} className="hover:text-white transition-colors">Our Clients</button></li>
                             <li><button onClick={() => navigateTo('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
-                            <li><button onClick={() => navigateTo('download-heroes')} className="hover:text-white transition-colors opacity-50 hover:opacity-100 flex items-center gap-2">Dev Resources <ArrowUpRight size={10} /></button></li>
                         </ul>
                     </div>
                 </div>
