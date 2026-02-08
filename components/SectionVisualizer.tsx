@@ -21,6 +21,27 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
         let frameId: number;
         let time = 0;
         
+        // --- HELPER: Polyfill for roundRect ---
+        const drawRoundedRect = (x: number, y: number, w: number, h: number, r: number) => {
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, r);
+                return;
+            }
+            // Fallback for browsers without roundRect
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        };
+
         // --- STATE MANAGEMENT ---
         const state: any = {
             width: 0,
@@ -136,7 +157,51 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.links.push({ from: 2, to: 3 });
                 state.links.push({ from: 2, to: 4 });
             }
-            // Other modes init on first render
+            else if (mode === 'core') {
+                // KNOWLEDGE TREE - Initialize here to avoid render-loop race conditions
+                // Root
+                state.nodes.push({id:0, x: 0, y: 0, layer: 0});
+                
+                // Layers
+                const layerCounts = [6, 12, 18];
+                let idCounter = 1;
+                
+                // Create nodes first
+                // Layer 1
+                for(let i=0; i<layerCounts[0]; i++) {
+                    const angle = (i / layerCounts[0]) * Math.PI * 2;
+                    state.nodes.push({
+                        id: idCounter++,
+                        x: Math.cos(angle) * 60,
+                        y: Math.sin(angle) * 60,
+                        layer: 1
+                    });
+                }
+                // Layer 2
+                for(let i=0; i<layerCounts[1]; i++) {
+                    const angle = (i / layerCounts[1]) * Math.PI * 2 + 0.2;
+                    state.nodes.push({
+                        id: idCounter++,
+                        x: Math.cos(angle) * 120,
+                        y: Math.sin(angle) * 120,
+                        layer: 2
+                    });
+                }
+
+                // Links
+                // Root to Layer 1
+                for(let i=1; i<=layerCounts[0]; i++) {
+                    state.links.push({from: 0, to: i});
+                }
+                // Layer 1 to Layer 2 (Simple fan out)
+                for(let i=0; i<layerCounts[1]; i++) {
+                    const targetNodeId = 1 + layerCounts[0] + i; // Start after layer 1
+                    const sourceNodeId = 1 + Math.floor(i / 2); // Connect 2 outer to 1 inner
+                    if(state.nodes[targetNodeId] && state.nodes[sourceNodeId]) {
+                        state.links.push({from: sourceNodeId, to: targetNodeId});
+                    }
+                }
+            }
         };
 
         const resize = () => {
@@ -299,7 +364,7 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 
                 // Question (The Caption)
                 ctx.font = 'bold 18px sans-serif'; 
-                const lines = card.q.split(' '); // Simple wrap logic could go here
+                const lines = card.q.split(' '); 
                 ctx.fillText(card.q, 20, h * 0.45 + 25);
                 
                 // Subtext
@@ -325,7 +390,9 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
                     }
                     
-                    ctx.beginPath(); ctx.roundRect(btnX, btnY, btnW, btnH, 12); ctx.fill();
+                    // Use polyfill
+                    drawRoundedRect(btnX, btnY, btnW, btnH, 12);
+                    ctx.fill();
                     
                     // Text
                     ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
@@ -567,11 +634,11 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     } else if (n.type === 'process') {
                         ctx.fillStyle = isActive ? color : '#1a1a1c';
                         ctx.strokeStyle = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
-                        ctx.beginPath(); ctx.roundRect(-40, -20, 80, 40, 4);
+                        drawRoundedRect(-40, -20, 80, 40, 4);
                     } else {
                         ctx.fillStyle = isActive ? color : '#1a1a1c';
                         ctx.strokeStyle = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
-                        ctx.beginPath(); ctx.roundRect(-30, -15, 60, 30, 15);
+                        drawRoundedRect(-30, -15, 60, 30, 15);
                     }
                     
                     ctx.globalAlpha = isActive ? 0.8 : 0.5;
@@ -595,27 +662,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'core') {
-                if (state.nodes.length === 0) {
-                    state.nodes.push({id:0, x: 0, y: 0, layer: 0});
-                    for(let i=1; i<20; i++) {
-                        const layer = Math.floor((i-1)/6) + 1;
-                        const angle = ((i-1)%6) * (Math.PI/3);
-                        const dist = layer * 60;
-                        state.nodes.push({
-                            id: i,
-                            x: Math.cos(angle) * dist,
-                            y: Math.sin(angle) * dist,
-                            layer: layer
-                        });
-                        // Link to center-ish
-                        if (layer === 1) state.links.push({from: 0, to: i});
-                        else {
-                            // simplistic linking
-                            state.links.push({from: i-6, to: i});
-                        }
-                    }
-                }
-
                 if (Math.random() > 0.96) {
                     state.nodes[0].active = 1; 
                     const startLinks = state.links.filter((l: any) => l.from === 0);
@@ -638,8 +684,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.links.forEach((l: any) => {
                     const n1 = state.nodes[l.from];
                     const n2 = state.nodes[l.to];
-                    ctx.moveTo(n1.x, n1.y);
-                    ctx.lineTo(n2.x, n2.y);
+                    if (n1 && n2) {
+                        ctx.moveTo(n1.x, n1.y);
+                        ctx.lineTo(n2.x, n2.y);
+                    }
                 });
                 ctx.stroke();
 
@@ -663,30 +711,44 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     p.t += p.speed;
                     const link = state.links[p.linkIdx];
                     if (!link) { state.particles.splice(i,1); continue; }
+                    
                     const n1 = state.nodes[link.from];
                     const n2 = state.nodes[link.to];
-                    const currX = n1.x + (n2.x - n1.x) * p.t;
-                    const currY = n1.y + (n2.y - n1.y) * p.t;
-                    ctx.fillStyle = '#fff';
-                    ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
-                    ctx.fillRect(currX-1.5, currY-1.5, 3, 3);
-                    ctx.shadowBlur = 0;
-                    if (p.t >= 1) {
-                        n2.active = 1;
-                        if (n2.layer < 3 && Math.random() > 0.3) {
-                            const nextLinks = state.links.map((l: any, idx: number) => ({...l, idx})).filter((l: any) => l.from === link.to);
-                            if (nextLinks.length > 0) {
-                                const nextL = nextLinks[Math.floor(Math.random() * nextLinks.length)];
-                                state.particles.push({ linkIdx: nextL.idx, t: 0, speed: 0.08 });
+                    
+                    if (n1 && n2) {
+                        const currX = n1.x + (n2.x - n1.x) * p.t;
+                        const currY = n1.y + (n2.y - n1.y) * p.t;
+                        ctx.fillStyle = '#fff';
+                        ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
+                        ctx.fillRect(currX-1.5, currY-1.5, 3, 3);
+                        ctx.shadowBlur = 0;
+                        if (p.t >= 1) {
+                            n2.active = 1;
+                            // Propagate
+                            if (n2.layer < 3 && Math.random() > 0.3) {
+                                const nextLinks = state.links
+                                    .map((l: any, idx: number) => ({...l, idx}))
+                                    .filter((l: any) => l.from === link.to);
+                                    
+                                if (nextLinks.length > 0) {
+                                    const nextL = nextLinks[Math.floor(Math.random() * nextLinks.length)];
+                                    state.particles.push({ linkIdx: nextL.idx, t: 0, speed: 0.08 });
+                                }
                             }
+                            state.particles.splice(i, 1);
                         }
+                    } else {
                         state.particles.splice(i, 1);
                     }
                 }
                 ctx.rotate(-time * 0.05);
                 ctx.translate(-cx, -cy);
             }
+            // ... (Other modes: swarm, translation - omitted for brevity as they weren't reported broken, but pattern holds)
             else if (mode === 'swarm') {
+                // (Keeping swarm logic intact as it was stable)
+                // ... (Swarm logic from original file) ...
+                // Re-inserted swarm logic for completeness to avoid regression
                 const beltY = h * 0.65; 
                 const inputEnd = w * 0.45;
                 const outputStart = w * 0.55;
@@ -874,8 +936,8 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.fillStyle = 'rgba(0,0,0,0.3)';
                     ctx.fillRect(b.x + 2, b.y + 2, 4, 4);
                 }
-            }
-            else if (mode === 'translation') {
+            } else if (mode === 'translation') {
+                // Translation mode logic
                 const colWidth = 140; 
                 const numCols = 2; 
                 const SNIPPETS = ["POST /api/v1/ingest", "{ id: '8f3a' }", "WARN: Latency", "Converting...", "0x4F3E21", "SELECT * FROM logs", "Processing...", "struct Node", "ERROR: Timeout", "> System.init()"];
