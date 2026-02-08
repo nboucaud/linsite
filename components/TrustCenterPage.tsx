@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { NeuralBackground } from './NeuralBackground';
 import { useNavigation } from '../context/NavigationContext';
+import { SiteFooter } from './SiteFooter';
 
 // --- VISUALIZER ENGINE: ABSTRACT SECURITY ---
 // Persistent particle system that morphs between security states
@@ -1097,6 +1098,8 @@ export const TrustCenterPage: React.FC = () => {
                     </button>
                 </div>
             </section>
+
+            <SiteFooter />
 
         </div>
     );

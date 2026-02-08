@@ -144,7 +144,6 @@ export const SiteFooter: React.FC = () => {
                     <div className="flex gap-8">
                         <button className="hover:text-white transition-colors">Privacy Policy</button>
                         <button className="hover:text-white transition-colors">Terms of Service</button>
-                        <span>NYC /// LDN /// SGP</span>
                     </div>
                 </div>
             </div>
