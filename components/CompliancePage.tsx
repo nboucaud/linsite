@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Lock, Eye, CheckCircle2, AlertTriangle, FileCheck, ChevronRight, RefreshCw, Server, Globe, Search, Users, Settings, Bell, Download, Trash2, FolderOpen, X, File as FileGeneric, ShieldCheck, UserX, LogOut, Mail, Database, Slack, Network, Key, Link2, ScanLine, Award, Wifi } from 'lucide-react';
 import { ComplianceVisualizer } from './ComplianceVisualizer';
 import { useNavigation } from '../context/NavigationContext';
+import { SiteFooter } from './SiteFooter';
 
 // --- ENHANCED FILE ICON COMPONENT ---
 const FileIcon: React.FC<{ type: 'pdf' | 'excel' | 'word' | 'code' | 'image' | 'ppt' | 'csv' | 'zip' | 'txt', className?: string }> = ({ type, className = "w-10 h-12" }) => {
@@ -61,25 +62,21 @@ const FileIcon: React.FC<{ type: 'pdf' | 'excel' | 'word' | 'code' | 'image' | '
     }
 };
 
+// ... (Keep existing implementation logic for PacManVisualizer, AccessKillSwitch, DocumentWorkspace, ComplianceChecker, AirlockVisualizer) ...
+// For brevity in update, I am assuming the internal logic remains unchanged unless specified. 
+// I will provide the full file content to ensure no logic is lost.
+
 // --- HYBRID PAC-MAN ENGINE ---
 const PacManVisualizer = () => {
-    // ... (Keep existing implementation logic) ...
-    // Note: To save tokens, assume the logic inside this component is unchanged from previous version unless requested.
-    // I will include the full logic to ensure file validity.
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const requestRef = useRef<number>(null);
-    
-    // --- STATE ---
     const [score, setScore] = useState(0);
-
-    // --- CONSTANTS ---
     const PACMAN_X = 140; 
     const PACMAN_SIZE = 60; 
     const SPEED = 2.5;
     const SPACING = 140;
     
-    // --- STATE REFS ---
     const filesRef = useRef(Array.from({ length: 15 }, (_, i) => ({
         id: i,
         type: ['pdf', 'excel', 'word', 'ppt', 'csv', 'zip', 'code'][i % 7],
@@ -111,28 +108,21 @@ const PacManVisualizer = () => {
             const cy = h / 2;
 
             ctx.clearRect(0, 0, w, h);
-
-            // 1. DRAW TRACK
             ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-            ctx.fillRect(0, cy - 1, w, 2); // Center line
+            ctx.fillRect(0, cy - 1, w, 2); 
             
-            // Track dashes moving left
             const dashOffset = (frameCount * SPEED) % 40;
             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             for(let i=0; i<w; i+=40) {
                 ctx.fillRect(i - dashOffset, cy - 4, 10, 8);
             }
 
-            // 2. DRAW AUDIT RISK (CHASER)
             const chaserX = PACMAN_X - 110 + Math.sin(frameCount * 0.05) * 20; 
             const chaserY = cy + Math.sin(frameCount * 0.1) * 8; 
 
             ctx.save();
             ctx.translate(chaserX, chaserY);
-            
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = 'rgba(239, 68, 68, 0.5)';
-
+            ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(239, 68, 68, 0.5)';
             ctx.fillStyle = '#ef4444'; 
             ctx.beginPath();
             ctx.arc(0, -10, 30, Math.PI, 0); 
@@ -142,43 +132,31 @@ const PacManVisualizer = () => {
             ctx.lineTo(-20, 15); ctx.lineTo(-30, 25);
             ctx.lineTo(-30, -10);
             ctx.fill();
-
             ctx.fillStyle = 'white';
             ctx.beginPath(); ctx.ellipse(-12, -12, 8, 10, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(12, -12, 8, 10, 0, 0, Math.PI*2); ctx.fill();
-            
-            ctx.fillStyle = '#1e3a8a'; // Dark blue
+            ctx.fillStyle = '#1e3a8a'; 
             ctx.beginPath(); ctx.arc(-6, -12, 4, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(18, -12, 4, 0, Math.PI*2); ctx.fill();
-
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.moveTo(-20, -22); ctx.lineTo(-5, -18); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(5, -18); ctx.lineTo(20, -22); ctx.stroke();
-
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#fca5a5';
             ctx.font = 'bold 10px monospace';
             ctx.textAlign = 'center';
             ctx.fillText("AUDIT RISK", 0, -50);
-            
             ctx.restore();
 
-            // 3. DRAW PAC-MAN
             const mouthOpen = 0.2 + Math.sin(frameCount * 0.15) * 0.15;
-            
             ctx.save();
             ctx.translate(PACMAN_X, cy);
-            
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = 'rgba(105, 183, 178, 0.6)';
-            
+            ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(105, 183, 178, 0.6)';
             ctx.fillStyle = '#69B7B2';
             ctx.beginPath();
             ctx.arc(0, 0, PACMAN_SIZE/2, mouthOpen * Math.PI, (2 - mouthOpen) * Math.PI);
             ctx.lineTo(0, 0);
             ctx.fill();
-            
             if (frameCount % 60 < 30) {
                 ctx.fillStyle = '#3b82f6';
                 ctx.beginPath();
@@ -188,41 +166,22 @@ const PacManVisualizer = () => {
                 ctx.lineTo(-13, -35);
                 ctx.fill();
             }
-            
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(5, -15, 4, 0, Math.PI*2);
-            ctx.fill();
-            
+            ctx.beginPath(); ctx.arc(5, -15, 4, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(6, -16, 1.5, 0, Math.PI*2);
-            ctx.fill();
-
+            ctx.beginPath(); ctx.arc(6, -16, 1.5, 0, Math.PI*2); ctx.fill();
             ctx.restore();
 
-            // 4. DRAW PARTICLES
             for (let i = particlesRef.current.length - 1; i >= 0; i--) {
                 const p = particlesRef.current[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 0.02;
-                p.vx *= 0.95; 
-
-                if (p.life <= 0) {
-                    particlesRef.current.splice(i, 1);
-                    continue;
-                }
-
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.font = `${p.size}px monospace`;
-                ctx.fillText(p.char, p.x, p.y);
+                p.x += p.vx; p.y += p.vy; p.life -= 0.02; p.vx *= 0.95; 
+                if (p.life <= 0) { particlesRef.current.splice(i, 1); continue; }
+                ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+                ctx.font = `${p.size}px monospace`; ctx.fillText(p.char, p.x, p.y);
             }
             ctx.globalAlpha = 1;
 
-            // 5. UPDATE FILES
             if (containerRef.current) {
                 const fileElements = containerRef.current.children;
                 filesRef.current.forEach((file, i) => {
@@ -237,17 +196,11 @@ const PacManVisualizer = () => {
                         setScore(prev => prev + points);
                         const color = file.isShiny ? '#fbbf24' : (file.type === 'pdf' ? '#ef4444' : file.type === 'excel' ? '#10b981' : '#3b82f6');
                         const pCount = file.isShiny ? 25 : 12; 
-                        
                         for(let k=0; k<pCount; k++) {
                             particlesRef.current.push({
-                                x: PACMAN_X + 10,
-                                y: cy,
-                                vx: (Math.random() * 2) - 4,
-                                vy: (Math.random() - 0.5) * 6,
-                                life: 1.0,
-                                color: color,
-                                char: Math.random() > 0.5 ? '1' : '0',
-                                size: 10 + Math.random() * 8
+                                x: PACMAN_X + 10, y: cy,
+                                vx: (Math.random() * 2) - 4, vy: (Math.random() - 0.5) * 6,
+                                life: 1.0, color: color, char: Math.random() > 0.5 ? '1' : '0', size: 10 + Math.random() * 8
                             });
                         }
                     }
@@ -290,9 +243,7 @@ const PacManVisualizer = () => {
             requestRef.current = requestAnimationFrame(loop);
         };
         requestRef.current = requestAnimationFrame(loop);
-        return () => {
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
-        };
+        return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
     }, []);
 
     return (
@@ -329,9 +280,7 @@ const PacManVisualizer = () => {
     );
 };
 
-// ... (AccessKillSwitch - Kept mostly same but updated border/radius if needed)
 const AccessKillSwitch = () => {
-    // ... (Use same logic, just update container styles below)
     const [revoking, setRevoking] = useState(false);
     const [accessState, setAccessState] = useState<'granted' | 'revoked'>('granted');
     const [progress, setProgress] = useState(0);
@@ -1083,17 +1032,7 @@ export const CompliancePage: React.FC = () => {
           </div>
       </section>
 
-      {/* --- FOOTER --- */}
-      <footer className="bg-black border-t border-white/10 pt-16 pb-8 text-sm">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center opacity-50">
-              <div className="mb-4 md:mb-0">
-                  <img src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" alt="Infogito" className="h-6 w-auto grayscale" />
-              </div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/50">
-                  © 2026 Infogito Security Division.
-              </div>
-          </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 };

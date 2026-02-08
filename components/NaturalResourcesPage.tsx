@@ -250,13 +250,15 @@ const DistillationVisualizer: React.FC<{ color: string }> = ({ color }) => {
         let w = canvas.width = 300;
         let h = canvas.height = 300;
 
+        // FIXED ANIMATION: Rising Bubbles instead of static density
         const particles: any[] = [];
         for(let i=0; i<60; i++) {
             particles.push({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                density: Math.random(), // 0 = light (top), 1 = heavy (bottom)
-                speed: 0.5 + Math.random()
+                r: Math.random() * 3 + 1,
+                speed: 0.5 + Math.random() * 1.5,
+                wobble: Math.random() * Math.PI * 2
             });
         }
 
@@ -282,18 +284,24 @@ const DistillationVisualizer: React.FC<{ color: string }> = ({ color }) => {
             });
 
             particles.forEach(p => {
-                const targetY = p.density * h;
-                // Move towards target density height
-                p.y += (targetY - p.y) * 0.05;
-                p.x += (Math.random()-0.5) * 2;
+                // Rising motion
+                p.y -= p.speed;
+                p.x += Math.sin(p.y * 0.05 + p.wobble) * 0.5;
+
+                // Reset at top
+                if (p.y < 0) {
+                    p.y = h + 10;
+                    p.x = w*0.35 + Math.random() * (w*0.3); // Spawn in tank
+                }
                 
-                // Keep in bounds
-                if(p.x < w*0.35) p.x = w*0.35;
-                if(p.x > w*0.65) p.x = w*0.65;
+                // Constrain to tank
+                if(p.x < w*0.32) p.x = w*0.32;
+                if(p.x > w*0.68) p.x = w*0.68;
 
                 ctx.fillStyle = color;
-                ctx.globalAlpha = 0.5 + (1-p.density)*0.5;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 2 + (1-p.density)*3, 0, Math.PI*2); ctx.fill();
+                // Opacity based on height (fades at top)
+                ctx.globalAlpha = 0.2 + (p.y / h) * 0.6;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
             });
             ctx.globalAlpha = 1;
             frameId = requestAnimationFrame(render);

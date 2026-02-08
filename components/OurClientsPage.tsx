@@ -174,7 +174,7 @@ const IndustryCarousel: React.FC = () => {
 const PHILOSOPHY = [
     { title: "Aligned Incentives", desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.", icon: Handshake, color: "#10b981" },
     { title: "Embedded Engineering", desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.", icon: Users, color: "#3b82f6" },
-    { title: "Data Sovereignty", desc: "Your data remains your asset. Our architecture ensures that models are trained on your context but deployed within your secure perimeter.", icon: ShieldCheck, color: "#8b5cf6" },
+    { title: "Data Sovereignty", desc: "Your data remains your asset. Our architecture ensures that models are trained on your context and deployed within your secure perimeter.", icon: ShieldCheck, color: "#8b5cf6" },
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 

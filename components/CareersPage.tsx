@@ -2,6 +2,7 @@
 import React from 'react';
 import { NeuralBackground } from './NeuralBackground';
 import { ArrowRight, Beaker, Code, Cpu, Globe, Heart, Zap, Sparkles, Mail, Users, BookOpen } from 'lucide-react';
+import { SiteFooter } from './SiteFooter';
 
 const VALUES = [
     { icon: Code, title: "Self-Directed", desc: "There is no curriculum and no manager. You decide what you want to learn and how you want to build it." },
@@ -78,6 +79,8 @@ export const CareersPage: React.FC = () => {
                     </a>
                 </div>
             </div>
+
+            <SiteFooter />
 
         </div>
     );

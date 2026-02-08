@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Target, Shield, Users, Clock, ArrowRight, Binary, Fingerprint, History, Cpu, Globe, Zap, FileText, User, Sparkles, Code, Network, Layers, Database, Lock, ScanLine, Terminal, ChevronDown } from 'lucide-react';
 import { ViewportSlot } from './ViewportSlot';
+import { SiteFooter } from './SiteFooter';
 
 // --- VISUALIZERS ---
 
@@ -502,6 +503,8 @@ export const AboutPage: React.FC = () => {
                     </div>
                 </ScrollReveal>
             </section>
+
+            <SiteFooter />
 
         </div>
     );

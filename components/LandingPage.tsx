@@ -7,6 +7,7 @@ import { ViewportSlot } from './ViewportSlot';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 import { PhilosophyHeroVisualizer } from './PhilosophyHeroVisualizer';
 import { Recaptcha } from './Recaptcha';
+import { SiteFooter } from './SiteFooter';
 
 // --- LAZY LOADED COMPONENTS ---
 const UseCaseShowcase = React.lazy(() => import('./UseCaseShowcase').then(module => ({ default: module.UseCaseShowcase })));
@@ -79,7 +80,7 @@ const INDUSTRIES = [
     },
     {
         id: 'resources',
-        title: "Natural Resources",
+        title: "Natural Resource Sector",
         subtitle: "Physical Constraints",
         desc: "Managing operations defined by geology, long time horizons, and irreversible extraction decisions.",
         path: "our-clients/industries/natural-resources",
@@ -206,7 +207,7 @@ const IndustryCarousel: React.FC = () => {
 const PHILOSOPHY = [
     { title: "Aligned Incentives", desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.", icon: Handshake, color: "#10b981" },
     { title: "Embedded Engineering", desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.", icon: Users, color: "#3b82f6" },
-    { title: "Data Sovereignty", desc: "Your data remains your asset. Our architecture ensures that models are trained on your context but deployed within your secure perimeter.", icon: ShieldCheck, color: "#8b5cf6" },
+    { title: "Data Sovereignty", desc: "Your data remains your asset. Our architecture ensures that models are trained on your context and deployed within your secure perimeter.", icon: ShieldCheck, color: "#8b5cf6" },
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
@@ -411,7 +412,7 @@ export const LandingPage: React.FC = () => {
                                 <span className="text-[#69B7B2] italic">Touch.</span>
                             </h1>
                             <p className="text-xl text-white/70 leading-relaxed max-w-lg font-light border-l border-white/20 pl-6 drop-shadow-lg">
-                                Conversations start here — whether you’re exploring ideas, partnerships, or practical questions. It all starts with a conversation.
+                                Conversations start here — whether you're exploring ideas, partnerships, or practical questions.
                             </p>
                         </div>
 
@@ -443,11 +444,7 @@ export const LandingPage: React.FC = () => {
                                     </div>
 
                                     <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md overflow-hidden p-4">
-                                        <img 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Gito%20AI%20%283%29.webp" 
-                                            alt="Gito AI" 
-                                            className="w-full h-full object-contain opacity-80"
-                                        />
+                                        <Building2 size={48} strokeWidth={1} className="text-[#69B7B2]" />
                                     </div>
                                 </div>
                             </div>
@@ -592,16 +589,7 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            <footer className="bg-black border-t border-white/10 pt-16 pb-8 text-sm">
-                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center opacity-50">
-                    <div className="mb-4 md:mb-0">
-                        <img src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" alt="Infogito" className="h-6 w-auto grayscale" />
-                    </div>
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-white/50">
-                        © 2026 Infogito LLC. All Rights Reserved.
-                    </div>
-                </div>
-            </footer>
+            <SiteFooter />
 
         </div>
     );

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, BarChart3, Truck, Zap, Lock, Database, Globe, CheckCircle2, Cpu, ChevronRight, Terminal, AlertTriangle } from 'lucide-react';
+import { SiteFooter } from './SiteFooter';
 
 // --- DATA ---
 const CASE_STUDIES = [
@@ -356,6 +357,8 @@ export const OurWorkPage: React.FC = () => {
                     <Zap size={32} />
                 </div>
             </div>
+
+            <SiteFooter />
 
         </div>
     );

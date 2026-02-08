@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Mail, Globe, CheckCircle2, ArrowRight, Radio, ChevronDown, CheckSquare, ScanLine } from 'lucide-react';
+import { Mail, Globe, CheckCircle2, ArrowRight, Radio, ChevronDown, CheckSquare, ScanLine, Building2 } from 'lucide-react';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 import { Recaptcha } from './Recaptcha';
+import { SiteFooter } from './SiteFooter';
 
 export const ContactPage: React.FC = () => {
     const [formState, setFormState] = useState<'idle' | 'sending' | 'sent'>('idle');
@@ -38,12 +39,12 @@ export const ContactPage: React.FC = () => {
                             <Radio size={12} className="animate-pulse" />
                             <span>Contact Us</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-serif text-white mb-8 leading-[0.9] tracking-tighter drop-shadow-2xl">
+                        <h1 className="text-4xl md:text-6xl font-serif text-white mb-8 leading-[0.9] tracking-tighter drop-shadow-2xl">
                             Get In <br/>
                             <span className="text-[#69B7B2] italic">Touch.</span>
                         </h1>
                         <p className="text-xl text-white/70 leading-relaxed max-w-lg font-light border-l border-white/20 pl-6 drop-shadow-lg">
-                            Conversations start here — whether you’re exploring ideas, partnerships, or practical questions. It all starts with a conversation.
+                            Conversations start here — whether you're exploring ideas, partnerships, or practical questions.
                         </p>
                     </div>
 
@@ -76,11 +77,7 @@ export const ContactPage: React.FC = () => {
                                 </div>
 
                                 <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md overflow-hidden p-4">
-                                    <img 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/Gito%20AI%20%283%29.webp" 
-                                        alt="Gito AI" 
-                                        className="w-full h-full object-contain opacity-80"
-                                    />
+                                    <Building2 size={48} strokeWidth={1} className="text-[#69B7B2]" />
                                 </div>
                             </div>
                         </div>
@@ -237,6 +234,8 @@ export const ContactPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            
+            <SiteFooter />
         </div>
     );
 };
