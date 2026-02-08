@@ -171,6 +171,156 @@ const IndustryCarousel: React.FC = () => {
     );
 };
 
+// --- SECRET TERMINAL BUTTON (PARTICLE EFFECT) ---
+const SecretTerminalButton: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const particlesRef = useRef<any[]>([]);
+    
+    // Config
+    const W = 400; // Canvas size
+    const H = 400;
+    const CENTER = W / 2;
+
+    const handleClick = () => {
+        const count = 30;
+        const chars = ['0', '1', '>', '_', '/', 'X', ':', '.'];
+        
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 8;
+            
+            // Standard particles
+            particlesRef.current.push({
+                x: CENTER, 
+                y: CENTER,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                color: Math.random() > 0.6 ? '#69B7B2' : (Math.random() > 0.5 ? '#f59e0b' : '#ffffff'),
+                size: Math.random() * 3 + 1,
+                type: 'particle'
+            });
+
+            // Code fragments
+            if (i % 3 === 0) {
+                particlesRef.current.push({
+                    x: CENTER, 
+                    y: CENTER,
+                    vx: Math.cos(angle) * (speed * 0.8),
+                    vy: Math.sin(angle) * (speed * 0.8),
+                    life: 1.2, // Live slightly longer
+                    color: '#69B7B2',
+                    char: chars[Math.floor(Math.random() * chars.length)],
+                    type: 'text'
+                });
+            }
+        }
+        
+        // Add Rings
+        particlesRef.current.push({
+            x: CENTER, y: CENTER, r: 25, maxR: 160, alpha: 1, type: 'ring', color: '#ffffff', width: 2
+        });
+        particlesRef.current.push({
+            x: CENTER, y: CENTER, r: 25, maxR: 130, alpha: 0.8, type: 'ring', color: '#69B7B2', width: 4
+        });
+    };
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        // Fix resolution
+        canvas.width = W;
+        canvas.height = H;
+
+        let frameId: number;
+
+        const render = () => {
+            ctx.clearRect(0, 0, W, H);
+            
+            // Iterate backwards to remove dead particles safely
+            for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+                const p = particlesRef.current[i];
+                
+                if (p.type === 'particle') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.02;
+                    p.vx *= 0.94; // friction
+                    p.vy *= 0.94;
+                    
+                    if (p.life <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                } else if (p.type === 'text') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.015;
+                    
+                    if (p.life <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.font = '10px monospace';
+                    ctx.fillText(p.char, p.x, p.y);
+
+                } else if (p.type === 'ring') {
+                    p.r += (p.maxR - p.r) * 0.15; // Ease out
+                    p.alpha -= 0.04;
+                    
+                    if (p.alpha <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.alpha;
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = p.width;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            ctx.globalAlpha = 1;
+            frameId = requestAnimationFrame(render);
+        };
+        
+        render();
+        return () => cancelAnimationFrame(frameId);
+    }, []);
+
+    return (
+        <div className="relative group w-20 h-20 mx-auto mb-8 cursor-pointer z-10" onClick={handleClick}>
+            {/* Canvas Layer - Centered over button but larger to allow spillover */}
+            <canvas 
+                ref={canvasRef} 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+                style={{ width: '400px', height: '400px' }}
+            />
+            
+            {/* The Button */}
+            <div className="relative w-full h-full bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 group-hover:bg-white/10 group-hover:text-white group-hover:scale-110 transition-all duration-200 shadow-[0_0_0_0_rgba(255,255,255,0)] group-active:shadow-[0_0_30px_rgba(105,183,178,0.4)] group-active:scale-95 z-20 overflow-hidden animate-pulse group-hover:animate-none">
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Terminal size={32} />
+            </div>
+        </div>
+    );
+};
+
 const PHILOSOPHY = [
     { title: "Aligned Incentives", desc: "We structure engagements around outcomes, not seat licenses. Our success is tied directly to the operational improvements we deliver.", icon: Handshake, color: "#10b981" },
     { title: "Embedded Engineering", desc: "Our forward-engineers integrate directly with your teams to understand the nuanced language and bottlenecks of your specific operation.", icon: Users, color: "#3b82f6" },
@@ -323,9 +473,8 @@ export const OurClientsPage: React.FC = () => {
 
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
                 <div className="max-w-3xl mx-auto px-6">
-                    <div className="w-20 h-20 mx-auto bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-8 animate-pulse">
-                        <Terminal size={32} />
-                    </div>
+                    <SecretTerminalButton />
+                    
                     <h2 className="text-4xl md:text-5xl font-serif text-white mb-8">Ready to initiate?</h2>
                     <p className="text-white/60 text-lg mb-12 max-w-xl mx-auto">
                         Let's discuss how we can deploy our infrastructure into your operations.

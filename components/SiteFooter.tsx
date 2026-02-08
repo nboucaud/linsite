@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useNavigation } from '../context/NavigationContext';
-import { Shield } from 'lucide-react';
+import { Shield, ArrowUpRight } from 'lucide-react';
 
 const CompBackVisualizer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,15 +97,11 @@ export const SiteFooter: React.FC = () => {
                         <img 
                             src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
                             alt="Infogito" 
-                            className="h-8 w-auto opacity-80"
+                            className="h-28 w-auto opacity-80"
                         />
                         <p className="text-white/50 text-sm leading-relaxed max-w-xs">
                             Mobilizing knowledge for high-stakes operations. We build the immune system for the information age.
                         </p>
-                        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#69B7B2]">
-                            <div className="w-2 h-2 bg-[#69B7B2] rounded-full animate-pulse" />
-                            System Operational
-                        </div>
                     </div>
 
                     {/* Links Column 1 */}
