@@ -4,7 +4,7 @@ import {
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X, Heart, Trophy, FileText, FileBarChart, FileCode, FileDigit
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X, Heart, Trophy, FileText, FileBarChart, FileCode, FileDigit, Volume2, VolumeX
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
@@ -171,465 +171,476 @@ const IndustryCarousel: React.FC = () => {
     );
 };
 
-// --- PACMAN GAME ENGINES ---
+// --- ARCADE GAME ENGINE ---
 
 const TILE_SIZE = 24;
-const MAP_LAYOUT = [
-    "1111111111111111111111111111",
-    "1000000000000110000000000001",
-    "1011110111110110111110111101",
-    "1311110111110110111110111131",
-    "1011110111110110111110111101",
-    "1000000000000000000000000001",
-    "1011110110111111110110111101",
-    "1011110110111111110110111101",
-    "1000000110000110000110000001",
-    "1111110111112112111110111111",
-    "2222210112222222222110122222",
-    "2222210112111--1112110122222",
-    "1111110112122222212110111111",
-    "2222220002122222212000222222", // Tunnel
-    "1111110112122222212110111111",
-    "2222210112111111112110122222",
-    "2222210112222222222110122222",
-    "1111110110111111110110111111",
-    "1000000000000110000000000001",
-    "1011110111110110111110111101",
-    "1300110000000000000000110031",
-    "1110110110111111110110110111",
-    "1000000110000110000110000001",
-    "1111111111111111111111111111",
+// A tighter, more complex maze layout
+const LEVEL_MAP = [
+    "11111111111111111111111111111",
+    "10000000000001100000000000001",
+    "10111111011101101110111111011",
+    "13111111011101101110111111311",
+    "10111111011101101110111111011",
+    "10000000000000000000000000001",
+    "10111101101111111101101111011",
+    "10111101101111111101101111011",
+    "10000001100001100001100000001",
+    "11111101111121121111101111111",
+    "22222101122222222221101222222",
+    "1111110112111--11121101111111",
+    "22222200021444444120002222222", // Tunnel
+    "11111101121111111121101111111",
+    "22222101122222222221101222222",
+    "11111101101111111101101111111",
+    "10000000000001100000000000001",
+    "10111101111101101111101111011",
+    "13001100000000000000001100311",
+    "11101101101111111101101101111",
+    "10000001100001100001100000001",
+    "11111111111111111111111111111",
 ];
 
-// Map codes: 0=Dot, 1=Wall, 2=Empty, 3=PowerFile, - = GhostGate
+// 0=Dot, 1=Wall, 2=Empty, 3=Power, 4=GhostHouse, -=Gate
+
+interface Pos { x: number, y: number }
+interface Dir { x: number, y: number }
 
 interface Entity {
-    x: number; // Grid coordinates (float for smooth movement)
-    y: number;
-    dir: {x: number, y: number};
-    nextDir: {x: number, y: number};
+    pos: Pos;
+    dir: Dir;
+    nextDir: Dir;
     speed: number;
+    stopped: boolean;
 }
 
-interface Ghost extends Entity {
+interface GhostEntity extends Entity {
     id: number;
     color: string;
-    type: 'chaser' | 'ambusher' | 'wanderer' | 'random';
-    state: 'normal' | 'scared' | 'eaten';
-    scaredTimer: number;
+    mode: 'scatter' | 'chase' | 'frightened' | 'eaten';
+    target: Pos;
 }
+
+// Audio Engine
+const playSound = (type: 'eat' | 'power' | 'die' | 'start' | 'waka') => {
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        
+        if (type === 'eat') {
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.05);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        } else if (type === 'power') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'start') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(440, now + 0.2);
+            osc.frequency.setValueAtTime(880, now + 0.4);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.6);
+        }
+    } catch(e) {}
+};
 
 const TerminalPacmanGame: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'won'>('start');
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'won' | 'gameover'>('start');
     const [score, setScore] = useState(0);
-    const [lives, setLives] = useState(3);
     const [highScore, setHighScore] = useState(0);
+    const [lives, setLives] = useState(3);
+    const [muted, setMuted] = useState(false);
 
-    // Game Refs
-    const player = useRef<Entity>({ x: 13.5, y: 23, dir: {x:0, y:0}, nextDir: {x:0, y:0}, speed: 0.15 });
-    const ghosts = useRef<Ghost[]>([]);
-    const mapData = useRef<number[][]>([]);
-    const frameRef = useRef<number>(null);
-    const scaredTimer = useRef(0);
+    // Refs for game loop state to avoid re-renders
+    const state = useRef({
+        map: [] as number[][],
+        player: { pos: {x:14, y:17}, dir: {x:-1, y:0}, nextDir: {x:-1, y:0}, speed: 0.12, stopped: false } as Entity,
+        ghosts: [] as GhostEntity[],
+        frame: 0,
+        scaredTimer: 0,
+        score: 0,
+        particles: [] as {x:number, y:number, life:number, color:string, size:number}[]
+    });
 
-    // Initialize Game
     const initGame = () => {
         // Parse Map
-        mapData.current = MAP_LAYOUT.map(row => row.split('').map(c => {
-            if(c === '-') return 2; // Treat gate as empty for now (ghosts can pass special logic)
+        state.current.map = LEVEL_MAP.map(row => row.split('').map(c => {
+            if (c === '-') return 2; // Treat gate as empty for movement logic override
             return parseInt(c);
         }));
 
-        player.current = { x: 13.5, y: 15, dir: {x:0, y:0}, nextDir: {x:0, y:0}, speed: 0.12 }; // Slower speed
-        
-        // Init Ghosts
-        ghosts.current = [
-            { id: 0, x: 12, y: 13, dir: {x:1, y:0}, nextDir: {x:1, y:0}, speed: 0.11, color: '#ef4444', type: 'chaser', state: 'normal', scaredTimer: 0 },
-            { id: 1, x: 15, y: 13, dir: {x:-1, y:0}, nextDir: {x:-1, y:0}, speed: 0.1, color: '#f472b6', type: 'ambusher', state: 'normal', scaredTimer: 0 },
-            { id: 2, x: 13.5, y: 11, dir: {x:0, y:1}, nextDir: {x:0, y:1}, speed: 0.1, color: '#06b6d4', type: 'wanderer', state: 'normal', scaredTimer: 0 },
-            { id: 3, x: 13.5, y: 13, dir: {x:0, y:-1}, nextDir: {x:0, y:-1}, speed: 0.1, color: '#f59e0b', type: 'random', state: 'normal', scaredTimer: 0 }
-        ];
-
+        state.current.score = 0;
+        state.current.scaredTimer = 0;
+        state.current.particles = [];
         setScore(0);
         setLives(3);
+        
+        resetPositions();
         setGameState('playing');
-        scaredTimer.current = 0;
+        if(!muted) playSound('start');
     };
 
-    // Keyboard Input
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (gameState !== 'playing') return;
-            // Prevent default scrolling for arrow keys
-            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
-                e.preventDefault();
-            }
-
-            switch(e.code) {
-                case 'ArrowUp': player.current.nextDir = {x: 0, y: -1}; break;
-                case 'ArrowDown': player.current.nextDir = {x: 0, y: 1}; break;
-                case 'ArrowLeft': player.current.nextDir = {x: -1, y: 0}; break;
-                case 'ArrowRight': player.current.nextDir = {x: 1, y: 0}; break;
-            }
+    const resetPositions = () => {
+        state.current.player = { 
+            pos: {x:14, y:23}, // Spawns near bottom center
+            dir: {x:0, y:0}, 
+            nextDir: {x:0, y:0}, 
+            speed: 0.15, 
+            stopped: true 
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [gameState]);
 
-    // Game Loop
+        state.current.ghosts = [
+            { id: 0, pos: {x:13, y:11}, dir: {x:1, y:0}, nextDir: {x:1, y:0}, speed: 0.14, stopped: false, color: '#ef4444', mode: 'scatter', target: {x:25, y:0} }, // Red
+            { id: 1, pos: {x:14, y:11}, dir: {x:-1, y:0}, nextDir: {x:-1, y:0}, speed: 0.13, stopped: false, color: '#f472b6', mode: 'scatter', target: {x:0, y:0} }, // Pink
+            { id: 2, pos: {x:13, y:13}, dir: {x:1, y:0}, nextDir: {x:1, y:0}, speed: 0.12, stopped: false, color: '#06b6d4', mode: 'scatter', target: {x:25, y:28} }, // Cyan
+            { id: 3, pos: {x:14, y:13}, dir: {x:-1, y:0}, nextDir: {x:-1, y:0}, speed: 0.12, stopped: false, color: '#f59e0b', mode: 'scatter', target: {x:0, y:28} }  // Orange
+        ];
+    };
+
+    // --- GAME LOOP ---
     useEffect(() => {
         if (gameState !== 'playing') return;
         const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
 
-        // Scale canvas for retina
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
-
-        // Grid fitting
-        const cols = MAP_LAYOUT[0].length;
-        const rows = MAP_LAYOUT.length;
-        // Center the maze
-        const mazeWidth = cols * TILE_SIZE;
-        const mazeHeight = rows * TILE_SIZE;
-        const offsetX = (rect.width - mazeWidth) / 2;
-        const offsetY = (rect.height - mazeHeight) / 2;
+        let animationFrameId: number;
 
         const isWall = (x: number, y: number) => {
-            if (x < 0 || x >= cols || y < 0 || y >= rows) return true;
-            return mapData.current[Math.floor(y)][Math.floor(x)] === 1;
+            const gy = Math.floor(y);
+            const gx = Math.floor(x);
+            if (gy < 0 || gy >= state.current.map.length || gx < 0 || gx >= state.current.map[0].length) return true;
+            return state.current.map[gy][gx] === 1;
         };
 
-        const moveEntity = (e: Entity) => {
-            // Try changing direction if centered on tile
-            const centerX = Math.floor(e.x) + 0.5;
-            const centerY = Math.floor(e.y) + 0.5;
-            const dist = Math.sqrt((e.x - centerX)**2 + (e.y - centerY)**2);
+        const checkCollision = (ent: Entity) => {
+            // Check center point for collision
+            const cx = ent.pos.x + 0.5;
+            const cy = ent.pos.y + 0.5;
+            
+            // Look ahead
+            const nextX = ent.pos.x + ent.dir.x * ent.speed;
+            const nextY = ent.pos.y + ent.dir.y * ent.speed;
+            
+            // Check tile we are entering
+            const tileX = Math.floor(nextX + 0.5 + ent.dir.x * 0.45);
+            const tileY = Math.floor(nextY + 0.5 + ent.dir.y * 0.45);
 
-            if (dist < e.speed) {
-                // We are at center, can turn?
-                if (e.nextDir.x !== 0 || e.nextDir.y !== 0) {
-                    const nextTileX = Math.floor(e.x) + e.nextDir.x;
-                    const nextTileY = Math.floor(e.y) + e.nextDir.y;
-                    if (!isWall(nextTileX, nextTileY)) {
-                        e.x = centerX; e.y = centerY; // Snap
-                        e.dir = e.nextDir;
-                        e.nextDir = {x:0, y:0};
-                    }
+            // Tunnel
+            if (tileX < 0) { ent.pos.x = state.current.map[0].length - 1; return false; }
+            if (tileX >= state.current.map[0].length) { ent.pos.x = 0; return false; }
+
+            if (isWall(tileX, tileY)) {
+                // Align to grid
+                ent.pos.x = Math.round(ent.pos.x);
+                ent.pos.y = Math.round(ent.pos.y);
+                return true;
+            }
+            return false;
+        };
+
+        const tryTurn = (ent: Entity) => {
+            // Only turn if close to center of tile
+            const cx = Math.floor(ent.pos.x) + 0.5;
+            const cy = Math.floor(ent.pos.y) + 0.5;
+            const dist = Math.sqrt((ent.pos.x + 0.5 - cx)**2 + (ent.pos.y + 0.5 - cy)**2);
+
+            if (dist < ent.speed) {
+                // Check if turn is valid
+                const tx = Math.round(ent.pos.x) + ent.nextDir.x;
+                const ty = Math.round(ent.pos.y) + ent.nextDir.y;
+                
+                if (!isWall(tx, ty)) {
+                    ent.pos.x = Math.round(ent.pos.x);
+                    ent.pos.y = Math.round(ent.pos.y);
+                    ent.dir = ent.nextDir;
+                    return true;
                 }
             }
-
-            // Move
-            const nextX = e.x + e.dir.x * e.speed;
-            const nextY = e.y + e.dir.y * e.speed;
-            
-            // Wall Collision Check (Ahead)
-            // Check tile center of where we are going
-            const checkX = Math.floor(nextX + e.dir.x * 0.45);
-            const checkY = Math.floor(nextY + e.dir.y * 0.45);
-
-            // Tunnel Handling
-            if (checkX < 0) { e.x = cols - 1; return; }
-            if (checkX >= cols) { e.x = 0; return; }
-
-            if (!isWall(checkX, checkY)) {
-                e.x = nextX;
-                e.y = nextY;
-            } else {
-                // Hit wall, snap to center of current tile
-                e.x = Math.floor(e.x) + 0.5;
-                e.y = Math.floor(e.y) + 0.5;
-            }
+            return false;
         };
 
         const render = () => {
-            // Clear
-            ctx.fillStyle = '#0a0a0c';
-            ctx.fillRect(0, 0, rect.width, rect.height);
+            // Dimensions
+            const mapW = state.current.map[0].length;
+            const mapH = state.current.map.length;
+            const scale = Math.min(canvas.width / mapW, canvas.height / mapH);
+            const offX = (canvas.width - mapW * scale) / 2;
+            const offY = (canvas.height - mapH * scale) / 2;
+
+            ctx.fillStyle = '#0c0c0e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             ctx.save();
-            ctx.translate(offsetX, offsetY);
+            ctx.translate(offX, offY);
+            ctx.scale(scale, scale);
 
             // 1. Draw Map
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    const cell = mapData.current[y][x];
-                    const px = x * TILE_SIZE;
-                    const py = y * TILE_SIZE;
-
+            ctx.lineWidth = 0.15;
+            state.current.map.forEach((row, y) => {
+                row.forEach((cell, x) => {
                     if (cell === 1) {
-                        ctx.fillStyle = '#1e3a8a'; // Dark blue wall base
-                        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-                        ctx.strokeStyle = '#3b82f6'; // Neon blue outline
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+                        ctx.strokeStyle = '#1e3a8a';
+                        ctx.strokeRect(x + 0.2, y + 0.2, 0.6, 0.6);
+                        // Connect neighbors visual logic omitted for brevity, using simple blocks style
+                        ctx.fillStyle = 'rgba(30, 58, 138, 0.3)';
+                        ctx.fillRect(x + 0.25, y + 0.25, 0.5, 0.5);
                     } else if (cell === 0) {
-                        // Pellet
                         ctx.fillStyle = '#94a3b8';
-                        ctx.fillRect(px + TILE_SIZE/2 - 2, py + TILE_SIZE/2 - 2, 4, 4);
+                        ctx.fillRect(x + 0.45, y + 0.45, 0.1, 0.1);
                     } else if (cell === 3) {
-                        // Power Pellet (File Icon)
-                        // Simple file shape
                         ctx.fillStyle = '#fbbf24';
-                        ctx.beginPath();
-                        ctx.moveTo(px + 6, py + 4);
-                        ctx.lineTo(px + 14, py + 4);
-                        ctx.lineTo(px + 18, py + 8);
-                        ctx.lineTo(px + 18, py + 20);
-                        ctx.lineTo(px + 6, py + 20);
-                        ctx.fill();
-                        // Fold
-                        ctx.fillStyle = '#d97706';
-                        ctx.beginPath(); ctx.moveTo(px+14, py+4); ctx.lineTo(px+14, py+8); ctx.lineTo(px+18, py+8); ctx.fill();
-                        
-                        // Text label tiny
-                        ctx.font = "bold 6px sans-serif";
-                        ctx.fillStyle = "black";
-                        ctx.fillText("PDF", px+7, py+16);
+                        if (state.current.frame % 30 < 15) {
+                            ctx.beginPath(); ctx.arc(x + 0.5, y + 0.5, 0.25, 0, Math.PI*2); ctx.fill();
+                        }
                     }
+                });
+            });
+
+            // 2. Update Player
+            const p = state.current.player;
+            tryTurn(p);
+            if (!checkCollision(p)) {
+                p.pos.x += p.dir.x * p.speed;
+                p.pos.y += p.dir.y * p.speed;
+            }
+
+            // Eat Dots
+            const pgx = Math.round(p.pos.x);
+            const pgy = Math.round(p.pos.y);
+            const cell = state.current.map[pgy]?.[pgx];
+            
+            if (cell === 0 || cell === 3) {
+                // Center check
+                const dx = p.pos.x - pgx;
+                const dy = p.pos.y - pgy;
+                if (Math.sqrt(dx*dx + dy*dy) < 0.4) {
+                    state.current.map[pgy][pgx] = 2; // Eat
+                    state.current.score += (cell === 3 ? 50 : 10);
+                    setScore(state.current.score);
+                    if (!muted) playSound(cell === 3 ? 'power' : 'eat');
+                    
+                    if (cell === 3) {
+                        state.current.scaredTimer = 600;
+                        state.current.ghosts.forEach(g => { 
+                            if(g.mode !== 'eaten') { g.mode = 'frightened'; g.dir = {x: -g.dir.x, y: -g.dir.y}; }
+                        });
+                    }
+
+                    // Check Win
+                    let dotsLeft = 0;
+                    state.current.map.forEach(r => r.forEach(c => { if(c===0||c===3) dotsLeft++; }));
+                    if (dotsLeft === 0) setGameState('won');
                 }
             }
 
-            // 2. Move & Draw Player
-            moveEntity(player.current);
-            const p = player.current;
-            ctx.fillStyle = '#eab308'; // Yellow
+            // Draw Player
+            ctx.fillStyle = '#eab308';
             ctx.beginPath();
-            // Mouth logic based on dir and time
-            const mouthOpen = Math.abs(Math.sin(Date.now() / 100)) * 0.2 + 0.05;
-            let startAngle = 0;
-            if (p.dir.x === 1) startAngle = 0;
-            if (p.dir.x === -1) startAngle = Math.PI;
-            if (p.dir.y === 1) startAngle = Math.PI/2;
-            if (p.dir.y === -1) startAngle = -Math.PI/2;
-            
-            ctx.arc(p.x * TILE_SIZE + TILE_SIZE/2, p.y * TILE_SIZE + TILE_SIZE/2, TILE_SIZE/2 - 2, startAngle + mouthOpen * Math.PI, startAngle + (2 - mouthOpen) * Math.PI);
-            ctx.lineTo(p.x * TILE_SIZE + TILE_SIZE/2, p.y * TILE_SIZE + TILE_SIZE/2);
+            const mouth = Math.abs(Math.sin(state.current.frame * 0.2)) * 0.25 * Math.PI;
+            const angle = Math.atan2(p.dir.y, p.dir.x);
+            ctx.arc(p.pos.x + 0.5, p.pos.y + 0.5, 0.4, angle + mouth, angle + Math.PI*2 - mouth);
+            ctx.lineTo(p.pos.x + 0.5, p.pos.y + 0.5);
             ctx.fill();
 
-            // 3. Collect Items
-            const pGx = Math.floor(p.x);
-            const pGy = Math.floor(p.y);
-            // Relaxed collision for items
-            if (pGx >= 0 && pGx < cols && pGy >= 0 && pGy < rows) {
-                const cell = mapData.current[pGy][pGx];
-                if (cell === 0) { // Pellet
-                    mapData.current[pGy][pGx] = 2; // Empty
-                    setScore(s => s + 10);
-                } else if (cell === 3) { // Power
-                    mapData.current[pGy][pGx] = 2;
-                    setScore(s => s + 50);
-                    // Scare ghosts
-                    ghosts.current.forEach(g => { 
-                        if(g.state !== 'eaten') g.state = 'scared'; 
-                        g.speed = 0.06; // Slow down
-                    });
-                    scaredTimer.current = 600; // Frames
-                }
+            // 3. Update Ghosts
+            if (state.current.scaredTimer > 0) state.current.scaredTimer--;
+            else {
+                state.current.ghosts.forEach(g => { if(g.mode === 'frightened') g.mode = 'chase'; });
             }
 
-            // 4. Ghost AI & Draw
-            if (scaredTimer.current > 0) {
-                scaredTimer.current--;
-                if (scaredTimer.current <= 0) {
-                    ghosts.current.forEach(g => {
-                        if(g.state === 'scared') g.state = 'normal';
-                        g.speed = 0.1; // Restore speed
-                    });
-                }
-            }
-
-            ghosts.current.forEach(g => {
-                // Simple AI: Move straight, turn at intersection
-                const gx = Math.floor(g.x);
-                const gy = Math.floor(g.y);
-                const centerX = gx + 0.5;
-                const centerY = gy + 0.5;
+            state.current.ghosts.forEach(g => {
+                // AI Logic (Simple)
+                const gcx = Math.floor(g.pos.x) + 0.5;
+                const gcy = Math.floor(g.pos.y) + 0.5;
                 
-                // If at center of tile
-                if (Math.abs(g.x - centerX) < 0.1 && Math.abs(g.y - centerY) < 0.1) {
-                    // Decide new direction
-                    const possibleDirs = [];
-                    if (!isWall(gx, gy-1) && g.dir.y !== 1) possibleDirs.push({x:0, y:-1}); // Up (cant go down immediately)
-                    if (!isWall(gx, gy+1) && g.dir.y !== -1) possibleDirs.push({x:0, y:1}); // Down
-                    if (!isWall(gx-1, gy) && g.dir.x !== 1) possibleDirs.push({x:-1, y:0}); // Left
-                    if (!isWall(gx+1, gy) && g.dir.x !== -1) possibleDirs.push({x:1, y:0}); // Right
+                // If at center, pick new dir
+                if (Math.abs(g.pos.x + 0.5 - gcx) < 0.1 && Math.abs(g.pos.y + 0.5 - gcy) < 0.1) {
+                    const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+                    const validDirs = dirs.filter(d => 
+                        !isWall(Math.round(g.pos.x) + d.x, Math.round(g.pos.y) + d.y) &&
+                        !(d.x === -g.dir.x && d.y === -g.dir.y) // Don't reverse
+                    );
 
-                    if (possibleDirs.length > 0) {
-                        // Choice logic
-                        if (g.state === 'scared') {
-                            // Random
-                            g.dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-                        } else {
-                            // Try to move towards player (simple heuristic)
-                            // Sort dirs by distance to player
-                            possibleDirs.sort((a, b) => {
-                                const distA = Math.sqrt((gx+a.x - p.x)**2 + (gy+a.y - p.y)**2);
-                                const distB = Math.sqrt((gx+b.x - p.x)**2 + (gy+b.y - p.y)**2);
-                                return distA - distB;
-                            });
-                            // Pick best with some randomness for personality
-                            g.dir = possibleDirs[0]; 
-                            if (g.type === 'random' && possibleDirs.length > 1 && Math.random() > 0.5) g.dir = possibleDirs[1];
-                        }
+                    if (validDirs.length > 0) {
+                        // Pick best dir towards target
+                        let target = g.mode === 'chase' ? p.pos : (g.mode === 'frightened' ? {x: Math.random()*28, y: Math.random()*31} : g.target);
+                        if (g.mode === 'eaten') target = {x: 13.5, y: 11};
+
+                        // Sort by dist to target
+                        validDirs.sort((a, b) => {
+                            const da = (g.pos.x + a.x - target.x)**2 + (g.pos.y + a.y - target.y)**2;
+                            const db = (g.pos.x + b.x - target.x)**2 + (g.pos.y + b.y - target.y)**2;
+                            return da - db;
+                        });
+                        g.dir = validDirs[0];
                     } else {
-                        // Dead end, reverse
-                        g.dir = { x: -g.dir.x, y: -g.dir.y };
+                        // Dead end
+                        g.dir = {x: -g.dir.x, y: -g.dir.y};
                     }
                 }
-                
-                g.x += g.dir.x * g.speed;
-                g.y += g.dir.y * g.speed;
+
+                // Move
+                const speed = g.mode === 'eaten' ? 0.2 : (g.mode === 'frightened' ? 0.06 : g.speed);
+                g.pos.x += g.dir.x * speed;
+                g.pos.y += g.dir.y * speed;
 
                 // Draw Ghost
-                const ghostColor = g.state === 'scared' ? (scaredTimer.current < 120 && Math.floor(Date.now()/200)%2===0 ? '#fff' : '#3b82f6') : g.color;
+                const color = g.mode === 'frightened' ? (state.current.scaredTimer < 120 && Math.floor(state.current.frame/10)%2===0 ? '#fff' : '#3b82f6') : (g.mode === 'eaten' ? 'transparent' : g.color);
                 
-                ctx.fillStyle = ghostColor;
-                const gPx = g.x * TILE_SIZE + TILE_SIZE/2;
-                const gPy = g.y * TILE_SIZE + TILE_SIZE/2;
+                ctx.fillStyle = color;
+                const gx = g.pos.x + 0.5; const gy = g.pos.y + 0.5;
                 
-                ctx.beginPath();
-                ctx.arc(gPx, gPy - 2, TILE_SIZE/2 - 2, Math.PI, 0);
-                ctx.lineTo(gPx + TILE_SIZE/2 - 2, gPy + TILE_SIZE/2 - 2);
-                // Feet
-                for(let k=1; k<=3; k++) ctx.lineTo(gPx + TILE_SIZE/2 - 2 - (k*(TILE_SIZE-4)/3), (k%2===0 ? gPy+TILE_SIZE/2-2 : gPy+TILE_SIZE/2-5));
-                ctx.lineTo(gPx - TILE_SIZE/2 + 2, gPy - 2);
-                ctx.fill();
+                if (g.mode !== 'eaten') {
+                    ctx.beginPath();
+                    ctx.arc(gx, gy - 0.1, 0.4, Math.PI, 0);
+                    ctx.lineTo(gx + 0.4, gy + 0.4);
+                    ctx.lineTo(gx - 0.4, gy + 0.4);
+                    ctx.fill();
+                }
 
                 // Eyes
                 ctx.fillStyle = 'white';
-                ctx.beginPath(); ctx.arc(gPx - 4, gPy - 4, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(gPx + 4, gPy - 4, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gx - 0.15, gy - 0.15, 0.12, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gx + 0.15, gy - 0.15, 0.12, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = 'black';
-                ctx.beginPath(); ctx.arc(gPx - 4 + g.dir.x*1.5, gPy - 4 + g.dir.y*1.5, 1.5, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(gPx + 4 + g.dir.x*1.5, gPy - 4 + g.dir.y*1.5, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gx - 0.15 + g.dir.x*0.05, gy - 0.15 + g.dir.y*0.05, 0.06, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gx + 0.15 + g.dir.x*0.05, gy - 0.15 + g.dir.y*0.05, 0.06, 0, Math.PI*2); ctx.fill();
 
-                // Collision with Player
-                const distToPlayer = Math.sqrt((g.x - p.x)**2 + (g.y - p.y)**2);
-                if (distToPlayer < 0.8) {
-                    if (g.state === 'scared') {
-                        g.state = 'eaten';
-                        g.x = 13.5; g.y = 11; // Respawn box
-                        g.state = 'normal';
-                        setScore(s => s + 200);
-                    } else {
-                        // Die
-                        setLives(l => {
-                            if (l <= 1) {
-                                setGameState('gameover');
-                                return 0;
-                            }
-                            // Reset positions
-                            player.current.x = 13.5; player.current.y = 23;
-                            ghosts.current.forEach((gh, idx) => {
-                                gh.x = [12, 15, 13.5, 13.5][idx];
-                                gh.y = [13, 13, 11, 13][idx];
-                            });
-                            return l - 1;
+                // Collision
+                if (Math.abs(g.pos.x - p.pos.x) < 0.5 && Math.abs(g.pos.y - p.pos.y) < 0.5) {
+                    if (g.mode === 'frightened') {
+                        g.mode = 'eaten';
+                        state.current.score += 200;
+                        setScore(state.current.score);
+                        state.current.particles.push({x: gx, y: gy, life: 1, color: '#fff', size: 0.5});
+                    } else if (g.mode === 'chase' || g.mode === 'scatter') {
+                        setLives(prev => {
+                            if (prev <= 1) setGameState('gameover');
+                            resetPositions();
+                            return prev - 1;
                         });
                     }
                 }
             });
 
+            // Particles
+            for(let i=state.current.particles.length-1; i>=0; i--) {
+                const pt = state.current.particles[i];
+                pt.life -= 0.02;
+                if(pt.life <= 0) { state.current.particles.splice(i, 1); continue; }
+                ctx.globalAlpha = pt.life;
+                ctx.fillStyle = pt.color;
+                ctx.font = 'bold 0.5px sans-serif';
+                ctx.fillText("200", pt.x, pt.y - (1-pt.life));
+            }
+            ctx.globalAlpha = 1;
+
             ctx.restore();
-            frameRef.current = requestAnimationFrame(render);
+            state.current.frame++;
+            animationFrameId = requestAnimationFrame(render);
         };
 
         render();
-        return () => { if(frameRef.current) cancelAnimationFrame(frameRef.current); };
+        return () => cancelAnimationFrame(animationFrameId);
     }, [gameState]);
 
-    // High Score tracking
+    // Input Handler
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                const map = { ArrowUp: {x:0, y:-1}, ArrowDown: {x:0, y:1}, ArrowLeft: {x:-1, y:0}, ArrowRight: {x:1, y:0} };
+                state.current.player.nextDir = map[e.key as keyof typeof map];
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, []);
+
+    // Update High Score
     useEffect(() => {
         if (score > highScore) setHighScore(score);
     }, [score]);
 
     return (
-        <div ref={containerRef} className="relative w-full max-w-5xl mx-auto h-[650px] bg-[#0c0c0e] rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none">
+        <div ref={containerRef} className="relative w-full max-w-7xl mx-auto aspect-video bg-[#0c0c0e] rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none flex flex-col">
             
-            {/* START SCREEN OVERLAY */}
+            {/* Header / HUD */}
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-10 pointer-events-none">
+                <div className="flex gap-12">
+                    <div>
+                        <div className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-1">Current Score</div>
+                        <div className="text-3xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
+                    </div>
+                    <div>
+                        <div className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-1">High Score</div>
+                        <div className="text-3xl font-mono text-[#69B7B2] leading-none">{highScore.toString().padStart(6, '0')}</div>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-6 pointer-events-auto">
+                    <button onClick={() => setMuted(!muted)} className="text-white/30 hover:text-white transition-colors">
+                        {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    </button>
+                    <div className="flex gap-2">
+                        {[...Array(3)].map((_, i) => (
+                            <Heart key={i} size={24} className={`${i < lives ? 'text-red-500 fill-red-500' : 'text-white/10 fill-white/5'} transition-colors`} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Canvas */}
+            <canvas ref={canvasRef} width={800} height={600} className="w-full h-full object-contain" />
+
+            {/* Overlays */}
             {gameState === 'start' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md z-50 transition-opacity duration-500">
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 transition-opacity duration-500">
                     <button
-                        onClick={(e) => { e.stopPropagation(); initGame(); }}
-                        className="group relative w-32 h-32 bg-[#1a1a1c] rounded-full flex items-center justify-center mb-8 transition-all border-t border-white/10 border-b border-black/50 shadow-[0_6px_0_#000,0_10px_20px_rgba(0,0,0,0.5)] active:shadow-[0_0_0_#000] active:translate-y-[6px] hover:bg-[#252528]"
+                        onClick={initGame}
+                        className="group relative w-24 h-24 bg-[#1a1a1c] rounded-full flex items-center justify-center mb-8 transition-all border-t border-white/10 border-b border-black/50 shadow-[0_6px_0_#000,0_10px_20px_rgba(0,0,0,0.5)] active:shadow-[0_0_0_#000] active:translate-y-[6px] hover:bg-[#252528] active:border-b-0"
                     >
-                        <Play size={48} className="text-white/40 group-hover:text-[#69B7B2] ml-2 transition-colors" fill="currentColor" />
+                        <Play size={40} className="text-white/40 group-hover:text-[#69B7B2] transition-colors ml-1" fill="currentColor" />
                         <div className="absolute inset-0 rounded-full ring-1 ring-white/5 pointer-events-none" />
                     </button>
-                    <h3 className="text-4xl font-serif text-white mb-2 tracking-tight">System Ingestion</h3>
-                    <p className="text-white/50 text-base mb-8 font-mono">Collect data packets. Avoid firewall ghosts.</p>
-                    <div className="flex gap-4 text-xs font-mono text-white/30 uppercase tracking-widest">
-                        <span className="flex items-center gap-1 border border-white/10 px-2 py-1 rounded"><ArrowUpRight size={10} /> Arrow Keys to Move</span>
-                    </div>
+                    <h2 className="text-3xl font-serif text-white mb-2">Ingestion Protocol</h2>
+                    <p className="text-white/50 font-mono text-sm uppercase tracking-widest">Click to Initialize Agent</p>
                 </div>
             )}
 
-            {/* GAME OVER OVERLAY */}
             {gameState === 'gameover' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/40 backdrop-blur-md z-50 animate-in fade-in duration-300">
-                    <div className="text-6xl font-black text-white mb-4 tracking-tighter drop-shadow-lg">CONNECTION LOST</div>
-                    <div className="text-2xl text-white/80 mb-8 font-mono">DATA INGESTED: {score}</div>
-                    <button 
-                        onClick={initGame}
-                        className="px-10 py-4 bg-white text-black hover:bg-gray-200 font-bold uppercase tracking-widest text-sm rounded-full transition-colors shadow-lg"
-                    >
+                <div className="absolute inset-0 bg-red-900/40 backdrop-blur-md flex flex-col items-center justify-center z-20 animate-in fade-in zoom-in duration-300">
+                    <div className="text-6xl font-black text-white mb-4 tracking-tighter drop-shadow-lg">SIGNAL LOST</div>
+                    <div className="text-xl text-white/80 font-mono mb-8">FINAL SCORE: {score}</div>
+                    <button onClick={initGame} className="px-8 py-3 bg-white text-black font-bold uppercase tracking-widest text-xs rounded-full hover:bg-gray-200 transition-colors">
                         Reboot System
                     </button>
                 </div>
             )}
 
-            <canvas 
-                ref={canvasRef} 
-                className="absolute inset-0 w-full h-full cursor-none block" 
-            />
-            
-            {/* HUD */}
-            <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-40 pointer-events-none">
-                <div className="flex gap-8">
-                    <div>
-                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Current Session</div>
-                        <div className="text-3xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
-                    </div>
-                    <div>
-                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Record</div>
-                        <div className="text-3xl font-mono text-[#69B7B2] leading-none">{highScore.toString().padStart(6, '0')}</div>
-                    </div>
-                </div>
-                
-                <div className="flex gap-2">
-                    {[...Array(3)].map((_, i) => (
-                        <Heart key={i} size={24} className={`${i < lives ? 'text-red-500 fill-red-500' : 'text-white/10 fill-white/5'} transition-all`} />
-                    ))}
-                </div>
-            </div>
-
-            {/* Footer Hints */}
-            {gameState === 'playing' && (
-                <div className="absolute bottom-6 w-full text-center pointer-events-none">
-                    <div className="inline-flex items-center gap-6 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 text-[10px] font-mono text-white/40 uppercase tracking-widest">
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#fbbf24] rounded-sm" /> +50 PTS (Power)</span>
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#94a3b8] rounded-sm" /> +10 PTS (Data)</span>
-                        <span className="flex items-center gap-2 text-red-400"><div className="w-2 h-2 bg-red-500 rounded-full" /> Avoid</span>
-                    </div>
-                </div>
-            )}
-
-            {gameState === 'playing' && (
-                <button 
-                    onClick={() => setGameState('start')}
-                    className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/20 rounded-full text-white/30 hover:text-white transition-colors z-50 pointer-events-auto"
-                >
-                    <X size={20} />
-                </button>
-            )}
+            {/* CRT Scanline Effect Overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+            <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-b from-white/10 to-transparent animate-scan" />
         </div>
     );
 };
