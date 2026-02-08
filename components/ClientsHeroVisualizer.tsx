@@ -58,6 +58,8 @@ export const ClientsHeroVisualizer: React.FC = () => {
         const render = () => {
             time += 0.003;
             
+            if (w === 0 || h === 0) return; // Prevent rendering on zero size
+
             // Clear canvas while maintaining transparency
             ctx.clearRect(0, 0, w, h);
 
@@ -156,8 +158,10 @@ export const ClientsHeroVisualizer: React.FC = () => {
         const handleResize = () => {
             if (canvas.parentElement) {
                 const rect = canvas.parentElement.getBoundingClientRect();
-                w = canvas.width = rect.width;
-                h = canvas.height = rect.height;
+                if (rect.width > 0 && rect.height > 0) {
+                    w = canvas.width = rect.width;
+                    h = canvas.height = rect.height;
+                }
             }
         };
         window.addEventListener('resize', handleResize);

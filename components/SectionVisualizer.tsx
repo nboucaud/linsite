@@ -89,26 +89,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             initializedMode: null
         };
 
-        const resize = () => {
-            const rect = container.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
-            
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            
-            canvas.style.width = `${rect.width}px`;
-            canvas.style.height = `${rect.height}px`;
-            
-            ctx.scale(dpr, dpr);
-            
-            state.width = rect.width;
-            state.height = rect.height;
-            
-            if (mode !== state.initializedMode) {
-                init(rect.width, rect.height);
-            }
-        };
-
         const init = (w: number, h: number) => {
             state.particles = [];
             state.nodes = [];
@@ -156,7 +136,30 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.links.push({ from: 2, to: 3 });
                 state.links.push({ from: 2, to: 4 });
             }
-            // ... (Other modes omitted for brevity, logic remains in 'render')
+            // Other modes init on first render
+        };
+
+        const resize = () => {
+            const rect = container.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            
+            ctx.scale(dpr, dpr);
+            
+            state.width = rect.width;
+            state.height = rect.height;
+            
+            // Re-init if dimensions change significantly or mode changed
+            if (mode !== state.initializedMode || Math.abs(state.width - rect.width) > 10) {
+                init(rect.width, rect.height);
+            }
         };
 
         const render = () => {
@@ -403,7 +406,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     ctx.shadowBlur = 0;
                 }
             }
-            // ... (Existing render logic for other modes)
             else if (mode === 'search') {
                 const processLine = w * 0.4;
                 const laneCount = 5;
@@ -458,6 +460,13 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             }
             else if (mode === 'redaction') {
                 const scanY = (time * 100) % (h + 100) - 50;
+                // Add dummy particles if empty
+                if (state.particles.length === 0) {
+                    for(let i=0; i<50; i++) {
+                        state.particles.push({x: Math.random()*w, y: Math.random()*h, w: 20+Math.random()*40, h: 6});
+                    }
+                }
+                
                 state.particles.forEach((p: any) => {
                     const dist = Math.abs(p.y - scanY);
                     if (dist < 50) {
@@ -477,16 +486,18 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 // Spawn Packets
                 if (Math.random() > 0.98) {
                     const startNodes = state.nodes.filter((n: any) => n.type === 'trigger');
-                    const start = startNodes[Math.floor(Math.random() * startNodes.length)];
-                    state.nodes.forEach((n: any) => { if(n.id === start.id) n.active = 1.0; });
-                    
-                    // Find links from this start
-                    const links = state.links.filter((l: any) => l.from === start.id);
-                    links.forEach((l: any) => {
-                        state.packets.push({
-                            fromId: l.from, toId: l.to, progress: 0, speed: 0.02 + Math.random() * 0.01
+                    if (startNodes.length > 0) {
+                        const start = startNodes[Math.floor(Math.random() * startNodes.length)];
+                        state.nodes.forEach((n: any) => { if(n.id === start.id) n.active = 1.0; });
+                        
+                        // Find links from this start
+                        const links = state.links.filter((l: any) => l.from === start.id);
+                        links.forEach((l: any) => {
+                            state.packets.push({
+                                fromId: l.from, toId: l.to, progress: 0, speed: 0.02 + Math.random() * 0.01
+                            });
                         });
-                    });
+                    }
                 }
 
                 // Draw Links
@@ -495,16 +506,18 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     const n1 = state.nodes.find((n: any) => n.id === l.from);
                     const n2 = state.nodes.find((n: any) => n.id === l.to);
                     
-                    const grad = ctx.createLinearGradient(n1.x, n1.y, n2.x, n2.y);
-                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                    grad.addColorStop(1, 'rgba(255,255,255,0.05)');
-                    ctx.strokeStyle = grad;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(n1.x, n1.y);
-                    const midX = (n1.x + n2.x) / 2;
-                    ctx.bezierCurveTo(midX, n1.y, midX, n2.y, n2.x, n2.y);
-                    ctx.stroke();
+                    if (n1 && n2) {
+                        const grad = ctx.createLinearGradient(n1.x, n1.y, n2.x, n2.y);
+                        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                        grad.addColorStop(1, 'rgba(255,255,255,0.05)');
+                        ctx.strokeStyle = grad;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(n1.x, n1.y);
+                        const midX = (n1.x + n2.x) / 2;
+                        ctx.bezierCurveTo(midX, n1.y, midX, n2.y, n2.x, n2.y);
+                        ctx.stroke();
+                    }
                 });
 
                 // Draw Packets
@@ -515,25 +528,27 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     const n1 = state.nodes.find((n: any) => n.id === p.fromId);
                     const n2 = state.nodes.find((n: any) => n.id === p.toId);
                     
-                    const midX = (n1.x + n2.x) / 2;
-                    const t = p.progress;
-                    const invT = 1 - t;
-                    
-                    const x = invT*invT*invT*n1.x + 3*invT*invT*t*midX + 3*invT*t*t*midX + t*t*t*n2.x;
-                    const y = invT*invT*invT*n1.y + 3*invT*invT*t*n1.y + 3*invT*t*t*n2.y + t*t*t*n2.y;
+                    if (n1 && n2) {
+                        const midX = (n1.x + n2.x) / 2;
+                        const t = p.progress;
+                        const invT = 1 - t;
+                        
+                        const x = invT*invT*invT*n1.x + 3*invT*invT*t*midX + 3*invT*t*t*midX + t*t*t*n2.x;
+                        const y = invT*invT*invT*n1.y + 3*invT*invT*t*n1.y + 3*invT*t*t*n2.y + t*t*t*n2.y;
 
-                    ctx.fillStyle = color;
-                    ctx.shadowBlur = 10; ctx.shadowColor = color;
-                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowBlur = 0;
+                        ctx.fillStyle = color;
+                        ctx.shadowBlur = 10; ctx.shadowColor = color;
+                        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+                        ctx.shadowBlur = 0;
 
-                    if (p.progress >= 1) {
-                        n2.active = 1.0;
-                        const nextLinks = state.links.filter((l: any) => l.from === n2.id);
-                        nextLinks.forEach((l: any) => {
-                            state.packets.push({ fromId: l.from, toId: l.to, progress: 0, speed: 0.02 });
-                        });
-                        state.packets.splice(i, 1);
+                        if (p.progress >= 1) {
+                            n2.active = 1.0;
+                            const nextLinks = state.links.filter((l: any) => l.from === n2.id);
+                            nextLinks.forEach((l: any) => {
+                                state.packets.push({ fromId: l.from, toId: l.to, progress: 0, speed: 0.02 });
+                            });
+                            state.packets.splice(i, 1);
+                        }
                     }
                 }
 
@@ -580,10 +595,32 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 });
             }
             else if (mode === 'core') {
+                if (state.nodes.length === 0) {
+                    state.nodes.push({id:0, x: 0, y: 0, layer: 0});
+                    for(let i=1; i<20; i++) {
+                        const layer = Math.floor((i-1)/6) + 1;
+                        const angle = ((i-1)%6) * (Math.PI/3);
+                        const dist = layer * 60;
+                        state.nodes.push({
+                            id: i,
+                            x: Math.cos(angle) * dist,
+                            y: Math.sin(angle) * dist,
+                            layer: layer
+                        });
+                        // Link to center-ish
+                        if (layer === 1) state.links.push({from: 0, to: i});
+                        else {
+                            // simplistic linking
+                            state.links.push({from: i-6, to: i});
+                        }
+                    }
+                }
+
                 if (Math.random() > 0.96) {
                     state.nodes[0].active = 1; 
-                    const startLink = state.links.filter((l: any) => l.from === 0)[Math.floor(Math.random() * 6)];
-                    if (startLink) {
+                    const startLinks = state.links.filter((l: any) => l.from === 0);
+                    if (startLinks.length > 0) {
+                        const startLink = startLinks[Math.floor(Math.random() * startLinks.length)];
                         state.particles.push({
                             linkIdx: state.links.indexOf(startLink),
                             t: 0,
@@ -726,50 +763,60 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                     agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
                     const b = agent.targetBox;
-                    if(b.x < inputEnd - 20) b.x += speed;
-                    armX = pivotX + (b.x + b.w/2 - pivotX) * t;
-                    armY = (pivotY - 80) + (b.y - (pivotY - 80)) * t;
-                    if (t >= 1) { agent.state = 'grasping'; agent.t = 0; }
+                    if (b) {
+                        if(b.x < inputEnd - 20) b.x += speed;
+                        armX = pivotX + (b.x + b.w/2 - pivotX) * t;
+                        armY = (pivotY - 80) + (b.y - (pivotY - 80)) * t;
+                        if (t >= 1) { agent.state = 'grasping'; agent.t = 0; }
+                    } else {
+                        agent.state = 'idle'; // Reset if target gone
+                    }
                 } 
                 else if (agent.state === 'grasping') {
                     agent.t += animSpeed * 2;
                     grabberGap = 10 * (1 - Math.min(1, agent.t));
-                    armX = agent.targetBox.x + agent.targetBox.w/2;
-                    armY = agent.targetBox.y;
-                    if (agent.t >= 1) { agent.state = 'moving'; agent.targetBox.state = 'lifted'; agent.t = 0; }
+                    if (agent.targetBox) {
+                        armX = agent.targetBox.x + agent.targetBox.w/2;
+                        armY = agent.targetBox.y;
+                    }
+                    if (agent.t >= 1) { agent.state = 'moving'; if(agent.targetBox) agent.targetBox.state = 'lifted'; agent.t = 0; }
                 }
                 else if (agent.state === 'moving') {
                     agent.t += animSpeed;
                     const t = Math.min(1, agent.t);
                     const b = agent.targetBox;
-                    const targetY = TARGET_YS[b.targetLane];
-                    
-                    const startX = inputEnd - 20;
-                    const targetX = outputStart + 20;
-                    
-                    armX = startX + (targetX - startX) * t;
-                    const midY = Math.min(beltY, targetY) - 60;
-                    armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY;
-                    
-                    grabberGap = 0;
-                    b.x = armX - b.w/2;
-                    b.y = armY;
+                    if (b) {
+                        const targetY = TARGET_YS[b.targetLane];
+                        
+                        const startX = inputEnd - 20;
+                        const targetX = outputStart + 20;
+                        
+                        armX = startX + (targetX - startX) * t;
+                        const midY = Math.min(beltY, targetY) - 60;
+                        armY = (1-t)*(1-t)*beltY + 2*(1-t)*t*midY + t*t*targetY;
+                        
+                        grabberGap = 0;
+                        b.x = armX - b.w/2;
+                        b.y = armY;
 
-                    if (t >= 1) { agent.state = 'releasing'; agent.t = 0; }
+                        if (t >= 1) { agent.state = 'releasing'; agent.t = 0; }
+                    }
                 }
                 else if (agent.state === 'releasing') {
                     agent.t += animSpeed * 2;
                     const b = agent.targetBox;
-                    armX = b.x + b.w/2;
-                    armY = b.y;
-                    grabberGap = 10 * Math.min(1, agent.t);
-                    
-                    if (agent.t >= 1) {
-                        b.state = 'conveyor_out';
-                        b.y = TARGET_YS[b.targetLane];
-                        agent.state = 'returning';
-                        agent.targetBox = null;
-                        agent.t = 0;
+                    if (b) {
+                        armX = b.x + b.w/2;
+                        armY = b.y;
+                        grabberGap = 10 * Math.min(1, agent.t);
+                        
+                        if (agent.t >= 1) {
+                            b.state = 'conveyor_out';
+                            b.y = TARGET_YS[b.targetLane];
+                            agent.state = 'returning';
+                            agent.targetBox = null;
+                            agent.t = 0;
+                        }
                     }
                 }
                 else if (agent.state === 'returning') {
@@ -933,8 +980,13 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             frameId = requestAnimationFrame(render);
         };
 
-        const observer = new ResizeObserver(() => { resize(); });
+        const observer = new ResizeObserver(() => { 
+            // Debounce resize to prevent loop error
+            window.requestAnimationFrame(() => resize()); 
+        });
         observer.observe(container);
+        
+        // Initial setup
         resize();
         render();
 

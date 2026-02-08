@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, BarChart3, Truck, Zap, Lock, Database, Globe, CheckCircle2, Cpu, ChevronRight, Terminal, AlertTriangle } from 'lucide-react';
 
@@ -119,7 +120,10 @@ const WorkVisualizer: React.FC<{ activeColor: string, mode: string }> = ({ activ
                 });
             }
 
-            particles.forEach((p, i) => {
+            // Iterate backwards to allow safe removal
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                
                 // PHYSICS
                 if (p.state === 'raw') {
                     // Move towards center
@@ -162,7 +166,7 @@ const WorkVisualizer: React.FC<{ activeColor: string, mode: string }> = ({ activ
                 if (p.x > w || p.x < 0 || p.y > h || p.y < 0) {
                     particles.splice(i, 1);
                 }
-            });
+            }
 
             // CENTRAL PROCESSOR
             ctx.strokeStyle = activeColor;
@@ -186,8 +190,10 @@ const WorkVisualizer: React.FC<{ activeColor: string, mode: string }> = ({ activ
         render();
 
         const handleResize = () => {
-            w = canvas.width = canvas.parentElement?.clientWidth || 800;
-            h = canvas.height = canvas.parentElement?.clientHeight || 600;
+            if (canvas.parentElement) {
+                w = canvas.width = canvas.parentElement.clientWidth;
+                h = canvas.height = canvas.parentElement.clientHeight;
+            }
         };
         window.addEventListener('resize', handleResize);
         return () => {

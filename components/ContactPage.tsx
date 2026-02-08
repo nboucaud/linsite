@@ -2,16 +2,17 @@
 import React, { useState } from 'react';
 import { Mail, Globe, CheckCircle2, ArrowRight, Radio, ChevronDown, CheckSquare, ScanLine } from 'lucide-react';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
+import { Recaptcha } from './Recaptcha';
 
 export const ContactPage: React.FC = () => {
     const [formState, setFormState] = useState<'idle' | 'sending' | 'sent'>('idle');
     const [sector, setSector] = useState('');
     const [otherSector, setOtherSector] = useState('');
-    const [captchaChecked, setCaptchaChecked] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!captchaChecked) {
+        if (!captchaToken) {
             alert("Please verify you are human.");
             return;
         }
@@ -208,21 +209,15 @@ export const ContactPage: React.FC = () => {
                                         <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all resize-none placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="Tell us about your needs..." />
                                     </div>
 
-                                    {/* CAPTCHA PLACEHOLDER */}
-                                    <div 
-                                        className={`flex items-center gap-4 p-4 rounded-xl border transition-colors cursor-pointer ${captchaChecked ? 'bg-[#69B7B2]/10 border-[#69B7B2]/30' : 'bg-black/30 border-white/10 hover:bg-black/50'}`}
-                                        onClick={() => setCaptchaChecked(!captchaChecked)}
-                                    >
-                                        <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${captchaChecked ? 'bg-[#69B7B2] border-[#69B7B2] text-black' : 'border-white/30'}`}>
-                                            {captchaChecked && <CheckSquare size={16} />}
-                                        </div>
-                                        <span className="text-sm text-white/70 select-none">I am human</span>
+                                    {/* RECAPTCHA */}
+                                    <div className="pt-2">
+                                        <Recaptcha onChange={setCaptchaToken} theme="dark" />
                                     </div>
                                 </div>
 
                                 <button 
                                     type="submit" 
-                                    disabled={formState === 'sending'}
+                                    disabled={formState === 'sending' || !captchaToken}
                                     className="w-full bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs py-5 rounded-xl transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(105,183,178,0.2)] hover:shadow-[0_0_50px_rgba(105,183,178,0.4)] disabled:opacity-50 disabled:cursor-not-allowed group/btn relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />

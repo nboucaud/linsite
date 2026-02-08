@@ -6,6 +6,7 @@ import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
 import { ContactHeroVisualizer } from './ContactHeroVisualizer';
 import { PhilosophyHeroVisualizer } from './PhilosophyHeroVisualizer';
+import { Recaptcha } from './Recaptcha';
 
 // --- LAZY LOADED COMPONENTS ---
 const UseCaseShowcase = React.lazy(() => import('./UseCaseShowcase').then(module => ({ default: module.UseCaseShowcase })));
@@ -248,11 +249,11 @@ export const LandingPage: React.FC = () => {
     const [formState, setFormState] = useState<'idle' | 'sending' | 'sent'>('idle');
     const [sector, setSector] = useState('');
     const [otherSector, setOtherSector] = useState('');
-    const [captchaChecked, setCaptchaChecked] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!captchaChecked) {
+        if (!captchaToken) {
             alert("Please verify you are human.");
             return;
         }
@@ -275,12 +276,6 @@ export const LandingPage: React.FC = () => {
             </style>
 
             {/* --- HERO SECTION --- */}
-            {/* 
-                HEIGHT ADJUSTMENT: 
-                On mobile: min-h-[calc(100vh-6rem)] (where 6rem ~ 96px for pt-24)
-                On desktop: min-h-[calc(100vh-7rem)] (where 7rem ~ 112px for pt-28)
-                This ensures the hero fits exactly into the viewport below the navbar, keeping content centered and the bottom arrow visible.
-            */}
             <section className="relative min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)] w-full flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/10 bg-[#020202]">
                 <div className="absolute inset-0 z-0">
                     <HeroVisualizer />
@@ -288,7 +283,6 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/50 z-10" />
                 
                 <div className="relative z-20 max-w-6xl px-6 space-y-10">
-                    {/* REDUCED HERO TEXT SIZE */}
                     <h1 className="text-5xl md:text-7xl font-serif text-white leading-[0.9] tracking-tighter animate-in zoom-in-95 duration-1000 drop-shadow-2xl">
                         We help organizations locate, understand, and <br/>
                         <span className="text-[#69B7B2] italic">mobilize their knowledge.</span>
@@ -568,21 +562,15 @@ export const LandingPage: React.FC = () => {
                                             <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-[#69B7B2] focus:bg-black/60 transition-all resize-none placeholder:text-white/20 font-sans backdrop-blur-sm" placeholder="Tell us about your needs..." />
                                         </div>
 
-                                        {/* CAPTCHA PLACEHOLDER */}
-                                        <div 
-                                            className={`flex items-center gap-4 p-4 rounded-xl border transition-colors cursor-pointer ${captchaChecked ? 'bg-[#69B7B2]/10 border-[#69B7B2]/30' : 'bg-black/30 border-white/10 hover:bg-black/50'}`}
-                                            onClick={() => setCaptchaChecked(!captchaChecked)}
-                                        >
-                                            <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${captchaChecked ? 'bg-[#69B7B2] border-[#69B7B2] text-black' : 'border-white/30'}`}>
-                                                {captchaChecked && <CheckSquare size={16} />}
-                                            </div>
-                                            <span className="text-sm text-white/70 select-none">I am human</span>
+                                        {/* RECAPTCHA */}
+                                        <div className="pt-2">
+                                            <Recaptcha onChange={setCaptchaToken} theme="dark" />
                                         </div>
                                     </div>
 
                                     <button 
                                         type="submit" 
-                                        disabled={formState === 'sending'}
+                                        disabled={formState === 'sending' || !captchaToken}
                                         className="w-full bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs py-5 rounded-xl transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(105,183,178,0.2)] hover:shadow-[0_0_50px_rgba(105,183,178,0.4)] disabled:opacity-50 disabled:cursor-not-allowed group/btn relative overflow-hidden"
                                     >
                                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
