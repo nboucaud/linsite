@@ -4,7 +4,7 @@ import {
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
@@ -171,218 +171,152 @@ const IndustryCarousel: React.FC = () => {
     );
 };
 
-// --- PACMAN GAME COMPONENT ---
-const TerminalPacmanGame: React.FC = () => {
+// --- SECRET TERMINAL BUTTON (PARTICLE EFFECT) ---
+const SecretTerminalButton: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [score, setScore] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [gameOver, setGameOver] = useState(false);
-    
-    // Player State
-    const playerY = useRef(150);
-    const targetY = useRef(150);
-    
-    // Game Entities
-    const filesRef = useRef<any[]>([]);
     const particlesRef = useRef<any[]>([]);
-    const frameRef = useRef<number>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Config
+    const W = 400; // Canvas size
+    const H = 400;
+    const CENTER = W / 2;
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!containerRef.current || !isPlaying) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        // Clamp target Y within canvas height (300)
-        targetY.current = Math.max(20, Math.min(280, e.clientY - rect.top));
-    };
+    const handleClick = () => {
+        const count = 30;
+        const chars = ['0', '1', '>', '_', '/', 'X', ':', '.'];
+        
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 8;
+            
+            // Standard particles
+            particlesRef.current.push({
+                x: CENTER, 
+                y: CENTER,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                color: Math.random() > 0.6 ? '#69B7B2' : (Math.random() > 0.5 ? '#f59e0b' : '#ffffff'),
+                size: Math.random() * 3 + 1,
+                type: 'particle'
+            });
 
-    const startGame = () => {
-        setIsPlaying(true);
-        setGameOver(false);
-        setScore(0);
-        playerY.current = 150;
-        targetY.current = 150;
-        filesRef.current = [];
-        particlesRef.current = [];
-    };
-
-    const stopGame = () => {
-        setIsPlaying(false);
-        if (frameRef.current) cancelAnimationFrame(frameRef.current);
+            // Code fragments
+            if (i % 3 === 0) {
+                particlesRef.current.push({
+                    x: CENTER, 
+                    y: CENTER,
+                    vx: Math.cos(angle) * (speed * 0.8),
+                    vy: Math.sin(angle) * (speed * 0.8),
+                    life: 1.2, // Live slightly longer
+                    color: '#69B7B2',
+                    char: chars[Math.floor(Math.random() * chars.length)],
+                    type: 'text'
+                });
+            }
+        }
+        
+        // Add Rings
+        particlesRef.current.push({
+            x: CENTER, y: CENTER, r: 25, maxR: 160, alpha: 1, type: 'ring', color: '#ffffff', width: 2
+        });
+        particlesRef.current.push({
+            x: CENTER, y: CENTER, r: 25, maxR: 130, alpha: 0.8, type: 'ring', color: '#69B7B2', width: 4
+        });
     };
 
     useEffect(() => {
-        if (!isPlaying) return;
-
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
-        const W = 600;
-        const H = 300;
+        
+        // Fix resolution
         canvas.width = W;
         canvas.height = H;
 
-        let frame = 0;
-        const PLAYER_X = 80;
-        const PLAYER_SIZE = 30;
+        let frameId: number;
 
         const render = () => {
-            frame++;
             ctx.clearRect(0, 0, W, H);
-
-            // --- 1. BACKGROUND ---
-            ctx.fillStyle = '#0a0a0c';
-            ctx.fillRect(0, 0, W, H);
             
-            // Grid Lines
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            ctx.lineWidth = 1;
-            const scrollX = (frame * 2) % 40;
-            for(let x = -scrollX; x < W; x+=40) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-            }
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-            ctx.fillRect(0, 0, W, H);
-
-            // --- 2. SPAWN FILES ---
-            if (frame % 60 === 0) { // Every second-ish
-                const type = ['PDF', 'XLS', 'DOC'][Math.floor(Math.random()*3)];
-                const color = type === 'PDF' ? '#ef4444' : type === 'XLS' ? '#10b981' : '#3b82f6';
-                filesRef.current.push({
-                    x: W + 50,
-                    y: 30 + Math.random() * (H - 60),
-                    type,
-                    color,
-                    speed: 3 + Math.random(),
-                    eaten: false
-                });
-            }
-
-            // --- 3. UPDATE & DRAW FILES ---
-            for (let i = filesRef.current.length - 1; i >= 0; i--) {
-                const f = filesRef.current[i];
-                f.x -= f.speed;
-
-                // Collision Detection
-                if (!f.eaten && Math.abs(f.x - PLAYER_X) < 30 && Math.abs(f.y - playerY.current) < 40) {
-                    f.eaten = true;
-                    setScore(s => s + 100);
-                    
-                    // Spawn Particles
-                    for(let k=0; k<15; k++) {
-                        particlesRef.current.push({
-                            x: f.x, y: f.y,
-                            vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-                            life: 1.0, color: f.color
-                        });
-                    }
-                }
-
-                if (f.x < -50) {
-                    filesRef.current.splice(i, 1);
-                    continue;
-                }
-
-                if (!f.eaten) {
-                    ctx.fillStyle = '#fff';
-                    ctx.fillRect(f.x, f.y - 15, 24, 30);
-                    ctx.fillStyle = f.color;
-                    ctx.fillRect(f.x, f.y - 15, 24, 8); // Top bar
-                    ctx.font = 'bold 8px sans-serif';
-                    ctx.fillStyle = '#000';
-                    ctx.fillText(f.type, f.x + 4, f.y + 5);
-                }
-            }
-
-            // --- 4. UPDATE PLAYER ---
-            // Smooth movement towards targetY
-            playerY.current += (targetY.current - playerY.current) * 0.1;
-
-            // Draw Pacman
-            ctx.save();
-            ctx.translate(PLAYER_X, playerY.current);
-            
-            // Mouth Animation
-            const mouthOpen = Math.abs(Math.sin(frame * 0.2)) * 0.25 * Math.PI;
-            
-            ctx.fillStyle = '#3b82f6'; // Blue Pacman
-            ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
-            ctx.beginPath();
-            ctx.arc(0, 0, PLAYER_SIZE/2, mouthOpen, Math.PI * 2 - mouthOpen);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-            
-            // Eye
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(2, -8, 2, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-
-            // --- 5. DRAW PARTICLES ---
+            // Iterate backwards to remove dead particles safely
             for (let i = particlesRef.current.length - 1; i >= 0; i--) {
                 const p = particlesRef.current[i];
-                p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-                if (p.life <= 0) { particlesRef.current.splice(i, 1); continue; }
                 
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, 4, 4);
-                ctx.globalAlpha = 1;
-            }
+                if (p.type === 'particle') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.02;
+                    p.vx *= 0.94; // friction
+                    p.vy *= 0.94;
+                    
+                    if (p.life <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                } else if (p.type === 'text') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.015;
+                    
+                    if (p.life <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.font = '10px monospace';
+                    ctx.fillText(p.char, p.x, p.y);
 
-            frameRef.current = requestAnimationFrame(render);
+                } else if (p.type === 'ring') {
+                    p.r += (p.maxR - p.r) * 0.15; // Ease out
+                    p.alpha -= 0.04;
+                    
+                    if (p.alpha <= 0) {
+                        particlesRef.current.splice(i, 1);
+                        continue;
+                    }
+                    
+                    ctx.globalAlpha = p.alpha;
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = p.width;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            ctx.globalAlpha = 1;
+            frameId = requestAnimationFrame(render);
         };
         
         render();
-        return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
-    }, [isPlaying]);
+        return () => cancelAnimationFrame(frameId);
+    }, []);
 
     return (
-        <div ref={containerRef} className="relative w-full max-w-2xl mx-auto h-[300px] bg-[#0c0c0e] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-12 group" onMouseMove={handleMouseMove}>
+        <div className="relative group w-20 h-20 mx-auto mb-8 cursor-pointer z-10" onClick={handleClick}>
+            {/* Canvas Layer - Centered over button but larger to allow spillover */}
+            <canvas 
+                ref={canvasRef} 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+                style={{ width: '400px', height: '400px' }}
+            />
             
-            {!isPlaying ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 transition-opacity duration-500">
-                    <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-6 group-hover:scale-110 transition-transform cursor-pointer" onClick={startGame}>
-                        <Terminal size={32} className="text-[#69B7B2]" />
-                    </div>
-                    <h3 className="text-2xl font-serif text-white mb-2">System Terminal</h3>
-                    <p className="text-white/50 text-sm mb-8">Execute protocol to begin ingestion.</p>
-                    <button 
-                        onClick={startGame}
-                        className="px-8 py-3 bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs rounded-full flex items-center gap-2 transition-colors shadow-lg shadow-teal-500/20"
-                    >
-                        <Play size={14} fill="currentColor" /> Initialize
-                    </button>
-                </div>
-            ) : (
-                <>
-                    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-none" />
-                    
-                    {/* HUD */}
-                    <div className="absolute top-4 left-6 z-20 flex gap-8">
-                        <div>
-                            <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Score</div>
-                            <div className="text-xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
-                        </div>
-                        <div>
-                            <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">System</div>
-                            <div className="text-xl font-mono text-green-400 leading-none">ONLINE</div>
-                        </div>
-                    </div>
-
-                    <button 
-                        onClick={stopGame}
-                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/50 hover:text-white transition-colors z-30"
-                    >
-                        <X size={16} />
-                    </button>
-                    
-                    <div className="absolute bottom-4 left-0 right-0 text-center text-[9px] text-white/20 font-mono uppercase tracking-widest pointer-events-none">
-                        Move Cursor to Guide Agent
-                    </div>
-                </>
-            )}
+            {/* The Button */}
+            <div className="relative w-full h-full bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 group-hover:bg-white/10 group-hover:text-white group-hover:scale-110 transition-all duration-200 shadow-[0_0_0_0_rgba(255,255,255,0)] group-active:shadow-[0_0_30px_rgba(105,183,178,0.4)] group-active:scale-95 z-20 overflow-hidden animate-pulse group-hover:animate-none">
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Terminal size={32} />
+            </div>
         </div>
     );
 };
@@ -539,8 +473,7 @@ export const OurClientsPage: React.FC = () => {
 
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
                 <div className="max-w-3xl mx-auto px-6">
-                    
-                    <TerminalPacmanGame />
+                    <SecretTerminalButton />
                     
                     <h2 className="text-4xl md:text-5xl font-serif text-white mb-8">Ready to initiate?</h2>
                     <p className="text-white/60 text-lg mb-12 max-w-xl mx-auto">

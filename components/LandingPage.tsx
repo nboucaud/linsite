@@ -211,16 +211,28 @@ const PHILOSOPHY = [
     { title: "Long-Term Reliability", desc: "We build systems designed for decades of service, prioritizing durability and maintainability over short-term feature velocity.", icon: Target, color: "#f59e0b" }
 ];
 
+// Randomized, comprehensive list of tech partners
 const CLIENTS = [
-    "Department of Energy", 
-    "National Health Service", 
-    "Maersk", 
-    "Rio Tinto", 
-    "FedEx", 
-    "Tesla",
-    "Shell", 
-    "Pfizer", 
-    "J.P. Morgan"
+    "Microsoft Azure", "NVIDIA Omniverse", "Snowflake", "Oracle Cloud", "Palantir Foundry", "AWS", 
+    "Siemens", "Google Cloud", "Salesforce", "Datadog", "Epic", "ServiceNow", "SAP S/4HANA", 
+    "CrowdStrike", "Honeywell", "Splunk", "Anthropic", "IBM Maximo", "Rockwell Automation", 
+    "Schneider Electric", "Zscaler", "Snyk", "MongoDB Atlas", "OpenAI", "Slack", "Okta", 
+    "Atlassian", "AWS Bedrock", "UiPath", "DeepSeek", "Power BI", "Databricks", "GE Digital", 
+    "AVEVA", "Dassault Systèmes", "Esri", "Trimble", "Hexagon", "Bentley Systems", "OSIsoft PI", 
+    "Wood Mackenzie", "SLB Digital", "Halliburton Landmark", "EnergyCAP", "Dutchie Pay", 
+    "SAP Supply Chain", "Oracle SCM", "Manhattan Associates", "Blue Yonder", "FourKites", 
+    "Project44", "Descartes", "Transporeon", "Infor SCM", "Flexport Tech", "OneTrust", 
+    "RSA Archer", "Drata", "Vanta", "Ping Identity", "Palo Alto Networks", "HashiCorp", 
+    "Microsoft Teams", "SharePoint", "Power Platform", "Zoom", "Box", "Dropbox Business", 
+    "Smartsheet", "Wrike", "Airtable", "Microsoft Dynamics 365", "HubSpot", "Zoho CRM", 
+    "Marketo", "Pardot", "Insightly", "QuickBooks", "NetSuite", "SAP Finance", "Stripe", 
+    "Helcim", "Square", "Braintree", "Expensify", "Automation Anywhere", "Dataiku", "DataRobot", 
+    "Domino Data Lab", "SAM 2", "Grounding DINO 1.5", "DINOv2", "YOLOv10", "Microsoft Florence-2", 
+    "SigLIP 2", "InternVL3", "LLaVA-OneVision", "Qwen2.5-VL", "Grok 4", "OpenClaw", "Kimi K2.5", 
+    "GLM-4.7 Pro", "Kling 3.0", "FLUX.2", "NVIDIA Nemotron", "NVIDIA Cosmos", "OpenUSD", 
+    "NVIDIA Isaac GR00T", "Alibaba Cloud", "Tencent Cloud", "Moonshot AI", "Z.ai", "SenseTime", 
+    "iFLYTEK", "Red Hat", "VMware", "IBM Cloud", "MEDITECH", "InterSystems", "Athenahealth", 
+    "eClinicalWorks", "Change Healthcare", "R1 RCM", "Philips Healthcare IT", "GE HealthCare Digital", "ABB"
 ];
 
 const MarqueeRow: React.FC = () => (
@@ -229,10 +241,11 @@ const MarqueeRow: React.FC = () => (
              <Cpu size={12} /> Our Tech Partners
         </div>
         <div className="w-full overflow-hidden flex relative z-10">
-            <div className="flex w-max animate-marquee gap-24">
-                {[...CLIENTS, ...CLIENTS, ...CLIENTS].map((client, i) => (
+            {/* Extended the list duplication to ensure continuous flow for the long list */}
+            <div className="flex w-max animate-marquee gap-16 md:gap-24">
+                {[...CLIENTS, ...CLIENTS].map((client, i) => (
                     <div key={i} className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity cursor-default group">
-                        <span className="font-serif text-xl text-white group-hover:text-[#69B7B2] transition-colors tracking-wide whitespace-nowrap">{client}</span>
+                        <span className="font-serif text-lg md:text-xl text-white group-hover:text-[#69B7B2] transition-colors tracking-wide whitespace-nowrap">{client}</span>
                     </div>
                 ))}
             </div>
@@ -271,7 +284,7 @@ export const LandingPage: React.FC = () => {
                     100% { transform: translateX(-50%); }
                 }
                 .animate-marquee {
-                    animation: marquee 60s linear infinite;
+                    animation: marquee 180s linear infinite;
                 }
                 `}
             </style>

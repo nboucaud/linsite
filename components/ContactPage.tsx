@@ -32,7 +32,7 @@ export const ContactPage: React.FC = () => {
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 flex flex-col lg:flex-row gap-20 min-h-[85vh] items-center">
                 
-                {/* LEFT: Context Only */}
+                {/* LEFT: Context & Offices */}
                 <div className="w-full lg:w-1/2 space-y-16">
                     <div className="animate-in slide-in-from-left duration-700">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#69B7B2]/10 border border-[#69B7B2]/20 text-[#69B7B2] text-[10px] font-bold uppercase tracking-widest mb-8 backdrop-blur-sm">
@@ -46,6 +46,41 @@ export const ContactPage: React.FC = () => {
                         <p className="text-xl text-white/70 leading-relaxed max-w-lg font-light border-l border-white/20 pl-6 drop-shadow-lg">
                             Conversations start here — whether you're exploring ideas, partnerships, or practical questions.
                         </p>
+                    </div>
+
+                    {/* MAIN HQ CARD */}
+                    <div className="animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                        <div className="relative group overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#0c0c0e]">
+                            {/* Card Background Decoration */}
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
+                            <div className="absolute top-0 right-0 p-24 bg-[#69B7B2]/5 blur-[80px] rounded-full pointer-events-none" />
+                            
+                            <div className="relative p-10 flex items-start justify-between z-10">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                                        <span className="text-[10px] font-mono text-green-500 uppercase tracking-widest">Headquarters</span>
+                                    </div>
+                                    <h3 className="text-3xl font-serif text-white mb-2">New York City</h3>
+                                    <p className="text-white/60 text-sm mb-6 max-w-[200px] leading-relaxed">
+                                        New York, NY
+                                    </p>
+                                    
+                                    <div className="flex flex-col gap-3">
+                                        <a href="mailto:connect@infogito.com" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors group/link">
+                                            <div className="p-1.5 bg-white/10 rounded text-[#69B7B2] group-hover/link:bg-[#69B7B2] group-hover/link:text-black transition-all">
+                                                <Mail size={14} />
+                                            </div>
+                                            <span className="text-sm font-mono">connect@infogito.com</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div className="hidden md:flex w-24 h-24 bg-[#69B7B2]/10 rounded-2xl items-center justify-center border border-[#69B7B2]/20 backdrop-blur-md overflow-hidden p-4">
+                                    <Building2 size={48} strokeWidth={1} className="text-[#69B7B2]" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
