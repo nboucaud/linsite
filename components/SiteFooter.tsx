@@ -97,7 +97,7 @@ export const SiteFooter: React.FC = () => {
                         <img 
                             src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
                             alt="Infogito" 
-                            className="h-28 w-auto opacity-80"
+                            className="w-[280px] h-auto opacity-80"
                         />
                         <p className="text-white/50 text-sm leading-relaxed max-w-xs">
                             Mobilizing knowledge for high-stakes operations. We build the immune system for the information age.

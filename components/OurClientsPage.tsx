@@ -4,7 +4,7 @@ import {
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X, Heart, Trophy
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
@@ -171,152 +171,445 @@ const IndustryCarousel: React.FC = () => {
     );
 };
 
-// --- SECRET TERMINAL BUTTON (PARTICLE EFFECT) ---
-const SecretTerminalButton: React.FC = () => {
+// --- PACMAN GAME ENGINES & TYPES ---
+
+type FileType = 'PDF' | 'DOCX' | 'XLSX' | 'PPTX' | 'LOG';
+
+interface GameEntity {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    color: string;
+}
+
+interface Ghost extends GameEntity {
+    speed: number;
+    type: 'chaser' | 'ambusher' | 'wanderer';
+    state: 'normal' | 'scared' | 'eaten';
+}
+
+interface GameFile extends GameEntity {
+    type: FileType;
+    points: number;
+    eaten: boolean;
+    speed: number;
+}
+
+interface PowerUp extends GameEntity {
+    active: boolean;
+}
+
+const TerminalPacmanGame: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const particlesRef = useRef<any[]>([]);
+    const containerRef = useRef<HTMLDivElement>(null);
     
-    // Config
-    const W = 400; // Canvas size
-    const H = 400;
-    const CENTER = W / 2;
+    // Game State
+    const [score, setScore] = useState(0);
+    const [lives, setLives] = useState(3);
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
+    const [highScore, setHighScore] = useState(0);
 
-    const handleClick = () => {
-        const count = 30;
-        const chars = ['0', '1', '>', '_', '/', 'X', ':', '.'];
-        
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 8;
-            
-            // Standard particles
-            particlesRef.current.push({
-                x: CENTER, 
-                y: CENTER,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1.0,
-                color: Math.random() > 0.6 ? '#69B7B2' : (Math.random() > 0.5 ? '#f59e0b' : '#ffffff'),
-                size: Math.random() * 3 + 1,
-                type: 'particle'
-            });
+    // Engine Refs (Mutable to avoid re-renders)
+    const playerPos = useRef({ x: 300, y: 150 });
+    const playerDir = useRef(0); // Angle in radians
+    const ghosts = useRef<Ghost[]>([]);
+    const files = useRef<GameFile[]>([]);
+    const powerUps = useRef<PowerUp[]>([]);
+    const particles = useRef<any[]>([]);
+    const powerModeTimer = useRef(0);
+    const frameRef = useRef<number>(null);
+    const lastMousePos = useRef({ x: 300, y: 150 });
 
-            // Code fragments
-            if (i % 3 === 0) {
-                particlesRef.current.push({
-                    x: CENTER, 
-                    y: CENTER,
-                    vx: Math.cos(angle) * (speed * 0.8),
-                    vy: Math.sin(angle) * (speed * 0.8),
-                    life: 1.2, // Live slightly longer
-                    color: '#69B7B2',
-                    char: chars[Math.floor(Math.random() * chars.length)],
-                    type: 'text'
-                });
-            }
-        }
+    const CANVAS_W = 600;
+    const CANVAS_H = 300;
+    const PLAYER_SIZE = 24;
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!containerRef.current || gameState !== 'playing') return;
+        const rect = containerRef.current.getBoundingClientRect();
+        lastMousePos.current = {
+            x: Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.clientX - rect.left)),
+            y: Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.clientY - rect.top))
+        };
+    };
+
+    const initGame = () => {
+        setScore(0);
+        setLives(3);
+        setGameState('playing');
+        playerPos.current = { x: 100, y: 150 };
+        lastMousePos.current = { x: 300, y: 150 };
         
-        // Add Rings
-        particlesRef.current.push({
-            x: CENTER, y: CENTER, r: 25, maxR: 160, alpha: 1, type: 'ring', color: '#ffffff', width: 2
-        });
-        particlesRef.current.push({
-            x: CENTER, y: CENTER, r: 25, maxR: 130, alpha: 0.8, type: 'ring', color: '#69B7B2', width: 4
-        });
+        // Init Ghosts
+        ghosts.current = [
+            { x: CANVAS_W + 50, y: 50, w: 24, h: 24, color: '#ef4444', speed: 2.2, type: 'chaser', state: 'normal' }, // Red
+            { x: CANVAS_W + 100, y: 150, w: 24, h: 24, color: '#f472b6', speed: 2.0, type: 'ambusher', state: 'normal' }, // Pink
+            { x: CANVAS_W + 150, y: 250, w: 24, h: 24, color: '#22d3ee', speed: 1.8, type: 'wanderer', state: 'normal' } // Cyan
+        ];
+        
+        files.current = [];
+        powerUps.current = [];
+        particles.current = [];
+        powerModeTimer.current = 0;
     };
 
     useEffect(() => {
+        if (gameState !== 'playing') return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        
-        // Fix resolution
-        canvas.width = W;
-        canvas.height = H;
 
-        let frameId: number;
+        let frame = 0;
 
         const render = () => {
-            ctx.clearRect(0, 0, W, H);
-            
-            // Iterate backwards to remove dead particles safely
-            for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-                const p = particlesRef.current[i];
-                
-                if (p.type === 'particle') {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.life -= 0.02;
-                    p.vx *= 0.94; // friction
-                    p.vy *= 0.94;
-                    
-                    if (p.life <= 0) {
-                        particlesRef.current.splice(i, 1);
-                        continue;
-                    }
-                    
-                    ctx.globalAlpha = p.life;
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                } else if (p.type === 'text') {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.life -= 0.015;
-                    
-                    if (p.life <= 0) {
-                        particlesRef.current.splice(i, 1);
-                        continue;
-                    }
-                    
-                    ctx.globalAlpha = p.life;
-                    ctx.fillStyle = p.color;
-                    ctx.font = '10px monospace';
-                    ctx.fillText(p.char, p.x, p.y);
+            frame++;
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-                } else if (p.type === 'ring') {
-                    p.r += (p.maxR - p.r) * 0.15; // Ease out
-                    p.alpha -= 0.04;
-                    
-                    if (p.alpha <= 0) {
-                        particlesRef.current.splice(i, 1);
-                        continue;
+            // --- 1. BACKGROUND GRID ---
+            ctx.fillStyle = '#0a0a0c';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.lineWidth = 1;
+            const offset = (frame * 1) % 40;
+            for(let x=-offset; x<CANVAS_W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, CANVAS_H); ctx.stroke(); }
+            for(let y=0; y<CANVAS_H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CANVAS_W, y); ctx.stroke(); }
+
+            // --- 2. PLAYER LOGIC ---
+            // Move towards mouse
+            const dx = lastMousePos.current.x - playerPos.current.x;
+            const dy = lastMousePos.current.y - playerPos.current.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist > 2) {
+                const moveSpeed = 4;
+                playerPos.current.x += (dx / dist) * moveSpeed;
+                playerPos.current.y += (dy / dist) * moveSpeed;
+                playerDir.current = Math.atan2(dy, dx);
+            }
+
+            // Draw Player
+            ctx.save();
+            ctx.translate(playerPos.current.x, playerPos.current.y);
+            ctx.rotate(playerDir.current);
+            const mouth = Math.abs(Math.sin(frame * 0.2)) * 0.25 * Math.PI;
+            
+            ctx.fillStyle = '#3b82f6'; // Blue Infogito Pacman
+            ctx.shadowColor = 'rgba(59, 130, 246, 0.6)'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(0, 0, PLAYER_SIZE/2, mouth, Math.PI * 2 - mouth);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+            ctx.restore();
+
+            // --- 3. FILES LOGIC ---
+            if (frame % 45 === 0) {
+                const typeInfo = [
+                    { t: 'PDF', c: '#ef4444', p: 100 },
+                    { t: 'DOCX', c: '#3b82f6', p: 100 },
+                    { t: 'XLSX', c: '#10b981', p: 150 },
+                    { t: 'PPTX', c: '#f97316', p: 150 },
+                    { t: 'LOG', c: '#a8a29e', p: 50 }
+                ][Math.floor(Math.random() * 5)];
+                
+                files.current.push({
+                    x: CANVAS_W + 50,
+                    y: Math.random() * (CANVAS_H - 40) + 20,
+                    w: 24, h: 30,
+                    type: typeInfo.t as FileType,
+                    color: typeInfo.c,
+                    points: typeInfo.p,
+                    eaten: false,
+                    speed: 2 + Math.random()
+                });
+            }
+
+            for (let i = files.current.length - 1; i >= 0; i--) {
+                const f = files.current[i];
+                f.x -= f.speed;
+                
+                // Draw File
+                if (!f.eaten) {
+                    ctx.fillStyle = f.color;
+                    ctx.shadowBlur = 0;
+                    ctx.fillRect(f.x, f.y - f.h/2, f.w, f.h);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(f.x, f.y - f.h/2, f.w, 8); // Top bar
+                    ctx.font = 'bold 8px sans-serif';
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(f.type, f.x + 2, f.y - f.h/2 + 7);
+
+                    // Collision
+                    if (Math.abs(f.x - playerPos.current.x) < 20 && Math.abs(f.y - playerPos.current.y) < 20) {
+                        f.eaten = true;
+                        setScore(s => s + f.points);
+                        // Particles
+                        for(let k=0; k<8; k++) {
+                            particles.current.push({
+                                x: f.x, y: f.y,
+                                vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
+                                life: 1.0, color: f.color
+                            });
+                        }
                     }
-                    
-                    ctx.globalAlpha = p.alpha;
-                    ctx.strokeStyle = p.color;
-                    ctx.lineWidth = p.width;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                    ctx.stroke();
+                }
+
+                if (f.x < -50 || f.eaten) {
+                    if (f.x < -50 || (f.eaten && frame % 5 === 0)) files.current.splice(i, 1);
                 }
             }
+
+            // --- 4. POWER UP LOGIC ---
+            if (powerModeTimer.current > 0) powerModeTimer.current--;
             
-            ctx.globalAlpha = 1;
-            frameId = requestAnimationFrame(render);
+            if (frame % 600 === 0 && powerModeTimer.current <= 0) { // Rare spawn
+                powerUps.current.push({
+                    x: CANVAS_W + 50,
+                    y: Math.random() * (CANVAS_H - 40) + 20,
+                    w: 20, h: 20,
+                    color: '#fbbf24', // Amber
+                    active: true
+                });
+            }
+
+            for (let i = powerUps.current.length - 1; i >= 0; i--) {
+                const p = powerUps.current[i];
+                p.x -= 2.5;
+                
+                // Draw PowerUp
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color; ctx.shadowBlur = 20;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 8 + Math.sin(frame * 0.2)*2, 0, Math.PI*2); ctx.fill();
+                
+                // Collision
+                if (Math.abs(p.x - playerPos.current.x) < 25 && Math.abs(p.y - playerPos.current.y) < 25) {
+                    powerUps.current.splice(i, 1);
+                    powerModeTimer.current = 300; // 5 seconds (assuming 60fps)
+                    // Set ghosts to scared
+                    ghosts.current.forEach(g => { if(g.state !== 'eaten') g.state = 'scared'; });
+                } else if (p.x < -50) {
+                    powerUps.current.splice(i, 1);
+                }
+            }
+
+            // --- 5. GHOSTS LOGIC ---
+            ghosts.current.forEach(g => {
+                // Respawn Logic
+                if (g.x < -50) {
+                    g.x = CANVAS_W + 50;
+                    g.y = Math.random() * CANVAS_H;
+                    g.state = 'normal';
+                }
+
+                // AI Movement
+                let tx = playerPos.current.x;
+                let ty = playerPos.current.y;
+
+                if (g.state === 'scared') {
+                    // Run away from player
+                    tx = g.x + (g.x - playerPos.current.x);
+                    ty = g.y + (g.y - playerPos.current.y);
+                } else if (g.state === 'eaten') {
+                    // Run off screen quickly
+                    tx = -100;
+                    ty = g.y;
+                } else {
+                    // Normal chase variants
+                    if (g.type === 'ambusher') tx += 100; // Aim ahead
+                    if (g.type === 'wanderer') { tx = g.x - 100; ty = g.y + Math.sin(frame * 0.05)*50; }
+                }
+
+                const dx = tx - g.x;
+                const dy = ty - g.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const speed = g.state === 'eaten' ? 6 : (g.state === 'scared' ? 1.5 : g.speed);
+
+                if (dist > 0) {
+                    g.x += (dx / dist) * speed;
+                    g.y += (dy / dist) * speed;
+                } else {
+                    g.x -= speed; // Default scroll left
+                }
+
+                // Draw Ghost
+                const ghostColor = g.state === 'scared' ? (powerModeTimer.current < 60 && Math.floor(frame/10)%2===0 ? '#fff' : '#3b82f6') : (g.state === 'eaten' ? 'transparent' : g.color);
+                
+                if (g.state !== 'eaten') {
+                    ctx.save();
+                    ctx.translate(g.x, g.y);
+                    ctx.fillStyle = ghostColor;
+                    ctx.shadowColor = ghostColor; ctx.shadowBlur = 10;
+                    
+                    // Head
+                    ctx.beginPath();
+                    ctx.arc(0, -2, 12, Math.PI, 0);
+                    ctx.lineTo(12, 12);
+                    // Feet
+                    for(let k=1; k<=3; k++) ctx.lineTo(12 - 8*k, k%2===0 ? 12 : 8);
+                    ctx.lineTo(-12, -2);
+                    ctx.fill();
+
+                    // Eyes
+                    if (g.state !== 'scared') {
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath(); ctx.arc(-4, -4, 3, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(4, -4, 3, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = 'black'; // Pupils
+                        ctx.beginPath(); ctx.arc(-4 + (dx/dist)*1.5, -4 + (dy/dist)*1.5, 1.5, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(4 + (dx/dist)*1.5, -4 + (dy/dist)*1.5, 1.5, 0, Math.PI*2); ctx.fill();
+                    } else {
+                        // Scared face
+                        ctx.fillStyle = '#fbbf24'; // Mouth
+                        ctx.fillRect(-6, 2, 12, 2);
+                        ctx.fillRect(-6, 6, 12, 2);
+                    }
+                    ctx.restore();
+                } else {
+                    // Draw floating eyes for eaten state
+                    ctx.save();
+                    ctx.translate(g.x, g.y);
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath(); ctx.arc(-4, -4, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(4, -4, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
+                }
+
+                // Player Collision
+                if (g.state !== 'eaten' && Math.abs(g.x - playerPos.current.x) < 20 && Math.abs(g.y - playerPos.current.y) < 20) {
+                    if (g.state === 'scared') {
+                        g.state = 'eaten';
+                        setScore(s => s + 500);
+                        // Score popup particle
+                        particles.current.push({ x: g.x, y: g.y, vx: 0, vy: -1, life: 2.0, color: '#fff', text: '500' });
+                    } else {
+                        // Damage
+                        setLives(l => {
+                            if (l <= 1) {
+                                setGameState('gameover');
+                                return 0;
+                            }
+                            // Reset positions on hit
+                            playerPos.current = { x: 100, y: 150 };
+                            ghosts.current.forEach((gh, idx) => {
+                                gh.x = CANVAS_W + 50 + idx*50;
+                                gh.y = Math.random() * CANVAS_H;
+                            });
+                            return l - 1;
+                        });
+                    }
+                }
+            });
+
+            // --- 6. PARTICLES ---
+            for (let i = particles.current.length - 1; i >= 0; i--) {
+                const p = particles.current[i];
+                p.x += p.vx; p.y += p.vy;
+                p.life -= 0.05;
+                if (p.life <= 0) { particles.current.splice(i, 1); continue; }
+                
+                ctx.globalAlpha = Math.min(1, p.life);
+                ctx.fillStyle = p.color;
+                if (p.text) {
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillText(p.text, p.x, p.y);
+                } else {
+                    ctx.fillRect(p.x, p.y, 4, 4);
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            // End Power Mode check
+            if (powerModeTimer.current === 1) {
+                ghosts.current.forEach(g => { if(g.state === 'scared') g.state = 'normal'; });
+            }
+
+            frameRef.current = requestAnimationFrame(render);
         };
         
         render();
-        return () => cancelAnimationFrame(frameId);
-    }, []);
+        return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+    }, [gameState]);
+
+    // Update High Score
+    useEffect(() => {
+        if (score > highScore) setHighScore(score);
+    }, [score]);
 
     return (
-        <div className="relative group w-20 h-20 mx-auto mb-8 cursor-pointer z-10" onClick={handleClick}>
-            {/* Canvas Layer - Centered over button but larger to allow spillover */}
+        <div ref={containerRef} className="relative w-full max-w-2xl mx-auto h-[300px] bg-[#0c0c0e] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none" onMouseMove={handleMouseMove}>
+            
+            {gameState === 'start' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 transition-opacity duration-500">
+                    <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 mb-6 group-hover:scale-110 transition-transform cursor-pointer" onClick={initGame}>
+                        <Terminal size={32} className="text-[#69B7B2]" />
+                    </div>
+                    <h3 className="text-2xl font-serif text-white mb-2">Ingestion Protocol</h3>
+                    <p className="text-white/50 text-sm mb-8">Guide the agent to ingest documents. Avoid firewalls.</p>
+                    <button 
+                        onClick={initGame}
+                        className="px-8 py-3 bg-[#69B7B2] hover:bg-[#5aa09c] text-black font-bold uppercase tracking-widest text-xs rounded-full flex items-center gap-2 transition-colors shadow-lg shadow-teal-500/20"
+                    >
+                        <Play size={14} fill="currentColor" /> Initialize
+                    </button>
+                </div>
+            )}
+
+            {gameState === 'gameover' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/40 backdrop-blur-md z-30">
+                    <div className="text-4xl font-black text-white mb-2 tracking-tighter">CONNECTION LOST</div>
+                    <div className="text-xl text-white/80 mb-6 font-mono">DATA INGESTED: {score}</div>
+                    <button 
+                        onClick={initGame}
+                        className="px-8 py-3 bg-white text-black hover:bg-gray-200 font-bold uppercase tracking-widest text-xs rounded-full transition-colors"
+                    >
+                        Reboot System
+                    </button>
+                </div>
+            )}
+
             <canvas 
                 ref={canvasRef} 
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
-                style={{ width: '400px', height: '400px' }}
+                width={CANVAS_W} 
+                height={CANVAS_H}
+                className="absolute inset-0 w-full h-full cursor-none block" 
             />
             
-            {/* The Button */}
-            <div className="relative w-full h-full bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/50 group-hover:bg-white/10 group-hover:text-white group-hover:scale-110 transition-all duration-200 shadow-[0_0_0_0_rgba(255,255,255,0)] group-active:shadow-[0_0_30px_rgba(105,183,178,0.4)] group-active:scale-95 z-20 overflow-hidden animate-pulse group-hover:animate-none">
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Terminal size={32} />
-            </div>
+            {/* HUD */}
+            {(gameState === 'playing' || gameState === 'gameover') && (
+                <div className="absolute top-4 left-6 z-20 flex gap-8 w-full pr-12">
+                    <div>
+                        <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Score</div>
+                        <div className="text-xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
+                    </div>
+                    <div>
+                        <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">High Score</div>
+                        <div className="text-xl font-mono text-[#69B7B2] leading-none">{highScore.toString().padStart(6, '0')}</div>
+                    </div>
+                    <div className="ml-auto flex gap-1">
+                        {[...Array(3)].map((_, i) => (
+                            <Heart key={i} size={16} className={`${i < lives ? 'text-red-500 fill-red-500' : 'text-white/20'}`} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {gameState === 'playing' && (
+                <>
+                    <button 
+                        onClick={() => setGameState('start')}
+                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/50 hover:text-white transition-colors z-30"
+                    >
+                        <X size={16} />
+                    </button>
+                    
+                    <div className="absolute bottom-4 left-0 right-0 text-center text-[9px] text-white/20 font-mono uppercase tracking-widest pointer-events-none">
+                        Mouse Controls Active /// Collect Documents /// Avoid Red Nodes
+                    </div>
+                </>
+            )}
         </div>
     );
 };
@@ -473,7 +766,8 @@ export const OurClientsPage: React.FC = () => {
 
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
                 <div className="max-w-3xl mx-auto px-6">
-                    <SecretTerminalButton />
+                    
+                    <TerminalPacmanGame />
                     
                     <h2 className="text-4xl md:text-5xl font-serif text-white mb-8">Ready to initiate?</h2>
                     <p className="text-white/60 text-lg mb-12 max-w-xl mx-auto">
