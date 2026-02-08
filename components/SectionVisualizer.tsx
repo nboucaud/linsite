@@ -55,56 +55,12 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             agent: { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 },
             boxes: [], 
             stack: [],
-            // Identity Mode (Learning Feed) State
-            feedState: 'reading', // reading -> selecting -> feedback -> swiping
-            feedTimer: 0,
-            currentCardIndex: 0,
-            swipeOffset: 0,
-            streak: 12,
-            xp: 850,
-            cursor: { x: 0, y: 0, targetX: 0, targetY: 0, clicking: false },
-            feedCards: [
-                { 
-                    type: 'CYBER_SECURITY', 
-                    bg: ['#1e1b4b', '#312e81'], // Indigo
-                    author: "@SecurOps",
-                    q: "Suspicious Email Detected", 
-                    sub: "Sender domain is 'goggle.com'. What's the protocol?", 
-                    opts: ["Report & Delete", "Reply to Verify"], 
-                    correct: 0, 
-                    likes: "12.4k" 
-                },
-                { 
-                    type: 'SAFETY_PROTO', 
-                    bg: ['#451a03', '#78350f'], // Amber
-                    author: "@PlantManager",
-                    q: "Forklift in Zone B", 
-                    sub: "Pedestrian light is flashing red.", 
-                    opts: ["Right of Way", "Stop & Wait"], 
-                    correct: 1, 
-                    likes: "8.2k" 
-                },
-                { 
-                    type: 'DATA_PRIVACY', 
-                    bg: ['#022c22', '#115e59'], // Emerald
-                    author: "@ComplianceBot",
-                    q: "PII in Comments?", 
-                    sub: "Customer put SSN in 'Notes' field.", 
-                    opts: ["Ignore", "Redact Immediately"], 
-                    correct: 1, 
-                    likes: "45k" 
-                },
-                { 
-                    type: 'HR_POLICY', 
-                    bg: ['#4c0519', '#9f1239'], // Rose
-                    author: "@PeopleTeam",
-                    q: "Gift Policy", 
-                    sub: "Vendor offers $200 tickets.", 
-                    opts: ["Decline", "Accept"], 
-                    correct: 0, 
-                    likes: "2.1k" 
-                }
-            ],
+            // Identity Mode (Strategic Nexus) State
+            satellites: [],
+            nexusPackets: [],
+            systemLogs: [],
+            logTimer: 0,
+            orbitSpeed: 0.002,
             // Logic/Strategy Mode State
             packets: [],
             initializedMode: null
@@ -122,17 +78,32 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.packets = [];
             state.agent = { state: 'idle', t: 0, heldBox: null, armHeight: 0, armExt: 0 };
             
-            // Identity specific
-            state.feedState = 'reading';
-            state.feedTimer = 0;
-            state.currentCardIndex = 0;
-            state.swipeOffset = 0;
-            state.streak = 12;
-            state.cursor = { x: w/2, y: h*0.8, targetX: w/2, targetY: h*0.8, clicking: false };
-
             state.initializedMode = mode;
 
-            if (mode === 'search') {
+            if (mode === 'identity') {
+                // Initialize "Strategic Nexus"
+                // Satellites orbiting a central core
+                const domains = [
+                    { label: "LEGAL_CORPUS", r: 140, speed: 1.0 },
+                    { label: "HISTORICAL_DATA", r: 190, speed: 0.8 },
+                    { label: "FINANCIAL_MODELS", r: 230, speed: 0.6 },
+                    { label: "TECH_STACK", r: 160, speed: -0.9 }, // Retrograde
+                    { label: "HR_POLICIES", r: 210, speed: -0.7 }
+                ];
+
+                state.satellites = domains.map((d, i) => ({
+                    ...d,
+                    angle: (i / domains.length) * Math.PI * 2,
+                    x: 0, y: 0 // Calculated in render
+                }));
+
+                state.nexusPackets = [];
+                state.systemLogs = [
+                    { text: "SYSTEM_READY", opacity: 1, type: 'info' }
+                ];
+                state.logTimer = 0;
+            }
+            else if (mode === 'search') {
                 const particleCount = 80;
                 for(let i=0; i<particleCount; i++) {
                     state.particles.push({
@@ -158,16 +129,10 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                 state.links.push({ from: 2, to: 4 });
             }
             else if (mode === 'core') {
-                // KNOWLEDGE TREE - Initialize here to avoid render-loop race conditions
-                // Root
+                // KNOWLEDGE TREE
                 state.nodes.push({id:0, x: 0, y: 0, layer: 0});
-                
-                // Layers
                 const layerCounts = [6, 12, 18];
                 let idCounter = 1;
-                
-                // Create nodes first
-                // Layer 1
                 for(let i=0; i<layerCounts[0]; i++) {
                     const angle = (i / layerCounts[0]) * Math.PI * 2;
                     state.nodes.push({
@@ -177,7 +142,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         layer: 1
                     });
                 }
-                // Layer 2
                 for(let i=0; i<layerCounts[1]; i++) {
                     const angle = (i / layerCounts[1]) * Math.PI * 2 + 0.2;
                     state.nodes.push({
@@ -187,16 +151,12 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
                         layer: 2
                     });
                 }
-
-                // Links
-                // Root to Layer 1
                 for(let i=1; i<=layerCounts[0]; i++) {
                     state.links.push({from: 0, to: i});
                 }
-                // Layer 1 to Layer 2 (Simple fan out)
                 for(let i=0; i<layerCounts[1]; i++) {
-                    const targetNodeId = 1 + layerCounts[0] + i; // Start after layer 1
-                    const sourceNodeId = 1 + Math.floor(i / 2); // Connect 2 outer to 1 inner
+                    const targetNodeId = 1 + layerCounts[0] + i;
+                    const sourceNodeId = 1 + Math.floor(i / 2);
                     if(state.nodes[targetNodeId] && state.nodes[sourceNodeId]) {
                         state.links.push({from: sourceNodeId, to: targetNodeId});
                     }
@@ -221,7 +181,6 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             state.width = rect.width;
             state.height = rect.height;
             
-            // Re-init if dimensions change significantly or mode changed
             if (mode !== state.initializedMode || Math.abs(state.width - rect.width) > 10) {
                 init(rect.width, rect.height);
             }
@@ -237,240 +196,155 @@ export const SectionVisualizer: React.FC<SectionVisualizerProps> = ({ mode, colo
             ctx.clearRect(0, 0, w, h);
             
             if (mode === 'identity') {
-                // --- "SkillStream": TikTok-style Corporate Learning Feed ---
+                // --- STRATEGIC NEXUS (High-Fidelity) ---
                 
-                // 1. UPDATE STATE & PHYSICS
-                state.feedTimer++;
-                const card = state.feedCards[state.currentCardIndex];
-                
-                // -- Cursor Simulation Logic --
-                if (state.feedState === 'reading') {
-                    // Hover around a bit
-                    state.cursor.targetX = w/2 + Math.sin(time) * 20;
-                    state.cursor.targetY = h * 0.75 + Math.cos(time * 1.5) * 20;
-                    
-                    if (state.feedTimer > 120) { // Wait 2s before acting
-                        state.feedState = 'selecting';
-                    }
-                } 
-                else if (state.feedState === 'selecting') {
-                    // Move to correct button
-                    const btnH = 50;
-                    const spacing = 15;
-                    const btnY = h * 0.65 + card.correct * (btnH + spacing) + btnH/2;
-                    
-                    state.cursor.targetX = w/2;
-                    state.cursor.targetY = btnY;
-                    
-                    // Snap click when close
-                    const dx = state.cursor.targetX - state.cursor.x;
-                    const dy = state.cursor.targetY - state.cursor.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < 5) {
-                        state.cursor.clicking = true;
-                        state.feedState = 'feedback';
-                        state.feedTimer = 0;
-                        state.streak++;
-                        state.xp += 150;
-                        
-                        // Explosion
-                        for(let i=0; i<40; i++) {
-                            state.particles.push({
-                                x: state.cursor.x,
-                                y: state.cursor.y,
-                                vx: (Math.random()-0.5) * 15,
-                                vy: (Math.random()-0.5) * 15 - 5,
-                                life: 1.0,
-                                color: ['#4ade80', '#fbbf24', '#ffffff'][Math.floor(Math.random()*3)]
-                            });
-                        }
-                    }
-                }
-                else if (state.feedState === 'feedback') {
-                    state.cursor.clicking = false;
-                    if (state.feedTimer > 80) { // Wait 1.5s viewing success
-                        state.feedState = 'swiping';
-                        state.cursor.targetY = h * 0.2; // Move up to swipe
-                        state.feedTimer = 0;
-                    }
-                }
-                else if (state.feedState === 'swiping') {
-                    // Lerp Offset
-                    state.swipeOffset += (-h - state.swipeOffset) * 0.15;
-                    
-                    // Reset
-                    if (Math.abs(state.swipeOffset + h) < 5) {
-                        state.currentCardIndex = (state.currentCardIndex + 1) % state.feedCards.length;
-                        state.swipeOffset = 0;
-                        state.feedState = 'reading';
-                        state.feedTimer = 0;
-                        state.cursor.y = h + 100; // Reset cursor pos
-                    }
-                }
+                const centerX = w * 0.4; // Shifted left to make room for logs
+                const centerY = h * 0.5;
 
-                // Cursor Physics
-                state.cursor.x += (state.cursor.targetX - state.cursor.x) * 0.15;
-                state.cursor.y += (state.cursor.targetY - state.cursor.y) * 0.15;
-
-                // -- RENDER --
-                
-                ctx.save();
-                ctx.translate(0, state.swipeOffset);
-
-                // 1. Dynamic Video Background
-                const grad = ctx.createLinearGradient(0, 0, 0, h);
-                grad.addColorStop(0, card.bg[0]);
-                grad.addColorStop(1, card.bg[1]);
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, w, h);
-                
-                // Animated BG Elements (Subtle movement)
-                ctx.save();
-                ctx.globalAlpha = 0.1;
-                ctx.fillStyle = '#fff';
-                for(let i=0; i<5; i++) {
-                    const bx = (time * 20 + i * 50) % w;
-                    const by = (Math.sin(time + i) * 100 + h/2);
-                    ctx.beginPath(); ctx.arc(bx, by, 50 + i*20, 0, Math.PI*2); ctx.fill();
-                }
-                ctx.restore();
-
-                // 2. Right Sidebar (TikTok style actions)
-                const rightMargin = w - 40;
-                const bottomMargin = h - 100;
-                
-                // Avatar
-                ctx.beginPath(); ctx.arc(rightMargin, bottomMargin - 150, 20, 0, Math.PI*2); 
-                ctx.fillStyle = '#fff'; ctx.fill();
-                ctx.lineWidth = 2; ctx.strokeStyle = '#ef4444'; ctx.stroke();
-                // Plus icon
-                ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(rightMargin, bottomMargin - 135, 8, 0, Math.PI*2); ctx.fill();
-                
-                // Heart
-                ctx.fillStyle = state.feedState === 'feedback' || state.feedState === 'swiping' ? '#ef4444' : 'rgba(255,255,255,0.8)';
-                ctx.font = '24px serif'; ctx.textAlign='center'; ctx.fillText('♥', rightMargin, bottomMargin - 90);
-                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText(card.likes, rightMargin, bottomMargin - 75);
-
-                // Share
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.font = '24px serif'; ctx.fillText('➤', rightMargin, bottomMargin - 30);
-                ctx.font = '10px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText("Share", rightMargin, bottomMargin - 15);
-
-                // 3. Bottom Content Overlay
-                ctx.textAlign = 'left';
-                
-                // Author
-                ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#fff';
-                ctx.fillText(card.author, 20, h * 0.45);
-                
-                // Question (The Caption)
-                ctx.font = 'bold 18px sans-serif'; 
-                const lines = card.q.split(' '); 
-                ctx.fillText(card.q, 20, h * 0.45 + 25);
-                
-                // Subtext
-                ctx.font = '12px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.fillText(card.sub, 20, h * 0.45 + 45);
-
-                // 4. Interactive Quiz Buttons
-                card.opts.forEach((opt: string, i: number) => {
-                    const btnH = 50;
-                    const spacing = 15;
-                    const btnW = w * 0.75;
-                    const btnX = (w - btnW) / 2;
-                    const btnY = h * 0.65 + i * (btnH + spacing);
-                    
-                    const isCorrect = i === card.correct;
-                    const isSelected = (state.feedState === 'feedback' || state.feedState === 'swiping') && isCorrect;
-                    
-                    // Glassmorphism Button
-                    ctx.fillStyle = isSelected ? '#22c55e' : 'rgba(255,255,255,0.15)';
-                    if (isSelected) {
-                        ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 20;
-                    } else {
-                        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-                    }
-                    
-                    // Use polyfill
-                    drawRoundedRect(btnX, btnY, btnW, btnH, 12);
-                    ctx.fill();
-                    
-                    // Text
-                    ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
-                    ctx.fillText(opt, w/2, btnY + 30);
-                    
-                    // Reset Shadow
-                    ctx.shadowBlur = 0;
+                // 1. UPDATE SATELLITES
+                state.satellites.forEach((sat: any) => {
+                    sat.angle += state.orbitSpeed * sat.speed;
+                    // Elliptical Orbit
+                    sat.x = centerX + Math.cos(sat.angle) * sat.r;
+                    sat.y = centerY + Math.sin(sat.angle) * (sat.r * 0.8); // 0.8 aspect ratio for depth
                 });
 
-                // 5. Feedback Banner (Duolingo Style)
-                if (state.feedState === 'feedback' || state.feedState === 'swiping') {
-                    const bannerY = state.feedState === 'feedback' ? 
-                        h - 80 - Math.min(1, state.feedTimer/10) * 20 : // Pop up
-                        h - 100 + state.feedTimer; // Slide down
-                    
-                    ctx.fillStyle = '#22c55e';
-                    ctx.fillRect(0, bannerY, w, 150);
-                    
-                    ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'left';
-                    ctx.fillText("Nice job!", 20, bannerY + 40);
-                    ctx.font = '12px sans-serif';
-                    ctx.fillText(`Streak: ${state.streak} days 🔥`, 20, bannerY + 60);
+                // 2. LOGIC ENGINE (Randomly trigger data flows)
+                if (Math.random() > 0.96) {
+                    const source = state.satellites[Math.floor(Math.random() * state.satellites.length)];
+                    state.nexusPackets.push({
+                        sx: source.x, sy: source.y,
+                        tx: centerX, ty: centerY,
+                        progress: 0,
+                        speed: 0.02 + Math.random() * 0.02,
+                        type: 'inbound', // Satellite -> Core
+                        label: source.label
+                    });
                 }
 
-                // 6. Particles
-                for (let i = state.particles.length - 1; i >= 0; i--) {
-                    const p = state.particles[i];
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.8; // Gravity
-                    p.life -= 0.02;
-                    
-                    if (p.life <= 0) {
-                        state.particles.splice(i, 1);
-                        continue;
-                    }
-                    
-                    ctx.fillStyle = p.color;
-                    ctx.globalAlpha = p.life;
-                    ctx.fillRect(p.x, p.y, 6, 6); // Confetti squares
-                }
-                ctx.globalAlpha = 1;
-
-                // 7. Top Header (Progress)
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.fillRect(0, 0, w, 60);
-                
-                // Progress bar
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fillRect(20, 20, w-40, 4);
-                ctx.fillStyle = '#fff';
-                // Simulated progress
-                const prog = ((state.currentCardIndex + 1) / state.feedCards.length) * (w-40);
-                ctx.fillRect(20, 20, prog, 4);
-
-                ctx.restore(); // End Swipe Transform
-
-                // 8. Simulated Cursor
-                if (state.feedState !== 'swiping') {
-                    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                    ctx.fillStyle = '#fff';
-                    // Pointer shape
+                // 3. DRAW ORBITAL RINGS (Background)
+                ctx.lineWidth = 1;
+                state.satellites.forEach((sat: any) => {
                     ctx.beginPath();
-                    ctx.moveTo(state.cursor.x, state.cursor.y);
-                    ctx.lineTo(state.cursor.x + 12, state.cursor.y + 12);
-                    ctx.lineTo(state.cursor.x + 5, state.cursor.y + 12);
-                    ctx.lineTo(state.cursor.x, state.cursor.y + 18);
-                    ctx.closePath();
-                    ctx.fill();
+                    ctx.ellipse(centerX, centerY, sat.r, sat.r * 0.8, 0, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+                    ctx.stroke();
+                });
+
+                // 4. DRAW CONNECTIONS & PACKETS
+                // We use curved lines (Bezier) for organic feel
+                state.nexusPackets.forEach((p: any, i: number) => {
+                    p.progress += p.speed;
                     
-                    // Click Ripple
-                    if (state.cursor.clicking) {
-                        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.arc(state.cursor.x, state.cursor.y, 20, 0, Math.PI*2); ctx.stroke();
-                    }
+                    // Bezier Control Point (creates an arc)
+                    const midX = (p.sx + p.tx) / 2;
+                    const midY = (p.sy + p.ty) / 2 - 20; // Arc upwards
+
+                    // Calculate current position on Bezier
+                    const t = p.progress;
+                    const invT = 1 - t;
+                    const curX = invT*invT*p.sx + 2*invT*t*midX + t*t*p.tx;
+                    const curY = invT*invT*p.sy + 2*invT*t*midY + t*t*p.ty;
+
+                    // Draw Trail
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 * (1-t)})`;
+                    ctx.beginPath();
+                    ctx.moveTo(p.sx, p.sy);
+                    ctx.quadraticCurveTo(midX, midY, curX, curY);
+                    ctx.stroke();
+
+                    // Draw Head
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color; ctx.shadowBlur = 10;
+                    ctx.beginPath(); ctx.arc(curX, curY, 2, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
+
+                    if (p.progress >= 1) {
+                        // Packet Hit Core -> Generate Log
+                        if (p.type === 'inbound') {
+                            const events = [
+                                "CONTEXT_MATCH", "POLICY_CHECK", "RISK_ANALYSIS", "HISTORY_LOOKUP", "COMPLIANCE_SCAN"
+                            ];
+                            const event = events[Math.floor(Math.random() * events.length)];
+                            const logText = `> ${event}: ${p.label.split('_')[0]}_ID_${Math.floor(Math.random()*1000)}`;
+                            
+                            state.systemLogs.unshift({ text: logText, opacity: 1, type: 'process' });
+                            if (state.systemLogs.length > 8) state.systemLogs.pop();
+                        }
+                        state.nexusPackets.splice(i, 1);
+                    }
+                });
+
+                // 5. DRAW SATELLITES
+                state.satellites.forEach((sat: any) => {
+                    ctx.fillStyle = '#0c0c0e';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    
+                    ctx.beginPath(); ctx.arc(sat.x, sat.y, 4, 0, Math.PI*2); 
+                    ctx.fill(); ctx.stroke();
+
+                    // Tiny label
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.font = '8px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(sat.label, sat.x, sat.y + 12);
+                });
+
+                // 6. CENTRAL CORE (The User / Enterprise)
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                
+                // Outer Ring (Rotating)
+                ctx.rotate(time * 0.2);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 10]);
+                ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Inner Ring (Counter-Rotating)
+                ctx.rotate(-time * 0.4);
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI * 2); ctx.stroke();
+
+                // Solid Core
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+                
+                ctx.restore();
+
+                // 7. SYSTEM LOG (Right Sidebar)
+                const logX = w * 0.7;
+                const logY = h * 0.25;
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                drawRoundedRect(logX, logY - 10, w * 0.25, h * 0.6, 8);
+                // ctx.fill(); // Optional background
+
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'left';
+                
+                // Header
+                ctx.fillStyle = color;
+                ctx.fillText("/// STRATEGIC_INTEL_FEED", logX + 10, logY + 10);
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.fillRect(logX + 10, logY + 20, w * 0.25 - 40, 1);
+
+                // Entries
+                state.systemLogs.forEach((log: any, i: number) => {
+                    const y = logY + 40 + i * 20;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${log.opacity * 0.7})`;
+                    ctx.fillText(log.text, logX + 10, y);
+                    
+                    // Decay opacity slightly for older logs visual effect?
+                    // actually keep them visible, just fade out the bottom one if we wanted
+                });
+
+                // Blinking Cursor at bottom of logs
+                if (Math.floor(time * 2) % 2 === 0) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(logX + 10, logY + 40 + state.systemLogs.length * 20, 6, 12);
                 }
             }
             else if (mode === 'search') {
