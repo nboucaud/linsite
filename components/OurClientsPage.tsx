@@ -1,10 +1,10 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { 
     Users, Handshake, ShieldCheck, Target, ArrowRight, 
     Truck, Zap, Activity, Factory, Briefcase, 
     Globe, Network, Layers, ChevronRight, ArrowUpRight, ScanLine,
-    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X, Heart, Trophy
+    Database, Cpu, Lock, CheckCircle2, Terminal, ChevronDown, ChevronLeft, Play, X, Heart, Trophy, FileText, FileBarChart, FileCode, FileDigit
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ViewportSlot } from './ViewportSlot';
@@ -171,331 +171,366 @@ const IndustryCarousel: React.FC = () => {
     );
 };
 
-// --- PACMAN GAME ENGINES & TYPES ---
+// --- PACMAN GAME ENGINES ---
 
-type FileType = 'PDF' | 'DOCX' | 'XLSX' | 'PPTX' | 'LOG';
+const TILE_SIZE = 24;
+const MAP_LAYOUT = [
+    "1111111111111111111111111111",
+    "1000000000000110000000000001",
+    "1011110111110110111110111101",
+    "1311110111110110111110111131",
+    "1011110111110110111110111101",
+    "1000000000000000000000000001",
+    "1011110110111111110110111101",
+    "1011110110111111110110111101",
+    "1000000110000110000110000001",
+    "1111110111112112111110111111",
+    "2222210112222222222110122222",
+    "2222210112111--1112110122222",
+    "1111110112122222212110111111",
+    "2222220002122222212000222222", // Tunnel
+    "1111110112122222212110111111",
+    "2222210112111111112110122222",
+    "2222210112222222222110122222",
+    "1111110110111111110110111111",
+    "1000000000000110000000000001",
+    "1011110111110110111110111101",
+    "1300110000000000000000110031",
+    "1110110110111111110110110111",
+    "1000000110000110000110000001",
+    "1111111111111111111111111111",
+];
 
-interface GameEntity {
-    x: number;
+// Map codes: 0=Dot, 1=Wall, 2=Empty, 3=PowerFile, - = GhostGate
+
+interface Entity {
+    x: number; // Grid coordinates (float for smooth movement)
     y: number;
-    w: number;
-    h: number;
+    dir: {x: number, y: number};
+    nextDir: {x: number, y: number};
+    speed: number;
+}
+
+interface Ghost extends Entity {
+    id: number;
     color: string;
-}
-
-interface Ghost extends GameEntity {
-    speed: number;
-    type: 'chaser' | 'ambusher' | 'wanderer';
+    type: 'chaser' | 'ambusher' | 'wanderer' | 'random';
     state: 'normal' | 'scared' | 'eaten';
-}
-
-interface GameFile extends GameEntity {
-    type: FileType;
-    points: number;
-    eaten: boolean;
-    speed: number;
-}
-
-interface PowerUp extends GameEntity {
-    active: boolean;
+    scaredTimer: number;
 }
 
 const TerminalPacmanGame: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    
-    // Game State
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'won'>('start');
     const [score, setScore] = useState(0);
     const [lives, setLives] = useState(3);
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
     const [highScore, setHighScore] = useState(0);
 
-    // Engine Refs (Mutable to avoid re-renders)
-    const playerPos = useRef({ x: 300, y: 150 });
-    const playerDir = useRef(0); // Angle in radians
+    // Game Refs
+    const player = useRef<Entity>({ x: 13.5, y: 23, dir: {x:0, y:0}, nextDir: {x:0, y:0}, speed: 0.15 });
     const ghosts = useRef<Ghost[]>([]);
-    const files = useRef<GameFile[]>([]);
-    const powerUps = useRef<PowerUp[]>([]);
-    const particles = useRef<any[]>([]);
-    const powerModeTimer = useRef(0);
+    const mapData = useRef<number[][]>([]);
     const frameRef = useRef<number>(null);
-    const lastMousePos = useRef({ x: 300, y: 150 });
+    const scaredTimer = useRef(0);
 
-    const CANVAS_W = 600;
-    const CANVAS_H = 300;
-    const PLAYER_SIZE = 24;
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!containerRef.current || gameState !== 'playing') return;
-        const rect = containerRef.current.getBoundingClientRect();
-        lastMousePos.current = {
-            x: Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.clientX - rect.left)),
-            y: Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.clientY - rect.top))
-        };
-    };
-
+    // Initialize Game
     const initGame = () => {
-        setScore(0);
-        setLives(3);
-        setGameState('playing');
-        playerPos.current = { x: 100, y: 150 };
-        lastMousePos.current = { x: 300, y: 150 };
+        // Parse Map
+        mapData.current = MAP_LAYOUT.map(row => row.split('').map(c => {
+            if(c === '-') return 2; // Treat gate as empty for now (ghosts can pass special logic)
+            return parseInt(c);
+        }));
+
+        player.current = { x: 13.5, y: 15, dir: {x:0, y:0}, nextDir: {x:0, y:0}, speed: 0.12 }; // Slower speed
         
         // Init Ghosts
         ghosts.current = [
-            { x: CANVAS_W + 50, y: 50, w: 24, h: 24, color: '#ef4444', speed: 2.2, type: 'chaser', state: 'normal' }, // Red
-            { x: CANVAS_W + 100, y: 150, w: 24, h: 24, color: '#f472b6', speed: 2.0, type: 'ambusher', state: 'normal' }, // Pink
-            { x: CANVAS_W + 150, y: 250, w: 24, h: 24, color: '#22d3ee', speed: 1.8, type: 'wanderer', state: 'normal' } // Cyan
+            { id: 0, x: 12, y: 13, dir: {x:1, y:0}, nextDir: {x:1, y:0}, speed: 0.11, color: '#ef4444', type: 'chaser', state: 'normal', scaredTimer: 0 },
+            { id: 1, x: 15, y: 13, dir: {x:-1, y:0}, nextDir: {x:-1, y:0}, speed: 0.1, color: '#f472b6', type: 'ambusher', state: 'normal', scaredTimer: 0 },
+            { id: 2, x: 13.5, y: 11, dir: {x:0, y:1}, nextDir: {x:0, y:1}, speed: 0.1, color: '#06b6d4', type: 'wanderer', state: 'normal', scaredTimer: 0 },
+            { id: 3, x: 13.5, y: 13, dir: {x:0, y:-1}, nextDir: {x:0, y:-1}, speed: 0.1, color: '#f59e0b', type: 'random', state: 'normal', scaredTimer: 0 }
         ];
-        
-        files.current = [];
-        powerUps.current = [];
-        particles.current = [];
-        powerModeTimer.current = 0;
+
+        setScore(0);
+        setLives(3);
+        setGameState('playing');
+        scaredTimer.current = 0;
     };
 
+    // Keyboard Input
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (gameState !== 'playing') return;
+            // Prevent default scrolling for arrow keys
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+
+            switch(e.code) {
+                case 'ArrowUp': player.current.nextDir = {x: 0, y: -1}; break;
+                case 'ArrowDown': player.current.nextDir = {x: 0, y: 1}; break;
+                case 'ArrowLeft': player.current.nextDir = {x: -1, y: 0}; break;
+                case 'ArrowRight': player.current.nextDir = {x: 1, y: 0}; break;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [gameState]);
+
+    // Game Loop
     useEffect(() => {
         if (gameState !== 'playing') return;
-
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let frame = 0;
+        // Scale canvas for retina
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        // Grid fitting
+        const cols = MAP_LAYOUT[0].length;
+        const rows = MAP_LAYOUT.length;
+        // Center the maze
+        const mazeWidth = cols * TILE_SIZE;
+        const mazeHeight = rows * TILE_SIZE;
+        const offsetX = (rect.width - mazeWidth) / 2;
+        const offsetY = (rect.height - mazeHeight) / 2;
+
+        const isWall = (x: number, y: number) => {
+            if (x < 0 || x >= cols || y < 0 || y >= rows) return true;
+            return mapData.current[Math.floor(y)][Math.floor(x)] === 1;
+        };
+
+        const moveEntity = (e: Entity) => {
+            // Try changing direction if centered on tile
+            const centerX = Math.floor(e.x) + 0.5;
+            const centerY = Math.floor(e.y) + 0.5;
+            const dist = Math.sqrt((e.x - centerX)**2 + (e.y - centerY)**2);
+
+            if (dist < e.speed) {
+                // We are at center, can turn?
+                if (e.nextDir.x !== 0 || e.nextDir.y !== 0) {
+                    const nextTileX = Math.floor(e.x) + e.nextDir.x;
+                    const nextTileY = Math.floor(e.y) + e.nextDir.y;
+                    if (!isWall(nextTileX, nextTileY)) {
+                        e.x = centerX; e.y = centerY; // Snap
+                        e.dir = e.nextDir;
+                        e.nextDir = {x:0, y:0};
+                    }
+                }
+            }
+
+            // Move
+            const nextX = e.x + e.dir.x * e.speed;
+            const nextY = e.y + e.dir.y * e.speed;
+            
+            // Wall Collision Check (Ahead)
+            // Check tile center of where we are going
+            const checkX = Math.floor(nextX + e.dir.x * 0.45);
+            const checkY = Math.floor(nextY + e.dir.y * 0.45);
+
+            // Tunnel Handling
+            if (checkX < 0) { e.x = cols - 1; return; }
+            if (checkX >= cols) { e.x = 0; return; }
+
+            if (!isWall(checkX, checkY)) {
+                e.x = nextX;
+                e.y = nextY;
+            } else {
+                // Hit wall, snap to center of current tile
+                e.x = Math.floor(e.x) + 0.5;
+                e.y = Math.floor(e.y) + 0.5;
+            }
+        };
 
         const render = () => {
-            frame++;
-            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
-            // --- 1. BACKGROUND GRID ---
+            // Clear
             ctx.fillStyle = '#0a0a0c';
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-            ctx.lineWidth = 1;
-            const offset = (frame * 1) % 40;
-            for(let x=-offset; x<CANVAS_W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, CANVAS_H); ctx.stroke(); }
-            for(let y=0; y<CANVAS_H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CANVAS_W, y); ctx.stroke(); }
-
-            // --- 2. PLAYER LOGIC ---
-            // Move towards mouse
-            const dx = lastMousePos.current.x - playerPos.current.x;
-            const dy = lastMousePos.current.y - playerPos.current.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            ctx.fillRect(0, 0, rect.width, rect.height);
             
-            if (dist > 2) {
-                const moveSpeed = 4;
-                playerPos.current.x += (dx / dist) * moveSpeed;
-                playerPos.current.y += (dy / dist) * moveSpeed;
-                playerDir.current = Math.atan2(dy, dx);
-            }
-
-            // Draw Player
             ctx.save();
-            ctx.translate(playerPos.current.x, playerPos.current.y);
-            ctx.rotate(playerDir.current);
-            const mouth = Math.abs(Math.sin(frame * 0.2)) * 0.25 * Math.PI;
-            
-            ctx.fillStyle = '#3b82f6'; // Blue Infogito Pacman
-            ctx.shadowColor = 'rgba(59, 130, 246, 0.6)'; ctx.shadowBlur = 15;
-            ctx.beginPath();
-            ctx.arc(0, 0, PLAYER_SIZE/2, mouth, Math.PI * 2 - mouth);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-            ctx.restore();
+            ctx.translate(offsetX, offsetY);
 
-            // --- 3. FILES LOGIC ---
-            if (frame % 45 === 0) {
-                const typeInfo = [
-                    { t: 'PDF', c: '#ef4444', p: 100 },
-                    { t: 'DOCX', c: '#3b82f6', p: 100 },
-                    { t: 'XLSX', c: '#10b981', p: 150 },
-                    { t: 'PPTX', c: '#f97316', p: 150 },
-                    { t: 'LOG', c: '#a8a29e', p: 50 }
-                ][Math.floor(Math.random() * 5)];
-                
-                files.current.push({
-                    x: CANVAS_W + 50,
-                    y: Math.random() * (CANVAS_H - 40) + 20,
-                    w: 24, h: 30,
-                    type: typeInfo.t as FileType,
-                    color: typeInfo.c,
-                    points: typeInfo.p,
-                    eaten: false,
-                    speed: 2 + Math.random()
-                });
-            }
+            // 1. Draw Map
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const cell = mapData.current[y][x];
+                    const px = x * TILE_SIZE;
+                    const py = y * TILE_SIZE;
 
-            for (let i = files.current.length - 1; i >= 0; i--) {
-                const f = files.current[i];
-                f.x -= f.speed;
-                
-                // Draw File
-                if (!f.eaten) {
-                    ctx.fillStyle = f.color;
-                    ctx.shadowBlur = 0;
-                    ctx.fillRect(f.x, f.y - f.h/2, f.w, f.h);
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(f.x, f.y - f.h/2, f.w, 8); // Top bar
-                    ctx.font = 'bold 8px sans-serif';
-                    ctx.fillStyle = 'black';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(f.type, f.x + 2, f.y - f.h/2 + 7);
-
-                    // Collision
-                    if (Math.abs(f.x - playerPos.current.x) < 20 && Math.abs(f.y - playerPos.current.y) < 20) {
-                        f.eaten = true;
-                        setScore(s => s + f.points);
-                        // Particles
-                        for(let k=0; k<8; k++) {
-                            particles.current.push({
-                                x: f.x, y: f.y,
-                                vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
-                                life: 1.0, color: f.color
-                            });
-                        }
+                    if (cell === 1) {
+                        ctx.fillStyle = '#1e3a8a'; // Dark blue wall base
+                        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                        ctx.strokeStyle = '#3b82f6'; // Neon blue outline
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+                    } else if (cell === 0) {
+                        // Pellet
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillRect(px + TILE_SIZE/2 - 2, py + TILE_SIZE/2 - 2, 4, 4);
+                    } else if (cell === 3) {
+                        // Power Pellet (File Icon)
+                        // Simple file shape
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.beginPath();
+                        ctx.moveTo(px + 6, py + 4);
+                        ctx.lineTo(px + 14, py + 4);
+                        ctx.lineTo(px + 18, py + 8);
+                        ctx.lineTo(px + 18, py + 20);
+                        ctx.lineTo(px + 6, py + 20);
+                        ctx.fill();
+                        // Fold
+                        ctx.fillStyle = '#d97706';
+                        ctx.beginPath(); ctx.moveTo(px+14, py+4); ctx.lineTo(px+14, py+8); ctx.lineTo(px+18, py+8); ctx.fill();
+                        
+                        // Text label tiny
+                        ctx.font = "bold 6px sans-serif";
+                        ctx.fillStyle = "black";
+                        ctx.fillText("PDF", px+7, py+16);
                     }
                 }
-
-                if (f.x < -50 || f.eaten) {
-                    if (f.x < -50 || (f.eaten && frame % 5 === 0)) files.current.splice(i, 1);
-                }
             }
 
-            // --- 4. POWER UP LOGIC ---
-            if (powerModeTimer.current > 0) powerModeTimer.current--;
+            // 2. Move & Draw Player
+            moveEntity(player.current);
+            const p = player.current;
+            ctx.fillStyle = '#eab308'; // Yellow
+            ctx.beginPath();
+            // Mouth logic based on dir and time
+            const mouthOpen = Math.abs(Math.sin(Date.now() / 100)) * 0.2 + 0.05;
+            let startAngle = 0;
+            if (p.dir.x === 1) startAngle = 0;
+            if (p.dir.x === -1) startAngle = Math.PI;
+            if (p.dir.y === 1) startAngle = Math.PI/2;
+            if (p.dir.y === -1) startAngle = -Math.PI/2;
             
-            if (frame % 600 === 0 && powerModeTimer.current <= 0) { // Rare spawn
-                powerUps.current.push({
-                    x: CANVAS_W + 50,
-                    y: Math.random() * (CANVAS_H - 40) + 20,
-                    w: 20, h: 20,
-                    color: '#fbbf24', // Amber
-                    active: true
-                });
-            }
+            ctx.arc(p.x * TILE_SIZE + TILE_SIZE/2, p.y * TILE_SIZE + TILE_SIZE/2, TILE_SIZE/2 - 2, startAngle + mouthOpen * Math.PI, startAngle + (2 - mouthOpen) * Math.PI);
+            ctx.lineTo(p.x * TILE_SIZE + TILE_SIZE/2, p.y * TILE_SIZE + TILE_SIZE/2);
+            ctx.fill();
 
-            for (let i = powerUps.current.length - 1; i >= 0; i--) {
-                const p = powerUps.current[i];
-                p.x -= 2.5;
-                
-                // Draw PowerUp
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color; ctx.shadowBlur = 20;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 8 + Math.sin(frame * 0.2)*2, 0, Math.PI*2); ctx.fill();
-                
-                // Collision
-                if (Math.abs(p.x - playerPos.current.x) < 25 && Math.abs(p.y - playerPos.current.y) < 25) {
-                    powerUps.current.splice(i, 1);
-                    powerModeTimer.current = 300; // 5 seconds (assuming 60fps)
-                    // Set ghosts to scared
-                    ghosts.current.forEach(g => { if(g.state !== 'eaten') g.state = 'scared'; });
-                } else if (p.x < -50) {
-                    powerUps.current.splice(i, 1);
+            // 3. Collect Items
+            const pGx = Math.floor(p.x);
+            const pGy = Math.floor(p.y);
+            // Relaxed collision for items
+            if (pGx >= 0 && pGx < cols && pGy >= 0 && pGy < rows) {
+                const cell = mapData.current[pGy][pGx];
+                if (cell === 0) { // Pellet
+                    mapData.current[pGy][pGx] = 2; // Empty
+                    setScore(s => s + 10);
+                } else if (cell === 3) { // Power
+                    mapData.current[pGy][pGx] = 2;
+                    setScore(s => s + 50);
+                    // Scare ghosts
+                    ghosts.current.forEach(g => { 
+                        if(g.state !== 'eaten') g.state = 'scared'; 
+                        g.speed = 0.06; // Slow down
+                    });
+                    scaredTimer.current = 600; // Frames
                 }
             }
 
-            // --- 5. GHOSTS LOGIC ---
+            // 4. Ghost AI & Draw
+            if (scaredTimer.current > 0) {
+                scaredTimer.current--;
+                if (scaredTimer.current <= 0) {
+                    ghosts.current.forEach(g => {
+                        if(g.state === 'scared') g.state = 'normal';
+                        g.speed = 0.1; // Restore speed
+                    });
+                }
+            }
+
             ghosts.current.forEach(g => {
-                // Respawn Logic
-                if (g.x < -50) {
-                    g.x = CANVAS_W + 50;
-                    g.y = Math.random() * CANVAS_H;
-                    g.state = 'normal';
+                // Simple AI: Move straight, turn at intersection
+                const gx = Math.floor(g.x);
+                const gy = Math.floor(g.y);
+                const centerX = gx + 0.5;
+                const centerY = gy + 0.5;
+                
+                // If at center of tile
+                if (Math.abs(g.x - centerX) < 0.1 && Math.abs(g.y - centerY) < 0.1) {
+                    // Decide new direction
+                    const possibleDirs = [];
+                    if (!isWall(gx, gy-1) && g.dir.y !== 1) possibleDirs.push({x:0, y:-1}); // Up (cant go down immediately)
+                    if (!isWall(gx, gy+1) && g.dir.y !== -1) possibleDirs.push({x:0, y:1}); // Down
+                    if (!isWall(gx-1, gy) && g.dir.x !== 1) possibleDirs.push({x:-1, y:0}); // Left
+                    if (!isWall(gx+1, gy) && g.dir.x !== -1) possibleDirs.push({x:1, y:0}); // Right
+
+                    if (possibleDirs.length > 0) {
+                        // Choice logic
+                        if (g.state === 'scared') {
+                            // Random
+                            g.dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                        } else {
+                            // Try to move towards player (simple heuristic)
+                            // Sort dirs by distance to player
+                            possibleDirs.sort((a, b) => {
+                                const distA = Math.sqrt((gx+a.x - p.x)**2 + (gy+a.y - p.y)**2);
+                                const distB = Math.sqrt((gx+b.x - p.x)**2 + (gy+b.y - p.y)**2);
+                                return distA - distB;
+                            });
+                            // Pick best with some randomness for personality
+                            g.dir = possibleDirs[0]; 
+                            if (g.type === 'random' && possibleDirs.length > 1 && Math.random() > 0.5) g.dir = possibleDirs[1];
+                        }
+                    } else {
+                        // Dead end, reverse
+                        g.dir = { x: -g.dir.x, y: -g.dir.y };
+                    }
                 }
-
-                // AI Movement
-                let tx = playerPos.current.x;
-                let ty = playerPos.current.y;
-
-                if (g.state === 'scared') {
-                    // Run away from player
-                    tx = g.x + (g.x - playerPos.current.x);
-                    ty = g.y + (g.y - playerPos.current.y);
-                } else if (g.state === 'eaten') {
-                    // Run off screen quickly
-                    tx = -100;
-                    ty = g.y;
-                } else {
-                    // Normal chase variants
-                    if (g.type === 'ambusher') tx += 100; // Aim ahead
-                    if (g.type === 'wanderer') { tx = g.x - 100; ty = g.y + Math.sin(frame * 0.05)*50; }
-                }
-
-                const dx = tx - g.x;
-                const dy = ty - g.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const speed = g.state === 'eaten' ? 6 : (g.state === 'scared' ? 1.5 : g.speed);
-
-                if (dist > 0) {
-                    g.x += (dx / dist) * speed;
-                    g.y += (dy / dist) * speed;
-                } else {
-                    g.x -= speed; // Default scroll left
-                }
+                
+                g.x += g.dir.x * g.speed;
+                g.y += g.dir.y * g.speed;
 
                 // Draw Ghost
-                const ghostColor = g.state === 'scared' ? (powerModeTimer.current < 60 && Math.floor(frame/10)%2===0 ? '#fff' : '#3b82f6') : (g.state === 'eaten' ? 'transparent' : g.color);
+                const ghostColor = g.state === 'scared' ? (scaredTimer.current < 120 && Math.floor(Date.now()/200)%2===0 ? '#fff' : '#3b82f6') : g.color;
                 
-                if (g.state !== 'eaten') {
-                    ctx.save();
-                    ctx.translate(g.x, g.y);
-                    ctx.fillStyle = ghostColor;
-                    ctx.shadowColor = ghostColor; ctx.shadowBlur = 10;
-                    
-                    // Head
-                    ctx.beginPath();
-                    ctx.arc(0, -2, 12, Math.PI, 0);
-                    ctx.lineTo(12, 12);
-                    // Feet
-                    for(let k=1; k<=3; k++) ctx.lineTo(12 - 8*k, k%2===0 ? 12 : 8);
-                    ctx.lineTo(-12, -2);
-                    ctx.fill();
+                ctx.fillStyle = ghostColor;
+                const gPx = g.x * TILE_SIZE + TILE_SIZE/2;
+                const gPy = g.y * TILE_SIZE + TILE_SIZE/2;
+                
+                ctx.beginPath();
+                ctx.arc(gPx, gPy - 2, TILE_SIZE/2 - 2, Math.PI, 0);
+                ctx.lineTo(gPx + TILE_SIZE/2 - 2, gPy + TILE_SIZE/2 - 2);
+                // Feet
+                for(let k=1; k<=3; k++) ctx.lineTo(gPx + TILE_SIZE/2 - 2 - (k*(TILE_SIZE-4)/3), (k%2===0 ? gPy+TILE_SIZE/2-2 : gPy+TILE_SIZE/2-5));
+                ctx.lineTo(gPx - TILE_SIZE/2 + 2, gPy - 2);
+                ctx.fill();
 
-                    // Eyes
-                    if (g.state !== 'scared') {
-                        ctx.fillStyle = 'white';
-                        ctx.beginPath(); ctx.arc(-4, -4, 3, 0, Math.PI*2); ctx.fill();
-                        ctx.beginPath(); ctx.arc(4, -4, 3, 0, Math.PI*2); ctx.fill();
-                        ctx.fillStyle = 'black'; // Pupils
-                        ctx.beginPath(); ctx.arc(-4 + (dx/dist)*1.5, -4 + (dy/dist)*1.5, 1.5, 0, Math.PI*2); ctx.fill();
-                        ctx.beginPath(); ctx.arc(4 + (dx/dist)*1.5, -4 + (dy/dist)*1.5, 1.5, 0, Math.PI*2); ctx.fill();
-                    } else {
-                        // Scared face
-                        ctx.fillStyle = '#fbbf24'; // Mouth
-                        ctx.fillRect(-6, 2, 12, 2);
-                        ctx.fillRect(-6, 6, 12, 2);
-                    }
-                    ctx.restore();
-                } else {
-                    // Draw floating eyes for eaten state
-                    ctx.save();
-                    ctx.translate(g.x, g.y);
-                    ctx.fillStyle = 'white';
-                    ctx.beginPath(); ctx.arc(-4, -4, 3, 0, Math.PI*2); ctx.fill();
-                    ctx.beginPath(); ctx.arc(4, -4, 3, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
-                }
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(gPx - 4, gPy - 4, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gPx + 4, gPy - 4, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(gPx - 4 + g.dir.x*1.5, gPy - 4 + g.dir.y*1.5, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(gPx + 4 + g.dir.x*1.5, gPy - 4 + g.dir.y*1.5, 1.5, 0, Math.PI*2); ctx.fill();
 
-                // Player Collision
-                if (g.state !== 'eaten' && Math.abs(g.x - playerPos.current.x) < 20 && Math.abs(g.y - playerPos.current.y) < 20) {
+                // Collision with Player
+                const distToPlayer = Math.sqrt((g.x - p.x)**2 + (g.y - p.y)**2);
+                if (distToPlayer < 0.8) {
                     if (g.state === 'scared') {
                         g.state = 'eaten';
-                        setScore(s => s + 500);
-                        // Score popup particle
-                        particles.current.push({ x: g.x, y: g.y, vx: 0, vy: -1, life: 2.0, color: '#fff', text: '500' });
+                        g.x = 13.5; g.y = 11; // Respawn box
+                        g.state = 'normal';
+                        setScore(s => s + 200);
                     } else {
-                        // Damage
+                        // Die
                         setLives(l => {
                             if (l <= 1) {
                                 setGameState('gameover');
                                 return 0;
                             }
-                            // Reset positions on hit
-                            playerPos.current = { x: 100, y: 150 };
+                            // Reset positions
+                            player.current.x = 13.5; player.current.y = 23;
                             ghosts.current.forEach((gh, idx) => {
-                                gh.x = CANVAS_W + 50 + idx*50;
-                                gh.y = Math.random() * CANVAS_H;
+                                gh.x = [12, 15, 13.5, 13.5][idx];
+                                gh.y = [13, 13, 11, 13][idx];
                             });
                             return l - 1;
                         });
@@ -503,65 +538,48 @@ const TerminalPacmanGame: React.FC = () => {
                 }
             });
 
-            // --- 6. PARTICLES ---
-            for (let i = particles.current.length - 1; i >= 0; i--) {
-                const p = particles.current[i];
-                p.x += p.vx; p.y += p.vy;
-                p.life -= 0.05;
-                if (p.life <= 0) { particles.current.splice(i, 1); continue; }
-                
-                ctx.globalAlpha = Math.min(1, p.life);
-                ctx.fillStyle = p.color;
-                if (p.text) {
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.fillText(p.text, p.x, p.y);
-                } else {
-                    ctx.fillRect(p.x, p.y, 4, 4);
-                }
-                ctx.globalAlpha = 1;
-            }
-
-            // End Power Mode check
-            if (powerModeTimer.current === 1) {
-                ghosts.current.forEach(g => { if(g.state === 'scared') g.state = 'normal'; });
-            }
-
+            ctx.restore();
             frameRef.current = requestAnimationFrame(render);
         };
-        
+
         render();
-        return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+        return () => { if(frameRef.current) cancelAnimationFrame(frameRef.current); };
     }, [gameState]);
 
-    // Update High Score
+    // High Score tracking
     useEffect(() => {
         if (score > highScore) setHighScore(score);
     }, [score]);
 
     return (
-        <div ref={containerRef} className="relative w-full max-w-2xl mx-auto h-[300px] bg-[#0c0c0e] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none" onMouseMove={handleMouseMove}>
+        <div ref={containerRef} className="relative w-full max-w-5xl mx-auto h-[650px] bg-[#0c0c0e] rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-12 group select-none">
             
+            {/* START SCREEN OVERLAY */}
             {gameState === 'start' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md z-50 transition-opacity duration-500">
                     <button
                         onClick={(e) => { e.stopPropagation(); initGame(); }}
-                        className="group relative w-24 h-24 bg-[#1a1a1c] rounded-full flex items-center justify-center mb-8 transition-all border-t border-white/10 border-b border-black/50 shadow-[0_6px_0_#000,0_10px_20px_rgba(0,0,0,0.5)] active:shadow-[0_0_0_#000] active:translate-y-[6px] hover:bg-[#252528]"
+                        className="group relative w-32 h-32 bg-[#1a1a1c] rounded-full flex items-center justify-center mb-8 transition-all border-t border-white/10 border-b border-black/50 shadow-[0_6px_0_#000,0_10px_20px_rgba(0,0,0,0.5)] active:shadow-[0_0_0_#000] active:translate-y-[6px] hover:bg-[#252528]"
                     >
-                        <Terminal size={40} className="text-white/40 group-hover:text-[#69B7B2] transition-colors" />
+                        <Play size={48} className="text-white/40 group-hover:text-[#69B7B2] ml-2 transition-colors" fill="currentColor" />
                         <div className="absolute inset-0 rounded-full ring-1 ring-white/5 pointer-events-none" />
                     </button>
-                    <h3 className="text-2xl font-serif text-white mb-2 tracking-tight">Ingestion Protocol</h3>
-                    <p className="text-white/50 text-sm mb-8 font-mono">Click button above to initialize agent.</p>
+                    <h3 className="text-4xl font-serif text-white mb-2 tracking-tight">System Ingestion</h3>
+                    <p className="text-white/50 text-base mb-8 font-mono">Collect data packets. Avoid firewall ghosts.</p>
+                    <div className="flex gap-4 text-xs font-mono text-white/30 uppercase tracking-widest">
+                        <span className="flex items-center gap-1 border border-white/10 px-2 py-1 rounded"><ArrowUpRight size={10} /> Arrow Keys to Move</span>
+                    </div>
                 </div>
             )}
 
+            {/* GAME OVER OVERLAY */}
             {gameState === 'gameover' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/40 backdrop-blur-md z-30">
-                    <div className="text-4xl font-black text-white mb-2 tracking-tighter">CONNECTION LOST</div>
-                    <div className="text-xl text-white/80 mb-6 font-mono">DATA INGESTED: {score}</div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/40 backdrop-blur-md z-50 animate-in fade-in duration-300">
+                    <div className="text-6xl font-black text-white mb-4 tracking-tighter drop-shadow-lg">CONNECTION LOST</div>
+                    <div className="text-2xl text-white/80 mb-8 font-mono">DATA INGESTED: {score}</div>
                     <button 
                         onClick={initGame}
-                        className="px-8 py-3 bg-white text-black hover:bg-gray-200 font-bold uppercase tracking-widest text-xs rounded-full transition-colors"
+                        className="px-10 py-4 bg-white text-black hover:bg-gray-200 font-bold uppercase tracking-widest text-sm rounded-full transition-colors shadow-lg"
                     >
                         Reboot System
                     </button>
@@ -570,43 +588,47 @@ const TerminalPacmanGame: React.FC = () => {
 
             <canvas 
                 ref={canvasRef} 
-                width={CANVAS_W} 
-                height={CANVAS_H}
                 className="absolute inset-0 w-full h-full cursor-none block" 
             />
             
             {/* HUD */}
-            {(gameState === 'playing' || gameState === 'gameover') && (
-                <div className="absolute top-4 left-6 z-20 flex gap-8 w-full pr-12">
+            <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-40 pointer-events-none">
+                <div className="flex gap-8">
                     <div>
-                        <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Score</div>
-                        <div className="text-xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
+                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Current Session</div>
+                        <div className="text-3xl font-mono text-white leading-none">{score.toString().padStart(6, '0')}</div>
                     </div>
                     <div>
-                        <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest">High Score</div>
-                        <div className="text-xl font-mono text-[#69B7B2] leading-none">{highScore.toString().padStart(6, '0')}</div>
+                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Record</div>
+                        <div className="text-3xl font-mono text-[#69B7B2] leading-none">{highScore.toString().padStart(6, '0')}</div>
                     </div>
-                    <div className="ml-auto flex gap-1">
-                        {[...Array(3)].map((_, i) => (
-                            <Heart key={i} size={16} className={`${i < lives ? 'text-red-500 fill-red-500' : 'text-white/20'}`} />
-                        ))}
+                </div>
+                
+                <div className="flex gap-2">
+                    {[...Array(3)].map((_, i) => (
+                        <Heart key={i} size={24} className={`${i < lives ? 'text-red-500 fill-red-500' : 'text-white/10 fill-white/5'} transition-all`} />
+                    ))}
+                </div>
+            </div>
+
+            {/* Footer Hints */}
+            {gameState === 'playing' && (
+                <div className="absolute bottom-6 w-full text-center pointer-events-none">
+                    <div className="inline-flex items-center gap-6 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                        <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#fbbf24] rounded-sm" /> +50 PTS (Power)</span>
+                        <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#94a3b8] rounded-sm" /> +10 PTS (Data)</span>
+                        <span className="flex items-center gap-2 text-red-400"><div className="w-2 h-2 bg-red-500 rounded-full" /> Avoid</span>
                     </div>
                 </div>
             )}
 
             {gameState === 'playing' && (
-                <>
-                    <button 
-                        onClick={() => setGameState('start')}
-                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/50 hover:text-white transition-colors z-30"
-                    >
-                        <X size={16} />
-                    </button>
-                    
-                    <div className="absolute bottom-4 left-0 right-0 text-center text-[9px] text-white/20 font-mono uppercase tracking-widest pointer-events-none">
-                        Mouse Controls Active /// Collect Documents /// Avoid Red Nodes
-                    </div>
-                </>
+                <button 
+                    onClick={() => setGameState('start')}
+                    className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/20 rounded-full text-white/30 hover:text-white transition-colors z-50 pointer-events-auto"
+                >
+                    <X size={20} />
+                </button>
             )}
         </div>
     );
@@ -763,7 +785,7 @@ export const OurClientsPage: React.FC = () => {
             </ViewportSlot>
 
             <section className="py-32 bg-[#020202] border-t border-white/5 text-center">
-                <div className="max-w-3xl mx-auto px-6">
+                <div className="max-w-6xl mx-auto px-6">
                     
                     <TerminalPacmanGame />
                     
