@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { NavigationProvider, useNavigation } from '../context/NavigationContext';
+import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { GlobalNav } from './components/GlobalNav';
 import { Loader2 } from 'lucide-react';
 
@@ -81,7 +81,7 @@ const MainContent = () => {
   }
   
   if (currentPath === 'platform/features/agentic-workflows') {
-      return <GenericPage title="Agentic Workflows" subtitle="Build complex autonomous agents visually." category="Platform Feature" />;
+      return <GenericPage title="Agent Workflows" subtitle="Build complex autonomous agents visually." category="Platform Feature" />;
   }
 
   // 3. SECTION ROOTS
