@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     Zap, Compass, LineChart, Puzzle, 
     Scale, Database, AlertTriangle, ShieldAlert, Bot, Rocket,
-    ArrowRight, X, ScanLine, Target, Microscope, ImageIcon, ChevronUp
+    ArrowRight, X, ChevronUp
 } from 'lucide-react';
 import { SmallBusinessHeroVisualizer } from './SmallBusinessHeroVisualizer';
 import { IndustryNavigationFooter } from './IndustryNavigationFooter';
@@ -11,6 +11,7 @@ import { ViewportSlot } from './ViewportSlot';
 
 // --- UTILS ---
 const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
+    if (!text) return null;
     return (
         <div className="space-y-8 font-sans text-xl leading-relaxed text-white/80">
             {text.split('\n\n').map((paragraph, idx) => (
@@ -27,7 +28,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-// Enhanced Image Component with JS Canvas Overlay - NO TEXT FALLBACK
+// Enhanced Image Component
 const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string, blend?: boolean }> = ({ type, label, src, blend }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
@@ -49,10 +50,10 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
         return () => observer.disconnect();
     }, []);
 
-    // Canvas Effect (The ".js" part)
+    // Canvas Effect
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !isVisible || hasError) return; // Don't run canvas if image failed
+        if (!canvas || !isVisible || hasError) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -86,9 +87,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
             // 3. Corner UI
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.lineWidth = 1;
-            // TL
             ctx.beginPath(); ctx.moveTo(10, 30); ctx.lineTo(10, 10); ctx.lineTo(30, 10); ctx.stroke();
-            // BR
             ctx.beginPath(); ctx.moveTo(w-10, h-30); ctx.lineTo(w-10, h-10); ctx.lineTo(w-30, h-10); ctx.stroke();
 
             animationFrameId = requestAnimationFrame(render);
@@ -109,14 +108,10 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             onError={() => setHasError(true)}
                             className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${blend ? 'mix-blend-multiply contrast-125' : ''}`}
                         />
-                        {/* Canvas Overlay */}
                         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
-                        
-                        {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
                     </>
                 ) : (
-                    // Fallback Grid - No Text
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 )}
             </div>
@@ -133,7 +128,7 @@ const STATS = [
         desc: "Only 29% of mid-market companies scale AI successfully vs 50% of large enterprises.",
         source: "McKinsey",
         icon: Scale,
-        color: "#f472b6", // Pink
+        color: "#f472b6",
         url: "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai-how-organizations-are-rewiring-to-capture-value#/"
     },
     {
@@ -142,7 +137,7 @@ const STATS = [
         desc: "Operations leaders report recent tech investments have not fully delivered expected results.",
         source: "PwC",
         icon: AlertTriangle,
-        color: "#fbbf24", // Amber
+        color: "#fbbf24",
         url: "https://www.pwc.com/us/en/services/consulting/business-transformation/digital-supply-chain-survey.html"
     },
     {
@@ -151,7 +146,7 @@ const STATS = [
         desc: "Business leaders indicate limited access to data would directly harm operations.",
         source: "U.S. Chamber",
         icon: Database,
-        color: "#ef4444", // Red
+        color: "#ef4444",
         url: "https://www.uschamber.com/technology/empowering-small-business-the-impact-of-technology-on-u-s-small-business"
     },
     {
@@ -160,7 +155,7 @@ const STATS = [
         desc: "Of day-to-day work decisions will be made autonomously by AI agents by 2028.",
         source: "Gartner",
         icon: Bot,
-        color: "#8b5cf6", // Purple
+        color: "#8b5cf6",
         url: "https://www.gartner.com/en/articles/top-technology-trends-2026"
     },
     {
@@ -169,7 +164,7 @@ const STATS = [
         desc: "Private leaders cite cyber threats as top enterprise concern, shifting governance focus.",
         source: "Deloitte",
         icon: ShieldAlert,
-        color: "#3b82f6", // Blue
+        color: "#3b82f6",
         url: "https://www.deloitte.com/us/en/services/deloitte-private/articles/private-company-governance.html"
     },
     {
@@ -178,7 +173,7 @@ const STATS = [
         desc: "Organizations piloting GenAI remain stuck in experimentation, unable to bridge to value.",
         source: "Deloitte",
         icon: Rocket,
-        color: "#10b981", // Emerald
+        color: "#10b981",
         url: "https://www.deloitte.com/us/en/services/deloitte-private/articles/private-company-governance.html"
     }
 ];
@@ -197,7 +192,6 @@ const PILLARS = [
             intervene: "The moment intervention matters most is when decisions start compounding faster than alignment. In growing organizations, it becomes increasingly difficult to see how individual choices, like hiring, pricing, capacity, delivery, interact across the business in real time.\n\nIntervention focuses on **restoring a shared operating picture.** This means clarifying how forecasts, priorities, and constraints connect across functions, so decisions reinforce each other instead of competing for attention. The emphasis is on coordination and augmentation across teams. Creating enough structure to support scale without disrupting momentum.\n\nThis work intervenes at the level of decision context: ensuring leaders have visibility into tradeoffs before they become commitments, and that teams are operating from the same assumptions as the organization grows.",
             approach: "We always want to slow down the noise for our clients, without slowing down business operations. In fast-moving organizations, clarity is often buried under urgency. The work here is about **creating space for better decisions while preserving momentum.**\n\nSupport focuses on helping leaders see how leaders see how operational choices connect—where constraints are forming, where capacity is tightening, and where decisions made today will echo tomorrow. This is done by strengthening shared understanding across functions, not by introducing rigid planning layers. The intent is to make coordination easier, not heavier. Support shows up as clearer framing, better timing, and fewer surprises as the organization grows and adapts."
         },
-        // SECTION 1 IMAGES
         images: {
             problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-business-team-reviewing-large-blueprint-plans-on-conference-table.webp",
             intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-consultants-reviewing-documents-and-laptop-during-office-meeting.webp",
@@ -218,7 +212,6 @@ const PILLARS = [
             intervene: "With every client, we start by acknowledging that curving uncertainty and complexity is part of the growth process. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, connecting marketing activity, customer behavior, and performance outcomes into a **coherent narrative that evolves over time.** This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions. The aim is steadier judgment. Support helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions.",
             approach: "Support starts by acknowledging that uncertainty is part of growth. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, like connecting marketing activity, customer behavior, and performance outcomes into a coherent narrative that evolves over time. This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions.\n\nThe aim is always to foster **steadier judgment and decision-making for our clients**, based on the intelligence that they believe in. We believe that this helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions."
         },
-        // SECTION 2 IMAGES
         images: {
             problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-businesswoman-in-green-blazer-typing-on-desktop-computer-in-office.webp",
             intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-customer-support-agents-wearing-headsets-in-call-center-row.webp",
@@ -239,7 +232,6 @@ const PILLARS = [
             intervene: "Technology stops helping when it starts shaping work instead of supporting it. As systems accumulate, friction often shows up not as failure, but as extra steps, workarounds, and duplicated effort. Intervention occurs at the intersection of workflows and systems.\n\nThe focus is on **aligning tools with how work actually happens, in real time.** Through requests, approvals, handoffs, reporting, and sometimes, tribal knowledge. We create technologies with our clients that reduce effort and prioritizes human judgement and interaction, rather than redistributes it. This includes evaluating what to simplify, what to connect, and what to leave untouched. The goal is not to replace systems, but to ensure they remain useful as the organization evolves. Intervention supports clarity, continuity, and scale without recreating the overhead of enterprise environments.",
             approach: "More than anything, this support begins by respecting the systems already in place. Most organizations arrive here having made reasonable technology choices under real constraints. The challenge is rarely starting over, it’s **keeping tools useful as work changes.**\n\nSupport focuses on reducing friction where it shows up: unnecessary handoffs, duplicated work, and unclear ownership. This involves aligning systems with workflows so technology quietly supports execution rather than demanding attention. The goal is continuity. Support ensures that tools remain assets as the organization scales, without introducing complexity that slows teams down or pulls focus away from the work itself."
         },
-        // SECTION 3 IMAGES
         images: {
             problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-blue-technology-network-background-with-glowing-rectangular-data-nodes.webp",
             intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-woman-sitting-on-floor-at-coffee-table-typing-on-laptop-in-living-room.webp",
@@ -249,8 +241,7 @@ const PILLARS = [
     }
 ];
 
-// ... (VISUALIZERS & COMPONENTS KEPT SAME AS PREVIOUS)
-// RE-ADDING VISUALIZERS FOR FILE INTEGRITY
+// --- VISUALIZERS ---
 
 const AlignmentVisualizer: React.FC<{ color: string }> = ({ color }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -325,6 +316,8 @@ const ModalBackground: React.FC<{ mode: string, color: string }> = ({ mode, colo
     return <div className="absolute inset-0 bg-black/50" />; 
 };
 
+// --- COMPONENT RENDER ---
+
 const StatCard: React.FC<{ stat: typeof STATS[0], index: number }> = ({ stat, index }) => {
     return (
         <a 
@@ -392,13 +385,12 @@ const TiltPillarCard: React.FC<{ pillar: any, onClick: () => void }> = ({ pillar
     );
 };
 
-// --- MAIN PAGE ---
+// --- MAIN PAGE COMPONENT ---
 
 export const SmallBusinessPage: React.FC = () => {
     const [expandedPillarId, setExpandedPillarId] = useState<string | null>(null);
     const activePillar = PILLARS.find(p => p.id === expandedPillarId);
 
-    // Scroll Progress Hook logic
     const modalRef = useRef<HTMLDivElement>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
     const [showBackToTop, setShowBackToTop] = useState(false);
@@ -436,7 +428,6 @@ export const SmallBusinessPage: React.FC = () => {
                 <>
                     {/* --- HERO --- */}
                     <div className="relative h-[85vh] min-h-[600px] flex flex-col justify-center border-b border-white/10 bg-[#020202] overflow-hidden animate-in fade-in duration-500">
-                        {/* FIX: Absolute Positioning to prevent layout push */}
                         <div className="absolute inset-0 z-0">
                             <SmallBusinessHeroVisualizer />
                         </div>
@@ -511,7 +502,7 @@ export const SmallBusinessPage: React.FC = () => {
                         </section>
                     </ViewportSlot>
 
-                    {/* --- NEW CROSS-NAVIGATION FOOTER --- */}
+                    {/* --- FOOTER NAV --- */}
                     <IndustryNavigationFooter currentId="smb" />
                 </>
             )}
@@ -582,7 +573,7 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.problem} />
                                     </section>
                                     
-                                    {/* VISUAL BREAK 1: WIDE (Replaced with Strategy/Planning) */}
+                                    {/* VISUAL BREAK 1: WIDE */}
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Current State" 
@@ -599,7 +590,7 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.intervene} />
                                     </section>
 
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID (Replaced with Analysis & Action) */}
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
                                         <ImagePlaceholder 
                                             type="portrait" 
@@ -622,7 +613,7 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.approach} />
                                     </section>
 
-                                    {/* FINAL VISUAL (Replaced with Unified View) */}
+                                    {/* FINAL VISUAL */}
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="Unified View" 
