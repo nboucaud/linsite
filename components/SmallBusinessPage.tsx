@@ -29,7 +29,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
 };
 
 // Enhanced Image Component
-const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string, blend?: boolean }> = ({ type, label, src, blend }) => {
+const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
     const [hasError, setHasError] = useState(false);
@@ -106,7 +106,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
                             src={src} 
                             alt="" 
                             onError={() => setHasError(true)}
-                            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${blend ? 'mix-blend-multiply contrast-125' : ''}`}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-60 mix-blend-screen" />
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out skew-x-12 pointer-events-none" />
@@ -230,7 +230,7 @@ const PILLARS = [
         content: {
             problem: "Technology in growing organizations is rarely chosen all at once. Systems are added incrementally to address immediate needs, like managing requests, tracking work, and supporting customers. Often under time pressure and without the benefit of long-term architectural planning. Over time, these tools begin to overlap, creating friction rather than efficiency.\n\nWith technology design and adoption, it is rarely about “poor decision-making”. It is about the reality that **early technology choices are made before future scale is clear.** As workflows become more complex, teams may find themselves adapting their work to fit tools that were never designed to support evolving processes. This can slow execution, increase manual effort, and make it harder to maintain shared visibility. The problem is not technology adoption itself, but ensuring that systems continue to support how work is actually done as the organization grows.",
             intervene: "Technology stops helping when it starts shaping work instead of supporting it. As systems accumulate, friction often shows up not as failure, but as extra steps, workarounds, and duplicated effort. Intervention occurs at the intersection of workflows and systems.\n\nThe focus is on **aligning tools with how work actually happens, in real time.** Through requests, approvals, handoffs, reporting, and sometimes, tribal knowledge. We create technologies with our clients that reduce effort and prioritizes human judgement and interaction, rather than redistributes it. This includes evaluating what to simplify, what to connect, and what to leave untouched. The goal is not to replace systems, but to ensure they remain useful as the organization evolves. Intervention supports clarity, continuity, and scale without recreating the overhead of enterprise environments.",
-            approach: "More than anything, this support begins by respecting the systems already in place. Most organizations arrive here having made reasonable technology choices under real constraints. The challenge is rarely starting over, it’s **keeping tools useful as work changes.**\n\nSupport focuses on reducing friction where it shows up: unnecessary handoffs, duplicated work, and unclear ownership. This involves aligning systems with workflows so technology quietly supports execution rather than demanding attention. The goal is continuity. Support ensures that tools remain assets as the organization scales, without introducing complexity that slows teams down or pulls focus away from the work itself."
+            approach: "More than anything, this support begins by respecting the systems already in place. Most organizations arrive here having made reasonable technology choices under real constraints. The challenge is rarely starting over, it’s **keeping tools useful as work changes.**\n\nSupport focuses on reducing friction where it shows up: unnecessary handoffs, duplicated work, and unclear ownership. This involves aligning systems with workflows so technology quietly supports execution rather than demanding attention. The goal is continuity. Support ensures that tools remain useful assets as the organization scales, without introducing complexity that slows teams down or pulls focus away from the work itself."
         },
         images: {
             problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-blue-technology-network-background-with-glowing-rectangular-data-nodes.webp",
@@ -578,7 +578,6 @@ export const SmallBusinessPage: React.FC = () => {
                                         type="wide" 
                                         label="Current State" 
                                         src={activePillar.images?.problem}
-                                        blend={true}
                                     />
 
                                     {/* SECTION 2: INTERVENTION */}
