@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { NavigationProvider, useNavigation } from '../context/NavigationContext';
 import { GlobalNav } from './components/GlobalNav';
 import { Loader2 } from 'lucide-react';
 
@@ -64,7 +64,7 @@ const MainContent = () => {
   if (currentPath === 'platform/features/security-and-privacy') {
       return <CompliancePage />;
   }
-  if (currentPath === 'our-clients/industries/smb-operations') {
+  if (currentPath === 'our-clients/industries/business-operations') {
       return <SmallBusinessPage />;
   }
   if (currentPath === 'our-clients/industries/logistics') {

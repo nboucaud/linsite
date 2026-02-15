@@ -191,6 +191,12 @@ const PILLARS = [
             problem: "Industrial reliability challenges rarely stem from a single failure or isolated asset. Instead, they emerge from **accumulated variability across equipment, processes, materials, and operating conditions.** Small deviations, missed inspections, deferred maintenance, and gradual process drift compound over time until they surface as unplanned downtime or degraded performance.\n\nThe core challenge is not a lack of information, but limited operational visibility into how reliability erodes across interconnected systems. Without clearer insight into patterns of degradation and variance, organizations remain vulnerable to recurring failures that undermine productivity, safety, and planning confidence.\n\nMany organizations struggle to distinguish between normal operational noise and early warning signals. Data exists across control systems, maintenance logs, and inspection records, but it is often fragmented, retrospective, or disconnected from how work is actually executed. As a result, teams are forced into reactive maintenance cycles, addressing failures after they occur rather than stabilizing performance before disruptions escalate.",
             intervene: "Effective reliability intervention respects the realities of industrial operations. It integrates with how maintenance is planned, how operators respond to anomalies, and how reliability decisions are made under constraint. **In reliability work, intervention does not begin at the point of failure. It begins upstream, where variability first appears.**\n\nWe believe that the best interventions occur at the level of operating conditions, maintenance decisions, and process behavior. This includes how inspections are prioritized, how maintenance timing is adjusted, and how process variance accumulates across interconnected systems. The goal is not perfect prediction, but earlier awareness and more informed tradeoffs between uptime, risk, and intervention cost.",
             approach: "We believe that this work begins by establishing a clear understanding of operating baselines—what 'normal' looks like across equipment, processes, and conditions—before attempting to improve anything. In industrial environments, reliability is approached as a discipline. Variability is examined in context, with attention to how assets interact, how maintenance decisions are sequenced, and how operating practices influence long-term performance.\n\nRather than chasing isolated metrics, the approach emphasizes consistency over time. Signals are evaluated alongside maintenance history, operating conditions, and process changes, allowing teams to distinguish between transient disturbances and meaningful degradation. The objective is to support informed decisions about when to intervene, when to defer, and when to accept risk as part of normal operations."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-wide-interior-view-of-automated-manufacturing-facility-production-lines.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-two-industrial-engineers-inspecting-valves-and-piping-in-plant-room.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-technicians-in-yellow-workwear-repairing-hvac-ductwork-with-wrenches.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-factory-operator-in-hairnet-running-textile-machine-on-production-line.webp"
         }
     },
     {
@@ -204,6 +210,12 @@ const PILLARS = [
             problem: "When enforcement depends too heavily on manual oversight and after-the-fact audits, organizations struggle to detect emerging risk early. Over time, this leads to compliance fatigue, uneven safety culture, and increased exposure during audits or incidents. **Quality and safety breakdowns are rarely caused by the absence of standards.** They occur when standards are inconsistently applied, poorly enforced, or disconnected from daily operational reality.\n\nNonconformances, near misses, and safety incidents often reveal deeper issues in process discipline, training consistency, and accountability. Yet many quality and safety systems are heavily documentation-driven, focusing on record-keeping rather than real-time operational control. This creates a gap between what procedures specify and how work is actually performed under pressure.",
             intervene: "In quality and safety, intervention centers on execution and regulatory knowledge that surpasses the policies and procedures that inspire them. This work focuses on how standards are applied in practice across shifts, sites, and contractors. **Intervention occurs where deviations are most likely to propagate: at handoffs, during process changes, and after incidents.**\n\nThe emphasis is on strengthening traceability, reinforcing accountability, and ensuring that corrective actions are embedded into how work is actually performed. Rather than relying solely on audits, this approach intervenes earlier, where signals of nonconformance or unsafe behavior first appear. The objective is sustained discipline under real operating conditions, not compliance on paper.",
             approach: "Quality and safety are approached as systems of execution. The emphasis is on how standards are interpreted, applied, and reinforced in daily work, particularly in environments where multiple teams, contractors, and shifts intersect.\n\nWe believe that effective quality and safety operations rely on **repeatable enforcement and transparent follow-through.** The approach favors clear ownership, consistent escalation, and practical feedback loops that strengthen discipline without disrupting throughput. This work begins by aligning expectations across roles, ensuring that requirements are clear, enforceable, and embedded into operational routines."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-construction-team-in-hard-hats-reviewing-blueprints-at-building-site.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-gloved-hands-calibrating-precision-industrial-part-in-clean-tech-lab.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-construction-worker-laying-red-bricks-on-partial-wall-at-building-site.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-technician-in-full-hazmat-suit-taking-sample-in-forest-area.webp"
         }
     },
     {
@@ -217,6 +229,12 @@ const PILLARS = [
             problem: "Industrial operations rely heavily on **tacit knowledge**—the practical understanding of how equipment behaves and how work is actually performed. Much of this expertise is learned over time and passed informally, often never captured in systems. Without deliberate mechanisms to preserve this context, organizations become increasingly dependent on individuals.\n\nAs experienced workers exit the workforce and operations grow more complex, preserving institutional knowledge becomes a critical operational concern. Critical context is lost during shift changes, contractor transitions, and retirements, leaving gaps in understanding that only become visible when problems occur. We naturally underestimate the operational risk created by knowledge loss because it does not appear on balance sheets or dashboards.",
             intervene: "In knowledge-intensive industrial environments, intervention begins where experience is transferred, or fails to be transferred. The focus is on moments where operational understanding moves between people: shift changes, turnover, and onboarding. **Intervention occurs at the level of practical knowledge:** how procedures are interpreted, how exceptions are handled, and how adjustments are made.\n\nThis approach treats knowledge as situational and time-bound. It intervenes where context is most likely to be lost, ensuring that operational understanding persists even as personnel rotate. The goal is not to replace experience, but to prevent its disappearance.",
             approach: "Knowledge preservation in industrial operations is approached through **continuity, not accumulation.** The focus is on identifying which forms of expertise are essential to safe and reliable execution. Rather than attempting to capture everything, these efforts emphasize relevance—what operators need to know to perform work correctly.\n\nKnowledge is treated as contextual and situational, shaped by equipment behavior and local practice. By supporting consistent handoffs and clear procedures as practiced, organizations reduce dependence on individual memory and strengthen their ability to operate safely and predictably over time."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-engineering-team-hands-reviewing-architectural-blueprints-on-drafting-table.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-engineering-students-building-small-robot-car-on-workbench.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-business-people-analyzing-glowing-smart-city-model-in-futuristic-control-room.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-closeup-of-printed-circuit-board-with-electronic-components-and-solder-joints.webp"
         }
     }
 ];
@@ -717,11 +735,11 @@ export const IndustrialsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.problem} />
                                     </section>
                                     
-                                    {/* VISUAL BREAK 1: WIDE (Swapped Image: AutomatedWeavingMachines) */}
+                                    {/* VISUAL BREAK 1: WIDE */}
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Site Schematic" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/AutomatedWeavingMachinesOperatingInLargeTextileManufacturingFactory.webp"
+                                        src={activePillar.images?.problem}
                                     />
 
                                     {/* SECTION 2: INTERVENTION */}
@@ -733,17 +751,17 @@ export const IndustrialsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.intervene} />
                                     </section>
 
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID (Swapped Images) */}
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Asset Sensor" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_industrial_steel_lattice_weathered_metal_low_angle_natural_daylight_mechanical_geometry.jpg"
+                                            src={activePillar.images?.intervene}
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Maintenance Log" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/GlovedHandsAssemblingPrecisionMetalComponentOnBlueWorkSurface.webp"
+                                            src={activePillar.images?.approach}
                                         />
                                     </div>
 
@@ -760,7 +778,7 @@ export const IndustrialsPage: React.FC = () => {
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="Control Room" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/ThreeDiverseMaleFactoryWorkersInHardHatsAndSafetyVestsOperatingIndustrialMachinery.webp"
+                                        src={activePillar.images?.final}
                                     />
                                 </div>
                             </div>

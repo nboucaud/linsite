@@ -196,6 +196,13 @@ const PILLARS = [
             problem: "In lean organizations, operational decisions rarely happen in isolation. Hiring, budgeting, delivery, and growth planning often move simultaneously, with limited separation between strategic intent and daily execution. As a result, leaders are asked to make consequential decisions quickly, often without the benefit of consolidated views or long planning cycles.\n\nThe challenge is not a lack of effort or insight, but the **difficulty of maintaining alignment as the organization grows.** As teams expand and responsibilities diversify, assumptions that once lived in a founder’s head become harder to communicate consistently. Forecasts, priorities, and resource decisions can drift out of sync, even when everyone is working toward the same goals.\n\nOver time, this creates friction, not because strategy is missing, but because it is distributed across tools, conversations, and individuals. The problem is sustaining clarity and coordination without slowing the organization’s natural pace.",
             intervene: "The moment intervention matters most is when decisions start compounding faster than alignment. In growing organizations, it becomes increasingly difficult to see how individual choices, like hiring, pricing, capacity, delivery, interact across the business in real time.\n\nIntervention focuses on **restoring a shared operating picture.** This means clarifying how forecasts, priorities, and constraints connect across functions, so decisions reinforce each other instead of competing for attention. The emphasis is on coordination and augmentation across teams. Creating enough structure to support scale without disrupting momentum.\n\nThis work intervenes at the level of decision context: ensuring leaders have visibility into tradeoffs before they become commitments, and that teams are operating from the same assumptions as the organization grows.",
             approach: "We always want to slow down the noise for our clients, without slowing down business operations. In fast-moving organizations, clarity is often buried under urgency. The work here is about **creating space for better decisions while preserving momentum.**\n\nSupport focuses on helping leaders see how leaders see how operational choices connect—where constraints are forming, where capacity is tightening, and where decisions made today will echo tomorrow. This is done by strengthening shared understanding across functions, not by introducing rigid planning layers. The intent is to make coordination easier, not heavier. Support shows up as clearer framing, better timing, and fewer surprises as the organization grows and adapts."
+        },
+        // SECTION 1 IMAGES
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-business-team-reviewing-large-blueprint-plans-on-conference-table.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-consultants-reviewing-documents-and-laptop-during-office-meeting.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-diverse-professionals-shaking-hands-after-business-meeting.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-top-view-of-team-collaboration-meeting-with-laptops-and-documents.webp"
         }
     },
     {
@@ -210,6 +217,13 @@ const PILLARS = [
             problem: "Revenue signals in high-growth environments tend to arrive unevenly. Customer behavior shifts, channels perform inconsistently, and attribution is rarely straightforward. Leaders are often forced to interpret performance using partial data, anecdotal feedback, or short-term trends that may not reflect underlying demand.\n\nWe recognize that the **difficulty lies in separating meaningful patterns from temporary noise.** Growth decisions must be made before certainty is available, yet overreacting to early signals can be as costly as ignoring them. Teams may track metrics diligently, but still struggle to connect marketing activity, customer behavior, and long-term revenue outcomes into a coherent picture. This creates a tension between speed and confidence. The problem is not insight itself, but knowing which signals to trust as conditions evolve and the business scales.",
             intervene: "With every client, we start by acknowledging that curving uncertainty and complexity is part of the growth process. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, connecting marketing activity, customer behavior, and performance outcomes into a **coherent narrative that evolves over time.** This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions. The aim is steadier judgment. Support helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions.",
             approach: "Support starts by acknowledging that uncertainty is part of growth. Market signals are rarely clean, and waiting for perfect clarity is not an option. The role here is not to simplify reality, but to help teams navigate it with confidence.\n\nSupport focuses on improving how revenue signals are interpreted, like connecting marketing activity, customer behavior, and performance outcomes into a coherent narrative that evolves over time. This allows leaders to make adjustments without constantly resetting strategy or second-guessing decisions.\n\nThe aim is always to foster **steadier judgment and decision-making for our clients**, based on the intelligence that they believe in. We believe that this helps teams trust their understanding of the market even when conditions shift and outcomes lag behind actions."
+        },
+        // SECTION 2 IMAGES
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-businesswoman-in-green-blazer-typing-on-desktop-computer-in-office.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-customer-support-agents-wearing-headsets-in-call-center-row.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-project-manager-presenting-strategy-on-flipchart-to-business-team.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-creative-team-brainstorming-around-table-in-bright-office.webp"
         }
     },
     {
@@ -224,6 +238,13 @@ const PILLARS = [
             problem: "Technology in growing organizations is rarely chosen all at once. Systems are added incrementally to address immediate needs, like managing requests, tracking work, and supporting customers. Often under time pressure and without the benefit of long-term architectural planning. Over time, these tools begin to overlap, creating friction rather than efficiency.\n\nWith technology design and adoption, it is rarely about “poor decision-making”. It is about the reality that **early technology choices are made before future scale is clear.** As workflows become more complex, teams may find themselves adapting their work to fit tools that were never designed to support evolving processes. This can slow execution, increase manual effort, and make it harder to maintain shared visibility. The problem is not technology adoption itself, but ensuring that systems continue to support how work is actually done as the organization grows.",
             intervene: "Technology stops helping when it starts shaping work instead of supporting it. As systems accumulate, friction often shows up not as failure, but as extra steps, workarounds, and duplicated effort. Intervention occurs at the intersection of workflows and systems.\n\nThe focus is on **aligning tools with how work actually happens, in real time.** Through requests, approvals, handoffs, reporting, and sometimes, tribal knowledge. We create technologies with our clients that reduce effort and prioritizes human judgement and interaction, rather than redistributes it. This includes evaluating what to simplify, what to connect, and what to leave untouched. The goal is not to replace systems, but to ensure they remain useful as the organization evolves. Intervention supports clarity, continuity, and scale without recreating the overhead of enterprise environments.",
             approach: "More than anything, this support begins by respecting the systems already in place. Most organizations arrive here having made reasonable technology choices under real constraints. The challenge is rarely starting over, it’s **keeping tools useful as work changes.**\n\nSupport focuses on reducing friction where it shows up: unnecessary handoffs, duplicated work, and unclear ownership. This involves aligning systems with workflows so technology quietly supports execution rather than demanding attention. The goal is continuity. Support ensures that tools remain assets as the organization scales, without introducing complexity that slows teams down or pulls focus away from the work itself."
+        },
+        // SECTION 3 IMAGES
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-blue-technology-network-background-with-glowing-rectangular-data-nodes.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-woman-sitting-on-floor-at-coffee-table-typing-on-laptop-in-living-room.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-woman-with-glasses-working-on-laptop-at-modern-office-desk.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-abstract-digital-data-glitch-background-with-red-and-blue-light-trails.webp"
         }
     }
 ];
@@ -561,11 +582,11 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.problem} />
                                     </section>
                                     
-                                    {/* VISUAL BREAK 1: WIDE */}
+                                    {/* VISUAL BREAK 1: WIDE (Replaced with Strategy/Planning) */}
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Current State" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_wireframe_city_blueprint.jpg" 
+                                        src={activePillar.images?.problem}
                                         blend={true}
                                     />
 
@@ -578,17 +599,17 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.intervene} />
                                     </section>
 
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID (Replaced with Analysis & Action) */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Signal Analysis" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corporate_modernism_brushed_aluminum_polished_glass_diffuse_daylight_rectilinear_architecture.jpg" 
+                                            src={activePillar.images?.intervene}
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Action Loop" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_matte_polymer_modular_grid_technical_learning.jpg" 
+                                            src={activePillar.images?.approach}
                                         />
                                     </div>
 
@@ -601,11 +622,11 @@ export const SmallBusinessPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.approach} />
                                     </section>
 
-                                    {/* FINAL VISUAL */}
+                                    {/* FINAL VISUAL (Replaced with Unified View) */}
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="Unified View" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_striped_textile_polished_acetate_soft_diffused_illumination_contemplative_professionalism.jpg" 
+                                        src={activePillar.images?.final}
                                     />
                                 </div>
                             </div>

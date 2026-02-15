@@ -191,6 +191,12 @@ const PILLARS = [
             problem: "In 2026, logistics operations are enshrouded in commercial decisions that are meant to be locked in before movement can truly begin. Rates are negotiated, capacity is sourced, and service commitments are made based on assumed transit times, clean handoffs, and stable network conditions. Once goods enter motion, however, those assumptions immediately start to break.\n\nMost organizations discover the problem only after the fact. Financial reviews show underperformance without explaining where it originated. Operational teams see friction but lack a way to connect it back to pricing, sourcing, or contract terms. As a result, the same deals are re-signed, the same assumptions are reused, and the same leakage repeats.\n\nDwell accumulates at facilities that were priced as pass-throughs. Appointments slip, rehandling increases, and routing changes introduce cost and delay that were never reflected in the original deal. These losses rarely appear as discrete failures. Instead, they surface as margin erosion spreads thinly across moves, partners, and weeks, making them difficult to isolate and harder to correct.\n\nThe core issue is not execution alone. There is also the absence system that ties commercial commitments to how flow actually behaves once goods are in motion. Without that linkage, leaders are forced to price in the abstract and absorb losses in execution, with no durable way to learn from the network they operate.",
             intervene: "Logistics organizations are operating in a moment where historical averages no longer hold. Volatility has become structural: capacity shifts faster than contracts, networks change faster than pricing cycles, and execution conditions diverge from assumptions almost immediately. In this environment, the problem is not that leaders lack data, but that commercial and operational realities are evaluated on different clocks.\n\nWe intervene at the point where commercial commitments meet execution in motion. This work focuses on reconnecting pricing, sourcing, and service terms to the conditions that actually govern flow: dwell, handoff friction, rerouting, disruption, and constraint. Rather than optimizing in hindsight, the goal is to surface where margin exposure is forming as movement unfolds, while there is still time to respond.\n\nThis is not about predicting a perfect outcome. It is about restoring feedback between execution and strategy, so pricing reflects reality, sourcing reflects constraint, and learning happens before losses are absorbed.\n\nOur approach treats flow as the primary unit of analysis, not transactions or reports. We pay attention to where time accumulates, where responsibility changes hands, and where small deviations begin to compound. By preserving context across facilities, carriers, and partners, we help organizations see how their network is teaching them, and adjust commercial decisions accordingly.",
             approach: "The work begins by refusing false urgency. In logistics environments, speed is often confused with progress, and noise is mistaken for signal. The first move is to reduce confusion without reducing momentum, to strip away the distractions that hide where flow is actually tightening, where responsibility is fragmenting, and where margin is quietly leaking. This approach treats commercial and operational teams as part of the same system, not competing functions. Support is oriented around building shared situational understanding: how pricing assumptions collide with execution, how small delays turn into structural costs, and how decisions made upstream are experienced downstream. The goal is not alignment through process, but alignment through clarity.\n\nAttention is placed deliberately at the points most organizations avoid: handoffs, exceptions, and moments where accountability blurs. Rather than smoothing over these frictions, the work makes them visible and actionable while there is still time to intervene. Learning is pulled forward into the present, not deferred to quarterly reviews or post-mortems. Going forward, the emphasis is on strengthening feedback between movement and decision-making. Pricing adapts because execution teaches. Sourcing evolves because constraints are understood early. Leaders regain the ability to respond with intent instead of reacting after losses are absorbed. This is about keeping operations fast, but no longer blind, and ensuring that growth does not come at the cost of repeated, avoidable mistakes."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-container-cargo-ship-loading-at-port-with-stacked-shipping-containers.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-two-warehouse-inspectors-checking-wood-pallet-racks-with-scanner-and-laptop.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-cardboard-boxes-moving-on-conveyor-belt-logistics-automation-concept.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-large-crane-working-at-industrial-port-during-sunset-hour.webp"
         }
     },
     {
@@ -204,6 +210,12 @@ const PILLARS = [
             problem: "In logistics operations, custody is assumed to be clear until something goes wrong. Goods move through factories, yards, warehouses, carriers, ports, and brokers every day, often without incident. But when a shipment is damaged, delayed, seized, stolen, or audited, the question is never abstract: Who had control at that moment, and who can prove it?\n\nMost organizations cannot answer that cleanly. Custody changes hands faster than documentation updates, responsibility is split across contracts and systems, and critical context is lost at handoffs. Physical control, legal ownership, and regulatory obligation rarely align in real time. By the time an issue surfaces, movement has already continued, evidence is incomplete, and accountability is contested.\n\nCompliance frameworks assume orderly transitions. Real logistics does not. Exceptions, workarounds, and informal practices fill the gaps between organizations, especially under pressure. These gaps are where exposure accumulates: at the dock, at the gate, at the border, during reconsignment, or after hours when no single party clearly owns the outcome. What makes this problem persistent is that it often stays invisible until the stakes are high. A missed filing, an unsigned transfer, or an undocumented custody change may not matter on a good day. On a bad day, it becomes a fine, a claim, a seizure, or a dispute that no one is prepared to defend. The failure is not that people did not act in good faith. It is that the system did not preserve responsibility as goods moved.",
             intervene: "The work begins before something breaks. Instead of waiting for a claim, an audit, or a dispute to force clarity, attention is placed on the moments where custody quietly shifts and risk begins to accumulate. This is where prevention lives: at handoffs, exceptions, and edge cases that rarely trigger alarms but determine outcomes later.\n\nThe focus is on reinforcing responsibility while goods are still moving. Systems are brought in to preserve context as custody changes, so control, documentation, and obligation do not lag behind execution. Rather than adding new layers of oversight, the emphasis is on making existing transitions legible: who had control, under what conditions, and with what evidence.\n\nThis work strengthens the connective tissue between organizations. Factories, warehouses, carriers, and brokers continue to operate at speed, but shared understanding replaces assumption. When deviations occur, they surface early, while there is still time to correct course, clarify ownership, or intervene before exposure compounds. Prevention here is not about tightening the reins. It is about reducing ambiguity. By treating custody as something that must be actively maintained, not passively assumed, operations stay fast without becoming fragile. The result is fewer surprises, cleaner handoffs, and the confidence that when responsibility matters most, it is already accounted for.",
             approach: "Going forward, the goal is confidence under motion. Not the false calm of control, but the earned calm that comes from knowing accountability is intact and support is present. This is about moving through complexity together — protecting people as much as systems, and ensuring that even in moments of stress, no one is navigating the consequences alone.\n\nIn environments shaped by constant motion and pressure, the work is not to eliminate uncertainty, but to make it manageable. Support shows up as steadiness: helping teams stay oriented when conditions change, when responsibility crosses boundaries, and when decisions have to be made before everything is fully known.\n\nThis support is grounded in continuity. Systems are put in place to carry context forward so teams are not forced to reconstruct events after the fact. As goods move and custody shifts, shared understanding moves with them. When questions arise, answers already exist. When something deviates, it is seen early, while there is still room to respond without escalation.\n\nThe emphasis is on reinforcement and augmentation. Existing expertise is respected, existing workflows are preserved, and judgment remains human. What changes is the weight carried by individuals. Fewer assumptions, fewer blind spots, fewer moments where someone is left holding responsibility without evidence."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-female-warehouse-worker-in-hard-hat-holding-tablet-at-night-shift.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-two-warehouse-workers-in-safety-vests-checking-aisle-with-pallet-jack.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-male-worker-in-yellow-hard-hat-scanning-lumber-stock-with-handheld-scanner.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-volunteer-team-sorting-donation-boxes-in-community-center.webp"
         }
     },
     {
@@ -217,6 +229,12 @@ const PILLARS = [
             problem: "In transport systems, failure rarely announces itself. It creeps in as minor delay, an overloaded segment, a missed connection that seems recoverable at first. Then options narrow. Slack disappears. Recovery windows close. By the time disruption is visible, movement is already constrained by the decisions made earlier in the day.\n\nIn these moments, timing is no longer a metric. It becomes the governing force. And without a way to sense, adapt, and recover in motion, even well-run systems can lose control faster than they can respond. The deeper risk is not inefficiency. It is loss of maneuverability. When timing drifts out of alignment across routes, assets, and crews, systems stop being adjustable. They become brittle. Small disruptions begin to dictate outcomes, forcing reactive choices that trade fairness, reliability, or safety just to keep things moving.\n\nMost transport environments are managed through static plans layered on top of dynamic reality. Schedules assume compliance. Models assume clean inputs. Optimization assumes conditions will hold long enough to matter. But real networks operate under interference: congestion, weather, labor gaps, equipment imbalance, policy constraints, and human behavior that does not follow scripts.\n\nWhat operators fear most is not being wrong, it is being late to know. When signals surface too slowly, interventions arrive after leverage is gone. Reroutes increase congestion elsewhere. Delays cascade into missed shifts and stranded assets. Decisions meant to stabilize the system end up amplifying strain.",
             intervene: "The instinct in transport logistics has been to chase efficiency by removing people from the loop. Replace the driver. Automate the decision. Optimize away judgment. In practice, this often strips systems of the very adaptability they rely on when conditions change. But the intervention is happening elsewhere. It happens by strengthening human command, not bypassing it. Attention is placed on communication, situational awareness, and the ability to coordinate action as timing begins to drift. Rather than treating variability as noise to be eliminated, the work focuses on helping teams recognize it early and respond together.\n\nThis means augmenting, not replacing. Operators, dispatchers, drivers, and controllers remain at the center, but they are supported by systems that surface emerging constraints, clarify tradeoffs, and preserve shared understanding as decisions evolve. When plans break, people do not scramble in isolation. They act with context, with visibility into how their choices affect the rest of the network.\n\nIn a landscape shaped by constant change, efficiency alone is brittle. Resilience comes from communication that keeps pace with movement, and from systems that help people adapt in motion rather than locking them into decisions made under outdated assumptions. This is where momentum is protected. By giving the experts the tools they need to navigate change as it unfolds.",
             approach: "Going forward, this is about confidence in motion. Knowing that when conditions refuse to cooperate, context will not disappear, communication will not collapse, and responsibility will not fall on one person alone. In complex systems, no one should have to carry the weight by themselves. This work exists to make sure they don’t have to.\n\nSupport here is not about taking control away. It is about standing alongside the people who already understand how these systems really work. The experience, intuition, and judgment that keep transport moving under pressure are treated as assets, not inefficiencies to be engineered out.\n\nThis support shows up as continuity and reinforcement. As conditions shift, systems help carry shared understanding forward so teams are not forced to relearn the same lessons in moments of stress. Communication stays intact as timing drifts. Decisions remain grounded in the realities operators see on the ground, not just in models or schedules that no longer apply.\n\nThe work affirms what many already know to be true: that effective transport depends on people who can sense change early, adapt quickly, and coordinate with others under constraint. Rather than questioning that expertise, support is designed to amplify it, making good judgment easier to exercise and harder to ignore."
+        },
+        images: {
+            problem: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-modern-elevated-metro-train-traveling-through-urban-cityscape.webp",
+            intervene: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-woman-boarding-orange-passenger-train-at-indoor-station-platform.webp",
+            approach: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-industrial-rail-line-passing-fuel-storage-tanks-and-pipelines.webp",
+            final: "https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/New_Img.2.15/infg-nighttime-urban-railway-curving-along-river-with-city-traffic.webp"
         }
     }
 ];
@@ -528,15 +546,14 @@ const StatCard: React.FC<{ stat: typeof STATS[0], index: number }> = ({ stat, in
             style={{ '--card-color': stat.color } as React.CSSProperties}
         >
             <div className="absolute inset-0 border border-transparent group-hover:border-[var(--card-color)] opacity-0 group-hover:opacity-100 rounded-2xl transition-all duration-500 pointer-events-none" />
-            
-            {/* Watermark */}
+            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -right-6 -bottom-6 text-white/5 group-hover:text-[var(--card-color)] group-hover:opacity-10 transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-12 pointer-events-none">
                 {React.createElement(stat.icon, { size: 100, strokeWidth: 0.5 })}
             </div>
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-colors border border-white/5 group-hover:bg-[var(--card-color)] group-hover:border-transparent">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-colors border border-white/5 group-hover:bg-[var(--card-color)] group-hover:border-transparent group-hover:shadow-[0_0_20px_rgba(0,0,0,0.3)]">
                         {React.createElement(stat.icon, { size: 24 })}
                     </div>
                     <span className="text-[10px] font-mono uppercase tracking-widest text-white/30 group-hover:text-[var(--card-color)] transition-colors border border-white/10 px-2 py-1 rounded bg-[#0a0a0c]">
@@ -802,11 +819,11 @@ export const LogisticsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.problem} />
                                     </section>
                                     
-                                    {/* VISUAL BREAK 1: WIDE (Swapped Image: CardboardBoxes for variation) */}
+                                    {/* VISUAL BREAK 1: WIDE */}
                                     <ImagePlaceholder 
                                         type="wide" 
                                         label="Network Overview" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/CardboardBoxesMovingAlongCurvedConveyorBeltSystemInWarehouse.webp" 
+                                        src={activePillar.images?.problem}
                                     />
 
                                     {/* SECTION 2: INTERVENTION */}
@@ -818,17 +835,17 @@ export const LogisticsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.intervene} />
                                     </section>
 
-                                    {/* VISUAL BREAK 2: PORTRAIT GRID (Swapped Images) */}
+                                    {/* VISUAL BREAK 2: PORTRAIT GRID */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Node Analysis" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_holographic_city_simulation.jpg" 
+                                            src={activePillar.images?.intervene}
                                         />
                                         <ImagePlaceholder 
                                             type="portrait" 
                                             label="Flow Correction" 
-                                            src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_corrugated_steel_industrial_logistics_massive_gantry_cranes_modular_geometry.jpg" 
+                                            src={activePillar.images?.approach}
                                         />
                                     </div>
 
@@ -841,11 +858,11 @@ export const LogisticsPage: React.FC = () => {
                                         <FormattedContent text={activePillar.content.approach} />
                                     </section>
 
-                                    {/* FINAL VISUAL (Replaced live visualizer with image) */}
+                                    {/* FINAL VISUAL */}
                                     <ImagePlaceholder 
                                         type="square" 
                                         label="System Harmony" 
-                                        src="https://jar5gzlwdkvsnpqa.public.blob.vercel-storage.com/info_site_raw_timber_pallets_orthogonal_grid_structure_logistical_efficiency_diffuse_indoor_illumination.jpg" 
+                                        src={activePillar.images?.final}
                                     />
                                 </div>
                             </div>
