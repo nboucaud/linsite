@@ -28,7 +28,7 @@ const FormattedContent: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
-// Enhanced Image Component
+// Enhanced Image Component - Optimized for Stability
 const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: string, src?: string }> = ({ type, label, src }) => {
     const aspect = type === 'wide' ? 'aspect-[21/9]' : type === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
     const widthClass = type === 'wide' ? 'w-full' : 'w-full';
@@ -50,7 +50,7 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
         return () => observer.disconnect();
     }, []);
 
-    // Canvas Effect
+    // Canvas Effect - Optimized
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !isVisible || hasError) return;
@@ -61,11 +61,18 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
         let time = 0;
 
         const render = () => {
+            if (!canvas.parentElement) return; // Safety check
+            
             time += 1;
-            const w = canvas.parentElement?.clientWidth || 300;
-            const h = canvas.parentElement?.clientHeight || 300;
-            canvas.width = w;
-            canvas.height = h;
+            // Optimization: Use offsetWidth/Height instead of clientWidth to avoid sub-pixel layout thrashing if not needed
+            // Only update dimensions if they have changed to prevent constant layout invalidation
+            const w = canvas.parentElement.offsetWidth;
+            const h = canvas.parentElement.offsetHeight;
+            
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
 
             ctx.clearRect(0, 0, w, h);
 
@@ -253,11 +260,17 @@ const AlignmentVisualizer: React.FC<{ color: string }> = ({ color }) => {
         let frameId: number;
         const boids: any[] = [];
         for(let i=0; i<60; i++) boids.push({x: Math.random()*300, y: Math.random()*300, vx: Math.random()*2-1, vy: Math.random()*2-1});
+        
         const render = () => {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
+            // Safe resize check
+            const w = canvas.parentElement?.offsetWidth || 300;
+            const h = canvas.parentElement?.offsetHeight || 300;
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+            ctx.clearRect(0,0,w,h);
             boids.forEach(b => {
                 b.x += b.vx; b.y += b.vy;
-                if(b.x<0||b.x>300) b.vx*=-1; if(b.y<0||b.y>300) b.vy*=-1;
+                if(b.x<0||b.x>w) b.vx*=-1; if(b.y<0||b.y>h) b.vy*=-1;
                 ctx.fillStyle=color; ctx.beginPath(); ctx.arc(b.x,b.y,2,0,Math.PI*2); ctx.fill();
             });
             frameId = requestAnimationFrame(render);
@@ -265,7 +278,7 @@ const AlignmentVisualizer: React.FC<{ color: string }> = ({ color }) => {
         render();
         return () => cancelAnimationFrame(frameId);
     }, [color]);
-    return <canvas ref={canvasRef} className="w-full h-full" width={300} height={300} />;
+    return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
 const SignalVisualizer: React.FC<{ color: string }> = ({ color }) => {
@@ -276,17 +289,22 @@ const SignalVisualizer: React.FC<{ color: string }> = ({ color }) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         let t = 0; let frameId: number;
+        
         const render = () => {
-            t+=0.1; ctx.clearRect(0,0,canvas.width,canvas.height);
+            const w = canvas.parentElement?.offsetWidth || 300;
+            const h = canvas.parentElement?.offsetHeight || 300;
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+            t+=0.1; ctx.clearRect(0,0,w,h);
             ctx.strokeStyle=color; ctx.beginPath();
-            for(let x=0; x<300; x+=5) ctx.lineTo(x, 150 + Math.sin(x*0.05 + t)*20);
+            for(let x=0; x<w; x+=5) ctx.lineTo(x, h/2 + Math.sin(x*0.05 + t)*20);
             ctx.stroke();
             frameId=requestAnimationFrame(render);
         };
         render();
         return () => cancelAnimationFrame(frameId);
     }, [color]);
-    return <canvas ref={canvasRef} className="w-full h-full" width={300} height={300} />;
+    return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
 const ArchitectureVisualizer: React.FC<{ color: string }> = ({ color }) => {
@@ -297,11 +315,16 @@ const ArchitectureVisualizer: React.FC<{ color: string }> = ({ color }) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         let t = 0; let frameId: number;
+        
         const render = () => {
-            t+=0.02; ctx.clearRect(0,0,canvas.width,canvas.height);
+            const w = canvas.parentElement?.offsetWidth || 300;
+            const h = canvas.parentElement?.offsetHeight || 300;
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+            t+=0.02; ctx.clearRect(0,0,w,h);
             ctx.strokeStyle=color;
             const s = 40;
-            for(let x=0; x<300; x+=s) for(let y=0; y<300; y+=s) {
+            for(let x=0; x<w; x+=s) for(let y=0; y<h; y+=s) {
                 if(Math.sin(x*y + t) > 0) ctx.strokeRect(x,y,s,s);
             }
             frameId=requestAnimationFrame(render);
@@ -309,7 +332,7 @@ const ArchitectureVisualizer: React.FC<{ color: string }> = ({ color }) => {
         render();
         return () => cancelAnimationFrame(frameId);
     }, [color]);
-    return <canvas ref={canvasRef} className="w-full h-full" width={300} height={300} />;
+    return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
 const ModalBackground: React.FC<{ mode: string, color: string }> = ({ mode, color }) => {
