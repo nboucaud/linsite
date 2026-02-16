@@ -43,13 +43,14 @@ export const GlobalNav: React.FC = () => {
     setMobileExpanded({});
   };
 
-  const toggleMobileSection = (label: string) => {
+  const toggleMobileSection = (label: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setMobileExpanded(prev => ({...prev, [label]: !prev[label]}));
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[150] bg-[#020202]/90 backdrop-blur-md border-b border-white/10 transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between relative z-[160]">
+    <nav className="fixed top-0 left-0 right-0 z-[500] bg-[#020202]/90 backdrop-blur-md border-b border-white/10 transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between relative z-[520]">
         {/* LOGO */}
         <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group h-full overflow-hidden">
           <img 
@@ -83,7 +84,7 @@ export const GlobalNav: React.FC = () => {
                 <div 
                     className={`
                         absolute top-[80%] left-0 w-[240px] bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl p-2 
-                        transition-all duration-200 origin-top z-[170]
+                        transition-all duration-200 origin-top z-[550]
                         flex flex-col gap-1
                         ${activeDropdown === label ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible translate-y-2'}
                     `}
@@ -127,7 +128,7 @@ export const GlobalNav: React.FC = () => {
 
         {/* MOBILE TOGGLE */}
         <button 
-            className="lg:hidden text-white/70 hover:text-white transition-colors p-2 z-[160]" 
+            className="lg:hidden text-white/70 hover:text-white transition-colors p-2 z-[530] relative" 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -135,13 +136,20 @@ export const GlobalNav: React.FC = () => {
       </div>
 
       {/* MOBILE MENU OVERLAY */}
-      <div className={`lg:hidden fixed inset-0 bg-[#020202] z-[150] transition-transform duration-300 pt-32 px-6 overflow-y-auto ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="space-y-6 pb-12">
+      <div 
+        className={`
+            lg:hidden fixed inset-0 bg-[#020202] z-[510] 
+            transition-transform duration-300 ease-out
+            pt-32 px-6 overflow-y-auto
+            ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+        `}
+      >
+        <div className="space-y-6 pb-20">
             {Object.entries(SITEMAP).map(([label, data]) => (
                 <div key={label} className="border-b border-white/10 pb-6 animate-in slide-in-from-right-4 fade-in duration-500">
                     <button 
-                        onClick={() => data.items ? toggleMobileSection(label) : handleNav(data.path)} 
-                        className="text-2xl font-serif text-white mb-2 w-full text-left flex justify-between items-center"
+                        onClick={(e) => data.items ? toggleMobileSection(label, e) : handleNav(data.path)} 
+                        className="text-2xl font-serif text-white mb-2 w-full text-left flex justify-between items-center py-2"
                     >
                         {label}
                         {data.items && (
@@ -152,35 +160,33 @@ export const GlobalNav: React.FC = () => {
                         )}
                     </button>
                     
-                    {/* Collapsible Content */}
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${mobileExpanded[label] ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-                        {data.items && (
-                            <div className="pl-4 space-y-4 border-l border-white/10 ml-1">
-                                {data.items.map(item => (
-                                    <button 
-                                        key={item.path} 
-                                        onClick={() => handleNav(item.path)} 
-                                        className="block text-white/60 text-base hover:text-[#69B7B2] transition-colors text-left w-full"
-                                    >
-                                        {item.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* Collapsible Content - Conditional Rendering for Robustness */}
+                    {data.items && mobileExpanded[label] && (
+                        <div className="pl-4 space-y-4 border-l border-white/10 ml-1 mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                            {data.items.map(item => (
+                                <button 
+                                    key={item.path} 
+                                    onClick={() => handleNav(item.path)} 
+                                    className="block text-white/60 text-lg hover:text-[#69B7B2] transition-colors text-left w-full py-2"
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ))}
             
             <button 
                 onClick={() => handleNav('about/careers')} 
-                className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500"
+                className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500 py-2"
             >
                 Infogito Labs
             </button>
 
             <button 
                 onClick={() => handleNav('contact')} 
-                className="w-full py-4 bg-[#69B7B2] text-black font-bold uppercase tracking-widest text-sm rounded-lg"
+                className="w-full py-4 bg-[#69B7B2] text-black font-bold uppercase tracking-widest text-sm rounded-lg shadow-lg"
             >
                 Get In Touch
             </button>
