@@ -160,14 +160,14 @@ export const GlobalNav: React.FC = () => {
                         )}
                     </button>
                     
-                    {/* Collapsible Content - Conditional Rendering for Robustness */}
+                    {/* Collapsible Content - Distinct Visual Box */}
                     {data.items && mobileExpanded[label] && (
-                        <div className="pl-4 space-y-4 border-l border-white/10 ml-1 mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div className="mt-4 bg-[#111] border border-white/10 rounded-xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 shadow-inner">
                             {data.items.map(item => (
                                 <button 
                                     key={item.path} 
                                     onClick={() => handleNav(item.path)} 
-                                    className="block text-white/60 text-lg hover:text-[#69B7B2] transition-colors text-left w-full py-2"
+                                    className="block w-full text-left text-white/70 hover:text-white hover:bg-white/5 py-3 px-4 rounded-lg transition-colors text-base font-medium"
                                 >
                                     {item.label}
                                 </button>
