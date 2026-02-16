@@ -64,8 +64,6 @@ const ImagePlaceholder: React.FC<{ type: 'wide' | 'portrait' | 'square', label: 
             if (!canvas.parentElement) return; // Safety check
             
             time += 1;
-            // Optimization: Use offsetWidth/Height instead of clientWidth to avoid sub-pixel layout thrashing if not needed
-            // Only update dimensions if they have changed to prevent constant layout invalidation
             const w = canvas.parentElement.offsetWidth;
             const h = canvas.parentElement.offsetHeight;
             
@@ -262,7 +260,6 @@ const AlignmentVisualizer: React.FC<{ color: string }> = ({ color }) => {
         for(let i=0; i<60; i++) boids.push({x: Math.random()*300, y: Math.random()*300, vx: Math.random()*2-1, vy: Math.random()*2-1});
         
         const render = () => {
-            // Safe resize check
             const w = canvas.parentElement?.offsetWidth || 300;
             const h = canvas.parentElement?.offsetHeight || 300;
             if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
@@ -535,10 +532,10 @@ export const SmallBusinessPage: React.FC = () => {
                 <div 
                     ref={modalRef}
                     onScroll={handleScroll}
-                    className="fixed inset-0 z-[100] bg-[#020202] overflow-y-auto animate-in fade-in duration-300 custom-scrollbar"
+                    className="fixed inset-0 z-[200] bg-[#020202] overflow-y-auto animate-in fade-in duration-300 custom-scrollbar"
                 >
                     {/* Progress Bar */}
-                    <div className="fixed top-0 left-0 h-1 bg-purple-500 z-[120] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
+                    <div className="fixed top-0 left-0 h-1 bg-purple-500 z-[210] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
 
                     <div className="min-h-screen flex flex-col relative">
                         
@@ -549,7 +546,7 @@ export const SmallBusinessPage: React.FC = () => {
                         </div>
 
                         {/* Header */}
-                        <div className="fixed top-0 left-0 right-0 h-24 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/10 z-[110] flex items-center px-8 md:px-12 justify-between">
+                        <div className="fixed top-0 left-0 right-0 h-24 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/10 z-[210] flex items-center px-8 md:px-12 justify-between">
                             <div className="flex items-center gap-6">
                                 <button onClick={handleClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors">
                                     <X size={20} />
@@ -648,13 +645,13 @@ export const SmallBusinessPage: React.FC = () => {
                         {/* Back To Top FAB */}
                         <button 
                             onClick={scrollToTop}
-                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                            className={`fixed bottom-8 right-8 z-[210] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
                         >
                             <ChevronUp size={24} />
                         </button>
 
                         {/* Footer Close */}
-                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[110] bg-gradient-to-t from-black to-transparent">
+                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[210] bg-gradient-to-t from-black to-transparent">
                             <button onClick={handleClose} className="pointer-events-auto px-8 py-3 bg-white hover:bg-purple-400 text-black font-bold uppercase tracking-widest text-xs rounded-full shadow-lg transition-colors">
                                 Close Module
                             </button>

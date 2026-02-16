@@ -758,16 +758,16 @@ export const HealthcarePage: React.FC = () => {
                 <div 
                     ref={modalRef} 
                     onScroll={handleScroll}
-                    className="fixed inset-0 z-[100] bg-[#020202] overflow-y-auto animate-in fade-in duration-500 custom-scrollbar"
+                    className="fixed inset-0 z-[200] bg-[#020202] overflow-y-auto animate-in fade-in duration-500 custom-scrollbar"
                 >
                     {/* Progress Bar */}
-                    <div className="fixed top-0 left-0 h-1 bg-teal-400 z-[120] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
+                    <div className="fixed top-0 left-0 h-1 bg-teal-400 z-[210] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
 
                     {/* Content Body */}
                     <div className="relative min-h-screen flex flex-col">
                         
                         {/* HEADER BAR */}
-                        <div className="fixed top-0 left-0 right-0 h-28 bg-[#0a0a0c]/95 backdrop-blur-xl border-b border-white/10 z-[110] flex items-center px-8 md:px-16 justify-between">
+                        <div className="fixed top-0 left-0 right-0 h-28 bg-[#0a0a0c]/95 backdrop-blur-xl border-b border-white/10 z-[210] flex items-center px-8 md:px-16 justify-between">
                             <div className="flex items-center gap-6">
                                 <button 
                                     onClick={handleClose}
@@ -880,13 +880,13 @@ export const HealthcarePage: React.FC = () => {
                         {/* Back To Top FAB */}
                         <button 
                             onClick={scrollToTop}
-                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                            className={`fixed bottom-8 right-8 z-[210] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
                         >
                             <ChevronUp size={24} />
                         </button>
                         
                         {/* FOOTER NAV (Fixed Bottom) */}
-                        <div className="fixed bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#020202] to-transparent z-[110] flex items-center justify-center pointer-events-none">
+                        <div className="fixed bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#020202] to-transparent z-[210] flex items-center justify-center pointer-events-none">
                             <div className="pointer-events-auto">
                                 <button onClick={handleClose} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-all backdrop-blur-md">
                                     Close Module

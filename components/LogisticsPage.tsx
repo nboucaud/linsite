@@ -758,10 +758,10 @@ export const LogisticsPage: React.FC = () => {
                 <div 
                     ref={modalRef} 
                     onScroll={handleScroll}
-                    className="fixed inset-0 z-[100] bg-[#020202] overflow-y-auto animate-in fade-in duration-300 custom-scrollbar"
+                    className="fixed inset-0 z-[200] bg-[#020202] overflow-y-auto animate-in fade-in duration-300 custom-scrollbar"
                 >
                     {/* Progress Bar */}
-                    <div className="fixed top-0 left-0 h-1 bg-cyan-500 z-[120] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
+                    <div className="fixed top-0 left-0 h-1 bg-cyan-500 z-[210] transition-all duration-100 ease-out" style={{ width: `${scrollProgress * 100}%` }} />
 
                     <div className="min-h-screen flex flex-col relative">
                         
@@ -772,7 +772,7 @@ export const LogisticsPage: React.FC = () => {
                         </div>
 
                         {/* Header */}
-                        <div className="fixed top-0 left-0 right-0 h-24 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/10 z-[110] flex items-center px-8 md:px-12 justify-between">
+                        <div className="fixed top-0 left-0 right-0 h-24 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/10 z-[210] flex items-center px-8 md:px-12 justify-between">
                             <div className="flex items-center gap-6">
                                 <button onClick={handleClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors">
                                     <X size={20} />
@@ -871,13 +871,13 @@ export const LogisticsPage: React.FC = () => {
                         {/* Back To Top FAB */}
                         <button 
                             onClick={scrollToTop}
-                            className={`fixed bottom-8 right-8 z-[120] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                            className={`fixed bottom-8 right-8 z-[210] p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all duration-500 transform ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
                         >
                             <ChevronUp size={24} />
                         </button>
 
                         {/* Footer Close */}
-                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[110] bg-gradient-to-t from-black to-transparent">
+                        <div className="fixed bottom-0 left-0 right-0 h-24 flex items-center justify-center pointer-events-none z-[210] bg-gradient-to-t from-black to-transparent">
                             <button onClick={handleClose} className="pointer-events-auto px-8 py-3 bg-white hover:bg-cyan-400 text-black font-bold uppercase tracking-widest text-xs rounded-full shadow-lg transition-colors">
                                 Close Module
                             </button>
