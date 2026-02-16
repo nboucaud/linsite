@@ -132,7 +132,7 @@ const IndustryCarousel: React.FC = () => {
                     return (
                         <div 
                             key={item.id}
-                            className="absolute top-1/2 left-1/2 w-[340px] md:w-[400px] h-[500px] transition-all duration-700 cubic-bezier(0.25, 0.8, 0.25, 1) cursor-pointer"
+                            className="absolute top-1/2 left-1/2 w-[85vw] max-w-[340px] md:max-w-none md:w-[400px] h-[500px] transition-all duration-700 cubic-bezier(0.25, 0.8, 0.25, 1) cursor-pointer"
                             style={{
                                 transform: `translate(-50%, -50%) translateX(${translateX}%) scale(${scale})`,
                                 zIndex,
