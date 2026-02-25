@@ -62,9 +62,7 @@ export const ContactPage: React.FC = () => {
                                         <span className="text-[10px] font-mono text-green-500 uppercase tracking-widest">Headquarters</span>
                                     </div>
                                     <h3 className="text-3xl font-serif text-white mb-2">New York City</h3>
-                                    <p className="text-white/60 text-sm mb-6 max-w-[200px] leading-relaxed">
-                                        New York, NY
-                                    </p>
+                                    <div className="mb-6"></div>
                                     
                                     <div className="flex flex-col gap-3">
                                         <a href="mailto:connect@infogito.com" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors group/link">

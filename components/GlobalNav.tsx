@@ -49,16 +49,17 @@ export const GlobalNav: React.FC = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[500] bg-[#020202]/90 backdrop-blur-md border-b border-white/10 transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between relative z-[520]">
-        {/* LOGO */}
-        <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group h-full overflow-hidden">
-          <img 
-            src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
-            alt="Infogito Logo" 
-            className="h-[115%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
-          />
-        </button>
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-[500] ${mobileMenuOpen ? 'bg-[#020202]' : 'bg-[#020202]/90 backdrop-blur-md'} border-b border-white/10 transition-all duration-300`}>
+        <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between relative z-[520]">
+          {/* LOGO */}
+          <button onClick={() => handleNav('platform')} className="flex items-center gap-3 group h-full overflow-hidden flex-shrink-0">
+            <img 
+              src="https://uapriywlkpcpupdp.public.blob.vercel-storage.com/brand_logo_infogito.webp" 
+              alt="Infogito Logo" 
+              className="h-[80%] md:h-[115%] w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
+            />
+          </button>
 
         {/* DESKTOP NAV */}
         <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-white/60">
@@ -104,7 +105,8 @@ export const GlobalNav: React.FC = () => {
             </div>
           ))}
 
-          {/* INFOGITO LABS - Special Item */}
+          {/* INFOGITO LABS - Special Item (Hidden) */}
+          {/* 
           <button 
             onClick={() => handleNav('about/careers')} 
             className="group relative flex items-center gap-2 px-4 py-2 rounded-full overflow-hidden transition-all duration-300 hover:bg-white/5"
@@ -115,6 +117,8 @@ export const GlobalNav: React.FC = () => {
                 Infogito Labs
             </span>
           </button>
+          */}
+
 
           {/* CONTACT BUTTON */}
           <button 
@@ -134,11 +138,12 @@ export const GlobalNav: React.FC = () => {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
+      </nav>
 
       {/* MOBILE MENU OVERLAY */}
       <div 
         className={`
-            lg:hidden fixed inset-0 bg-[#020202] z-[510] 
+            lg:hidden fixed inset-0 bg-[#020202] z-[490] 
             transition-transform duration-300 ease-out
             pt-32 px-6 overflow-y-auto
             ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
@@ -177,12 +182,15 @@ export const GlobalNav: React.FC = () => {
                 </div>
             ))}
             
+            {/* 
             <button 
                 onClick={() => handleNav('about/careers')} 
                 className="w-full text-left text-xl font-serif text-purple-400 mb-8 block animate-in slide-in-from-right-4 fade-in duration-500 py-2"
             >
                 Infogito Labs
             </button>
+            */}
+
 
             <button 
                 onClick={() => handleNav('contact')} 
@@ -192,6 +200,6 @@ export const GlobalNav: React.FC = () => {
             </button>
         </div>
       </div>
-    </nav>
+    </>
   );
 };

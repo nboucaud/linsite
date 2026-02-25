@@ -142,8 +142,8 @@ export const SiteFooter: React.FC = () => {
                 <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-widest font-mono text-white/30">
                     <div>© 2026 Infogito LLC. All Rights Reserved.</div>
                     <div className="flex gap-8">
-                        <button className="hover:text-white transition-colors">Privacy Policy</button>
-                        <button className="hover:text-white transition-colors">Terms of Service</button>
+                        {/* <button className="hover:text-white transition-colors">Privacy Policy</button>
+                        <button className="hover:text-white transition-colors">Terms of Service</button> */}
                     </div>
                 </div>
             </div>
